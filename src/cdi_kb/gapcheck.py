@@ -2,8 +2,10 @@
 
 Demo limitations (accepted, documented): (1) axis evidence is scanned across
 the whole note, not attributed to a specific condition mention; (2) negation
-is a fixed cue window, not full ConText. Both are called out in the proposal
-as the points where the production NLP/LLM stage takes over.
+is a fixed cue window, not full ConText; (3) negation cues are matched only
+pre-mention (resolved/ruled out post-positioned phrasings are not caught).
+Both are called out in the proposal as the points where the production
+NLP/LLM stage takes over.
 """
 
 import re
@@ -14,6 +16,12 @@ from cdi_kb.requirements_model import DiagnosisRequirement
 _NEGATION_CUES = ("no ", "not ", "denies", "denied", "without", "negative for",
                   "ruled out", "no evidence of", "resolved")
 _NEGATION_WINDOW_CHARS = 40
+
+# Precompile boundary-aware patterns for negation cues
+_NEGATION_CUE_PATTERNS = [
+    re.compile(rf"(?<![A-Za-z0-9]){re.escape(cue.rstrip())}(?![A-Za-z0-9])", re.IGNORECASE)
+    for cue in _NEGATION_CUES
+]
 
 
 @dataclass(frozen=True)
@@ -38,8 +46,8 @@ def _term_pattern(term: str) -> re.Pattern[str]:
 
 
 def _is_negated(note_text: str, start: int) -> bool:
-    window = note_text[max(0, start - _NEGATION_WINDOW_CHARS) : start].lower()
-    return any(cue in window for cue in _NEGATION_CUES)
+    window = note_text[max(0, start - _NEGATION_WINDOW_CHARS) : start]
+    return any(pattern.search(window) for pattern in _NEGATION_CUE_PATTERNS)
 
 
 def detect_conditions(note_text: str, requirements: list[DiagnosisRequirement]) -> list[ConditionMention]:

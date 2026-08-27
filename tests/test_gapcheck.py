@@ -39,3 +39,27 @@ def test_gap_raised_when_required_axis_absent() -> None:
 def test_no_gap_when_axis_documented_or_condition_negated() -> None:
     assert find_gaps("CKD stage 3b, stable.", [CKD]) == []
     assert find_gaps("Denies chronic kidney disease.", [CKD]) == []
+
+
+def test_negation_cue_in_word_does_not_falsely_negate() -> None:
+    """Regression: 'albino' contains 'no', but should not trigger negation."""
+    gaps = find_gaps("Patient has albino complexion; chronic kidney disease under review.", [CKD])
+    # Should find a gap because CKD is NOT negated (the "no" is inside "albino")
+    assert len(gaps) == 1
+    assert gaps[0].axis == "stage"
+    assert not gaps[0].mention.negated
+
+
+def test_negation_window_still_suppresses_legitimate_negation() -> None:
+    """Verify 'No evidence of' still triggers negation correctly."""
+    mentions = detect_conditions("No evidence of chronic kidney disease.", [CKD])
+    assert len(mentions) == 1 and mentions[0].negated
+
+
+def test_cannot_exclude_does_not_trigger_not_cue() -> None:
+    """Regression: 'cannot' contains 'not' but should not falsely negate."""
+    gaps = find_gaps("Cannot exclude chronic kidney disease.", [CKD])
+    # Should find a gap because "cannot" does not match the "not " cue (word boundary)
+    assert len(gaps) == 1
+    assert gaps[0].axis == "stage"
+    assert not gaps[0].mention.negated
