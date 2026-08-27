@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from cdi_kb import config
 from cdi_kb.clauses import ClauseStore
 from cdi_kb.findings import Finding, compose_finding
-from cdi_kb.gapcheck import ConditionMention, Gap, find_gaps, scan_axes
+from cdi_kb.gapcheck import ConditionMention, Gap, detect_conditions, find_gaps, scan_axes
 from cdi_kb.requirements_model import DiagnosisRequirement, load_requirements
 
 
@@ -13,6 +13,21 @@ from cdi_kb.requirements_model import DiagnosisRequirement, load_requirements
 class AuditResult:
     findings: list[Finding] = field(default_factory=list)
     dropped_citations: list[str] = field(default_factory=list)
+
+
+def _named_conditions(
+    note_text: str,
+    requirements: list[DiagnosisRequirement],
+    result: AuditResult,
+) -> set[str]:
+    """Conditions already named in the note or already surfaced as findings/dropped
+    citations. Structural (re-detects mentions in note_text), not just derived from
+    findings/dropped keys, so a NAMED-BUT-NEGATED condition (e.g. "No sepsis.") is
+    still excluded from LLM-inferred implicits -- which hardcode negated=False by
+    design and would otherwise emit a clinically false finding for it."""
+    return ({m.condition for m in detect_conditions(note_text, requirements)} |
+            {f.dedupe_key.split("|")[0] for f in result.findings} |
+            {d.split("|")[0] for d in result.dropped_citations})
 
 
 def _inferred_findings(
@@ -64,8 +79,7 @@ def run_audit(note_text: str, *, use_llm: bool = False) -> AuditResult:
         if use_llm:
             # inline import: keeps offline path free of the anthropic dependency
             from cdi_kb.llm_infer import infer_implicit_conditions
-            already_named = ({f.dedupe_key.split("|")[0] for f in result.findings} |
-                              {d.split("|")[0] for d in result.dropped_citations})
+            already_named = _named_conditions(note_text, requirements, result)
             implicits = infer_implicit_conditions(note_text, tuple(by_condition))
             new_findings, new_dropped = _inferred_findings(
                 [(f.condition, f.evidence) for f in implicits],

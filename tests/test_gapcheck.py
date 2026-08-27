@@ -63,3 +63,19 @@ def test_cannot_exclude_does_not_trigger_not_cue() -> None:
     assert len(gaps) == 1
     assert gaps[0].axis == "stage"
     assert not gaps[0].mention.negated
+
+
+def test_wrapped_multi_word_evidence_term_still_satisfies_axis() -> None:
+    """Regression: a note that line-wraps 'stage 4' as 'stage\\n4' must still be
+    recognized as documenting the stage axis (no false required-axis gap)."""
+    assert find_gaps("CKD stage\n4 (eGFR 22), stable.", [CKD]) == []
+
+
+def test_wrapped_negation_cue_still_suppresses() -> None:
+    """Regression: a note that line-wraps 'ruled out' as 'ruled\\nout' must still
+    suppress the mention via negation. The cue is placed pre-mention: negation here
+    is matched only pre-mention by design (see module docstring), so a post-mention
+    cue would not suppress regardless of the whitespace fix -- this test isolates
+    the wrapping behavior this fix actually addresses."""
+    mentions = detect_conditions("Ruled\nout: chronic kidney disease on imaging.", [CKD])
+    assert len(mentions) == 1 and mentions[0].negated

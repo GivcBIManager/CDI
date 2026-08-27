@@ -8,7 +8,7 @@ not produce duplicate findings.
 import pytest
 
 from cdi_kb import config
-from cdi_kb.audit import _inferred_findings
+from cdi_kb.audit import AuditResult, _inferred_findings, _named_conditions
 from cdi_kb.clauses import ClauseStore
 from cdi_kb.requirements_model import load_requirements
 
@@ -78,6 +78,34 @@ def test_already_named_condition_is_skipped(by_condition_and_store) -> None:
     findings, dropped = _inferred_findings(
         [("sepsis", "evidence one")],
         note, by_condition, store, {"sepsis"},
+    )
+    assert findings == []
+    assert dropped == []
+
+
+def test_named_conditions_includes_named_but_negated_condition() -> None:
+    # A NAMED-BUT-NEGATED condition ("No sepsis.") is absent from findings/dropped
+    # (nothing was raised for it), so a set derived only from those keys would miss
+    # it. _named_conditions must re-detect mentions structurally, so it still shows
+    # up here -- otherwise, if the LLM returned this condition as an implicit anyway,
+    # _inferred_findings (which hardcodes negated=False by design) would emit a
+    # clinically false finding for a condition the note explicitly rules out.
+    requirements = load_requirements(config.REQUIREMENTS_DIR)
+    note = "No evidence of sepsis. Afebrile."
+    named = _named_conditions(note, requirements, AuditResult())
+    assert "sepsis" in named
+
+
+def test_inferred_findings_skips_condition_from_named_conditions_guard(by_condition_and_store) -> None:
+    # End-to-end through the guard's own home: _named_conditions' output feeds
+    # directly into _inferred_findings' skip set.
+    by_condition, store = by_condition_and_store
+    requirements = list(by_condition.values())
+    note = "No evidence of sepsis. Afebrile."
+    already_named = _named_conditions(note, requirements, AuditResult())
+    findings, dropped = _inferred_findings(
+        [("sepsis", "evidence one")],
+        note, by_condition, store, already_named,
     )
     assert findings == []
     assert dropped == []

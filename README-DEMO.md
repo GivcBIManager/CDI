@@ -38,7 +38,9 @@ Latest offline run:
     58 passed, 1 deselected in 16.49s
 
 Live LLM inference test: pending — requires ANTHROPIC_API_KEY (or `ant auth login`); run
-`/c/python/python -m pytest -m live -v` once available.
+`/c/python/python -m pytest -m live -v` once available, then
+`/c/python/python -m cdi_kb.cli audit data/eval/notes/chronic-kidney-disease-gap.txt --llm`
+to confirm implicit-condition inference end-to-end.
 
 ## What this demo proves / does not prove
 Proves: 3-layer KB with citation-verified findings for 20 diagnoses; every

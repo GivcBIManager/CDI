@@ -17,9 +17,16 @@ _NEGATION_CUES = ("no ", "not ", "denies", "denied", "without", "negative for",
                   "ruled out", "no evidence of", "resolved")
 _NEGATION_WINDOW_CHARS = 40
 
+
+def _whitespace_flexible_pattern(term: str) -> str:
+    """Join a (possibly multi-word) term's words with \\s+ so a note that wraps
+    the term across a line break (e.g. "stage\\n4") still matches."""
+    return r"\s+".join(re.escape(word) for word in term.split())
+
+
 # Precompile boundary-aware patterns for negation cues
 _NEGATION_CUE_PATTERNS = [
-    re.compile(rf"(?<![A-Za-z0-9]){re.escape(cue.rstrip())}(?![A-Za-z0-9])", re.IGNORECASE)
+    re.compile(rf"(?<![A-Za-z0-9]){_whitespace_flexible_pattern(cue.rstrip())}(?![A-Za-z0-9])", re.IGNORECASE)
     for cue in _NEGATION_CUES
 ]
 
@@ -42,7 +49,8 @@ class Gap:
 
 
 def _term_pattern(term: str) -> re.Pattern[str]:
-    return re.compile(rf"(?<![A-Za-z0-9]){re.escape(term)}(?![A-Za-z0-9])", re.IGNORECASE)
+    escaped = _whitespace_flexible_pattern(term)
+    return re.compile(rf"(?<![A-Za-z0-9]){escaped}(?![A-Za-z0-9])", re.IGNORECASE)
 
 
 def _is_negated(note_text: str, start: int) -> bool:
