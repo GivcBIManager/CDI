@@ -1,0 +1,99 @@
+acute-kidney-injury-gap.txt:
+  must_find: ["acute kidney injury|onset"]
+acute-kidney-injury-control.txt:
+  must_not_find: ["acute kidney injury|onset"]
+
+acute-respiratory-failure-gap.txt:
+  must_find: ["acute respiratory failure|onset", "acute respiratory failure|type"]
+acute-respiratory-failure-control.txt:
+  must_not_find: ["acute respiratory failure|onset", "acute respiratory failure|type"]
+
+adverse-medication-event-gap.txt:
+  must_find: ["adverse medication event|agent", "adverse medication event|onset"]
+adverse-medication-event-control.txt:
+  must_not_find: ["adverse medication event|agent", "adverse medication event|onset"]
+
+anemia-gap.txt:
+  must_find: ["anemia|type"]
+anemia-control.txt:
+  must_not_find: ["anemia|type"]
+
+chronic-kidney-disease-gap.txt:
+  must_find: ["chronic kidney disease|stage"]
+chronic-kidney-disease-control.txt:
+  must_not_find: ["chronic kidney disease|stage"]
+
+copd-exacerbation-gap.txt:
+  must_find: ["copd exacerbation|type"]
+copd-exacerbation-control.txt:
+  must_not_find: ["copd exacerbation|type"]
+
+deconditioning-gap.txt:
+  must_find: ["deconditioning|type"]
+deconditioning-control.txt:
+  must_not_find: ["deconditioning|type"]
+
+delirium-gap.txt:
+  must_find: ["delirium|onset"]
+delirium-control.txt:
+  must_not_find: ["delirium|onset"]
+
+diabetes-mellitus-gap.txt:
+  must_find: ["diabetes mellitus|type"]
+diabetes-mellitus-control.txt:
+  must_not_find: ["diabetes mellitus|type"]
+
+fracture-gap.txt:
+  must_find: ["fracture|site", "fracture|type"]
+fracture-control.txt:
+  must_not_find: ["fracture|site", "fracture|type"]
+
+heart-failure-gap.txt:
+  must_find: ["heart failure|type"]
+heart-failure-control.txt:
+  must_not_find: ["heart failure|type"]
+
+malnutrition-gap.txt:
+  must_find: ["malnutrition|type"]
+malnutrition-control.txt:
+  must_not_find: ["malnutrition|type"]
+
+myocardial-ischemia-gap.txt:
+  must_find: ["myocardial ischemia|type"]
+myocardial-ischemia-control.txt:
+  must_not_find: ["myocardial ischemia|type"]
+
+obesity-gap.txt:
+  must_find: ["obesity|type"]
+obesity-control.txt:
+  must_not_find: ["obesity|type"]
+
+pneumonia-gap.txt:
+  must_find: ["pneumonia|onset", "pneumonia|agent"]
+pneumonia-control.txt:
+  must_not_find: ["pneumonia|onset", "pneumonia|agent"]
+
+pressure-injury-gap.txt:
+  must_find: ["pressure injury|stage", "pressure injury|site", "pressure injury|onset"]
+pressure-injury-control.txt:
+  must_not_find: ["pressure injury|stage", "pressure injury|site", "pressure injury|onset"]
+
+sepsis-gap.txt:
+  must_find: ["sepsis|agent", "sepsis|type"]
+sepsis-control.txt:
+  must_not_find: ["sepsis|agent", "sepsis|type"]
+
+stroke-gap.txt:
+  must_find: ["stroke|onset"]
+stroke-control.txt:
+  must_not_find: ["stroke|onset"]
+
+surgical-wound-infection-gap.txt:
+  must_find: ["surgical wound infection|onset"]
+surgical-wound-infection-control.txt:
+  must_not_find: ["surgical wound infection|onset"]
+
+urinary-tract-infection-gap.txt:
+  must_find: ["urinary tract infection|agent"]
+urinary-tract-infection-control.txt:
+  must_not_find: ["urinary tract infection|agent"]
