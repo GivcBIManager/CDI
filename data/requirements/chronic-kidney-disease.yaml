@@ -1,0 +1,20 @@
+condition: chronic kidney disease
+synonyms: [CKD, chronic renal failure, chronic kidney failure, chronic renal impairment]
+axes:
+  - axis: stage
+    level: required
+    evidence_terms: ["stage 1", "stage 2", "stage 3", "stage 4", "stage 5",
+                     "stage i", "stage ii", "stage iii", "stage iv", "stage v",
+                     "esrd", "end stage", "end-stage"]
+  - axis: onset
+    level: recommended
+    evidence_terms: ["acute on chronic", "progressive", "new", "known", "long-standing"]
+recommendation: >-
+  Chronic kidney disease is documented without a stage. Please document the
+  CKD stage (1-5, or end-stage) and its basis (eGFR), if known.
+citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p3"
+    quote: >-
+      A disease may be described as 1st, 2nd, 3rd or 4th degree; or Stage 1
+      through to 5. For example, a second degree burn or chronic kidney
+      failure stage 4.
