@@ -1,0 +1,16 @@
+condition: deconditioning
+synonyms: [deconditioned, functional decline]
+axes:
+  - axis: type
+    level: required
+    evidence_terms: [deconditioned, muscular atrophy, sarcopenia, muscle wasting, functional, adl]
+recommendation: >-
+  Deconditioning is documented without functional detail. Please document the specific functional
+  impact (e.g. muscle wasting, reduced mobility, ADL impact), if known.
+citations:
+  - clause_id: "CDI-2021/deconditioning/p2"
+    quote: >-
+      Deconditioning describes a decrease in muscle mass and other physiological changes and
+      contributes to overall weakness and the inability to perform activities of daily living. Best
+      documentation practices for this condition includes deconditioned, deconditioning, muscular
+      atrophy, sarcopenia or muscle wasting.

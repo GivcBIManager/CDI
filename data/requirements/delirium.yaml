@@ -1,0 +1,25 @@
+# 'type' axis dropped per the authoring table: the booklet has no delirium subtype
+# classification text, so it is not claimed at any level.
+condition: delirium
+synonyms: [acute confusional state, acutely confused]
+axes:
+  - axis: onset
+    level: required
+    evidence_terms: [hospital acquired, new, acute]
+  - axis: agent
+    level: recommended
+    evidence_terms: [due to, alcohol intoxication, dementia, adverse medication event]
+recommendation: >-
+  Delirium is documented without the underlying cause or the onset. Please document the
+  precipitating cause and onset (e.g. new, hospital acquired), if known.
+citations:
+  - clause_id: "CDI-2021/hospital-acquired-complications-hacs/p11"
+    quote: >-
+      When a hospital acquired complication occurs, full documentation of all precipitating factors,
+      including date and time of onset, and symptoms must be documented. The documentation must
+      include evidence of management, treatment, investigation, monitoring, or procedures performed to
+      address the HAC.
+  - clause_id: "CDI-2021/documentation-of-results/p2"
+    quote: >-
+      Where delirium is present, the underlying cause or disorder should be documented. For example:
+      delirium due to alcohol intoxication, Alzheimer’s, Dementia, or an adverse medication event.

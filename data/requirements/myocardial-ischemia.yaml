@@ -1,0 +1,17 @@
+condition: myocardial ischemia
+synonyms: [NSTEMI, STEMI, unstable angina, demand ischemia, ACS]
+axes:
+  - axis: type
+    level: required
+    evidence_terms: [NSTEMI, STEMI, unstable angina, stable angina, demand, acute myocardial infarction]
+recommendation: >-
+  Myocardial ischemia is documented without specifying the type. Please document the specific type
+  (e.g. NSTEMI, STEMI, unstable angina), if known.
+citations:
+  - clause_id: "CDI-2021/myocardial-ischemia/p1"
+    quote: >-
+      Atherosclerosis and arteriosclerosis are considered synonymous terms with myocardial ischemia or
+      ischemic heart disease. When patients present for treatment and management of these conditions,
+      it is important that all related acute and/or chronic diagnoses that are managed during the
+      episode of care are documented as well. These conditions may include • Acute Myocardial
+      Infarction, • NSTEMI, • stable angina, • unstable angina and • ischemic cardiomyopathy.

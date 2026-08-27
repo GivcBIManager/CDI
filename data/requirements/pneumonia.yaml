@@ -1,0 +1,24 @@
+condition: pneumonia
+synonyms: [CAP, HAP, chest infection, LRTI]
+axes:
+  - axis: onset
+    level: required
+    evidence_terms: [community acquired, hospital acquired, aspiration, nosocomial]
+  - axis: agent
+    level: required
+    evidence_terms: [due to, klebsiella, pseudomonas, e.coli, staphylococcus, streptococcus]
+recommendation: >-
+  Pneumonia is documented without the onset setting or the causative organism. Please document
+  whether it is community- or hospital-acquired and the infective agent, if known.
+citations:
+  - clause_id: "CDI-2021/respiratory-conditions/p3"
+    quote: >-
+      Any risk factors for pneumonia, including risk mitigation, must be clearly documented in the
+      admission notes. Should the patient develop pneumonia during the admission, the clinician should
+      note it as nosocomial or hospital acquired.
+  - clause_id: "CDI-2021/respiratory-conditions/p2"
+    quote: >-
+      The CDS should review the pathology, including sputum tests, to identify if the agent of
+      infection has been identified and recorded. To show the agent of the infection or pneumonia,
+      clinical documentation should state “pneumonia due to pseudomonas” or “aspiration pneumonia due
+      to inhalation of blood”.

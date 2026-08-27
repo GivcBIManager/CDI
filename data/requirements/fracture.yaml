@@ -1,0 +1,24 @@
+# '#' excluded from synonyms per the authoring table (too noisy for a search synonym).
+condition: fracture
+synonyms: [fractured]
+axes:
+  - axis: site
+    level: required
+    evidence_terms: [femur, radius, humerus, tibia, hip, wrist, metacarpal, skull, vertebra]
+  - axis: type
+    level: required
+    evidence_terms: [open, closed, comminuted, compound, simple, impacted, transverse, oblique, stable]
+recommendation: >-
+  Fracture is documented without the site or type. Please document the specific bone/site and the
+  fracture type (e.g. open, closed, comminuted), if known.
+citations:
+  - clause_id: "CDI-2021/fractures-and-dislocations/p4"
+    quote: >-
+      The location should be precisely indicated by such results, for example, intertrochanteric
+      fracture of femur or distal fracture of radius.
+  - clause_id: "CDI-2021/fracture-types/p2"
+    quote: >-
+      They will look for the many terms used to describe fractures. These include capillary: meaning
+      hairline, comminuted where the bone has splintered into small fractures, or it may be described
+      as complicated meaning that in addition to the fracture, there are injuries to adjacent
+      structures.

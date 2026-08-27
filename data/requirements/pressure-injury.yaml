@@ -1,0 +1,21 @@
+condition: pressure injury
+synonyms: [pressure ulcer, bedsore, decubitus]
+axes:
+  - axis: stage
+    level: required
+    evidence_terms: [stage 1, stage 2, stage 3, stage 4, unstageable]
+  - axis: site
+    level: required
+    evidence_terms: [sacrum, heel, buttock, hip, ankle]
+  - axis: onset
+    level: recommended
+    evidence_terms: [present on admission, hospital acquired]
+recommendation: >-
+  Pressure injury is documented without a stage or anatomical site. Please document the stage and
+  site of the pressure injury, and whether it was present on admission, if known.
+citations:
+  - clause_id: "CDI-2021/correctness/p3"
+    quote: >-
+      The skin assessment form will note the laterality and stage of the pressure ulcer on a picture
+      and also within the check boxes, as well as its presence on admission and the risk mitigation
+      strategy to reduce progression.

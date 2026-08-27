@@ -1,0 +1,23 @@
+condition: acute kidney injury
+synonyms: [AKI, acute renal failure]
+axes:
+  - axis: onset
+    level: required
+    evidence_terms: [acute on chronic, acute, chronic]
+  # DEVIATION: booklet contains no pre-renal/intrinsic/post-renal classification text for AKI. Downgraded from planned 'required' to 'recommended', citing only the generic 'type' axis definition.
+  - axis: type
+    level: recommended
+    evidence_terms: [pre-renal, prerenal, intrinsic, post-renal]
+recommendation: >-
+  Acute kidney injury is documented without the acuity (e.g. acute vs acute on chronic). Please
+  document the onset and, if known, the mechanism (pre-renal, intrinsic, post-renal).
+citations:
+  - clause_id: "CDI-2021/renal-failure-impairment/p1"
+    quote: >-
+      Conditions such as renal failure, or impairment may be the reason for admission. Clinical
+      documentation may use either ‘failure’ or ‘impairment’, and clinicians should clearly document
+      the acuity of this condition. For example, acute, chronic, or acute on chronic.
+  - clause_id: "CDI-2021/documenting-for-specificity/p1"
+    quote: >-
+      The descriptor “type” really means qualifying terms that categorise the condition into a broad
+      group.

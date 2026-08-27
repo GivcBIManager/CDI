@@ -1,0 +1,23 @@
+condition: obesity
+synonyms: [obese, morbid obesity]
+axes:
+  # DEVIATION: the booklet has no obesity-specific specificity text at all (obesity appears only as a comorbidity/risk-factor mention in other chapters). Kept as the sole required axis ONLY via the generic 'type' axis definition fallback per the authoring rules.
+  - axis: type
+    level: required
+    evidence_terms: [morbid, class 1, class 2, class 3]
+  # No obesity-specific stage text either; cites the generic 'stage' axis definition as a soft fallback only.
+  - axis: stage
+    level: recommended
+    evidence_terms: [BMI]
+recommendation: >-
+  Obesity is documented without a BMI-based classification. Please document the BMI and/or class
+  (e.g. morbid obesity), if known.
+citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p1"
+    quote: >-
+      The descriptor “type” really means qualifying terms that categorise the condition into a broad
+      group.
+  - clause_id: "CDI-2021/documenting-for-specificity/p3"
+    quote: >-
+      Staging terms may be used in isolation or as an extension of the type, to provide further
+      information about the progression, severity or complexity of the condition.

@@ -1,0 +1,21 @@
+condition: acute respiratory failure
+synonyms: [respiratory failure, ARF]
+axes:
+  - axis: onset
+    level: required
+    evidence_terms: [acute, acute on chronic, chronic]
+  - axis: type
+    level: required
+    evidence_terms: [type 1, type 2, hypoxic, hypercapnic]
+recommendation: >-
+  Acute respiratory failure is documented without the type (1 or 2) or the onset (acute vs acute on
+  chronic). Please document the type and onset, if known.
+citations:
+  - clause_id: "CDI-2021/acute-on-chronic-conditions/p2"
+    quote: >-
+      Or when acute on chronic respiratory failure is documented, two separate codes are used to
+      classify the acute respiratory failure and chronic respiratory failure.
+  - clause_id: "CDI-2021/criteria-for-assigning-an-adx/p4"
+    quote: >-
+      For example, a patient with pneumonia develops acute respiratory failure type 2 and requires
+      oxygen therapy via High Flow Nasal Prongs for 15 hours.

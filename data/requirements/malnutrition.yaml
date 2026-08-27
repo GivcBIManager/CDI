@@ -1,0 +1,15 @@
+condition: malnutrition
+synonyms: [malnourished, protein-energy malnutrition]
+axes:
+  - axis: type
+    level: required
+    evidence_terms: [mild, moderate, severe]
+recommendation: >-
+  Malnutrition is documented without a severity. Please document whether the malnutrition is mild,
+  moderate, or severe, if known.
+citations:
+  - clause_id: "CDI-2021/malnutrition/p1"
+    quote: >-
+      Best practice documentation for Malnutrition should include severity, such as mild, moderate, or
+      severe. Other terminology synonymous with malnutrition includes calorie deficiency,
+      energy-supply deficiency, protein deficient and protein-energy imbalance.

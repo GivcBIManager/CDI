@@ -43,3 +43,12 @@ def load_requirements(directory: Path) -> list[DiagnosisRequirement]:
         except ValidationError as error:
             raise ValueError(f"invalid requirement file {path.name}: {error}") from error
     return entries
+
+
+EXPECTED_CONDITIONS: tuple[str, ...] = (
+    "sepsis", "pneumonia", "diabetes mellitus", "chronic kidney disease",
+    "acute kidney injury", "anemia", "acute respiratory failure", "heart failure",
+    "malnutrition", "fracture", "urinary tract infection", "delirium",
+    "copd exacerbation", "pressure injury", "stroke", "surgical wound infection",
+    "obesity", "myocardial ischemia", "deconditioning", "adverse medication event",
+)

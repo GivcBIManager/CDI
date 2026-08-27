@@ -1,0 +1,20 @@
+# Table-suggested evidence terms 'of chronic disease', 'post-haemorrhagic', 'macrocytic',
+# and 'microcytic' do not appear in the booklet; evidence_terms below reflect the anemia
+# types actually named in CDI-2021/anaemia/p1-p2 instead.
+condition: anemia
+synonyms: [anaemia, low hemoglobin, low haemoglobin]
+axes:
+  - axis: type
+    level: required
+    evidence_terms: [iron deficiency, acute blood loss, drug-induced hemolytic, aplastic, sickle-cell]
+recommendation: >-
+  Anemia is documented without a specific type. Please document the type of anemia (e.g. iron
+  deficiency, acute blood loss, hemolytic, aplastic), if known.
+citations:
+  - clause_id: "CDI-2021/anaemia/p1"
+    quote: >-
+      Often treated by monitoring Hb levels, blood transfusion, or oral or parenteral iron, clinical
+      documentation should clearly indicate what specific anemia is being treated. Results in
+      isolation do not sufficiently indicate the condition a patient is being managed for, and so
+      clinical documentation should be assessed to ensure it captures a clinical diagnosis. For
+      example, iron deficiency anemia treated with transfusion of packed cells.

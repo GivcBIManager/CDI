@@ -1,0 +1,19 @@
+condition: heart failure
+synonyms: [HF, CCF, CHF, cardiac failure]
+axes:
+  # DEVIATION: the booklet has no heart-failure-specific specificity text anywhere (no systolic/diastolic/HFrEF/HFpEF wording; heart failure appears only as an incidental example in other chapters). Kept as the sole required axis ONLY because the generic 'type' axis definition clause supports it as a fallback per the authoring rules.
+  - axis: type
+    level: required
+    evidence_terms: [systolic, diastolic, HFrEF, HFpEF, reduced ejection, preserved ejection]
+  # No dedicated citation: no heart-failure-specific onset text in the booklet.
+  - axis: onset
+    level: recommended
+    evidence_terms: [acute, chronic, acute on chronic]
+recommendation: >-
+  Heart failure is documented without specifying systolic vs diastolic (reduced vs preserved
+  ejection fraction) type. Please document the type of heart failure, if known.
+citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p1"
+    quote: >-
+      The descriptor “type” really means qualifying terms that categorise the condition into a broad
+      group.

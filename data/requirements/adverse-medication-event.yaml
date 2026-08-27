@@ -1,0 +1,24 @@
+condition: adverse medication event
+synonyms: [adverse drug reaction, adverse effect, drug reaction]
+axes:
+  - axis: agent
+    level: required
+    evidence_terms: [due to, adverse effect of, secondary to]
+  - axis: onset
+    level: required
+    evidence_terms: [accidental, intentional]
+recommendation: >-
+  Adverse medication event is documented without confirming the causative medication or whether it
+  was accidental or intentional. Please document the medication involved and the intent, if known.
+citations:
+  - clause_id: "CDI-2021/adverse-medication-events/p12"
+    quote: >-
+      All substances or medicaments involved must be documented. Where a toxicology report has been
+      returned or alcohol is involved, ensure that clinical documentation states all drugs and alcohol
+      involved, including non-prescribed medications.
+  - clause_id: "CDI-2021/adverse-medication-events/p11"
+    quote: >-
+      To accurately and completely document adverse medications and poisonings, it is recommended that
+      these events be documented in a specific way. This includes whether the poisoning or other
+      manifestation is intentional or an accidental overdose, or the result of an adverse effect in
+      therapeutic use.

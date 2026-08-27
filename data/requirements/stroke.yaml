@@ -1,0 +1,19 @@
+condition: stroke
+synonyms: [CVA, cerebrovascular accident]
+axes:
+  # DEVIATION: the booklet has no dedicated stroke chapter and no stroke-specific specificity text at all (stroke appears only in epidemiology lists and incidental allied-health mentions). Kept as the sole required axis ONLY via the generic 'onset' axis definition fallback, which lists 'sequela of' as a standard onset term.
+  - axis: onset
+    level: required
+    evidence_terms: [sequela, new, acute]
+  # DEVIATION: no booklet support at all, not even generic; downgraded from planned 'required', no citation.
+  - axis: type
+    level: recommended
+    evidence_terms: [ischemic, ischaemic, hemorrhagic, haemorrhagic]
+recommendation: >-
+  Stroke is documented without specifying whether it is a new event or a sequela of a prior stroke.
+  Please document the onset and, if known, whether it is ischemic or hemorrhagic.
+citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p6"
+    quote: >-
+      Documenting onset is important as it provides clear indication of disease chronology, the
+      underlying cause or how long it has been present.

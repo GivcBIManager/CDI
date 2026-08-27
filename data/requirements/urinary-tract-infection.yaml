@@ -1,0 +1,21 @@
+condition: urinary tract infection
+synonyms: [UTI, cystitis, pyelonephritis]
+axes:
+  - axis: agent
+    level: required
+    evidence_terms: [due to, e.coli, e. coli, klebsiella, pseudomonas]
+  # DEVIATION: no booklet text distinguishes upper (pyelonephritis) vs lower (cystitis) UTI, and the Documenting for Specificity chapter has no dedicated 'site' definition paragraph to fall back on either. Downgraded from planned 'required' to 'recommended' with no citation.
+  - axis: site
+    level: recommended
+    evidence_terms: [cystitis, pyelonephritis, lower, upper]
+recommendation: >-
+  Urinary tract infection is documented without the causative organism. Please document the
+  infective agent, if known.
+citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p4"
+    quote: >-
+      When we talk about documenting the agent, we mean clearly naming the pathogens or agents of
+      illness within the body of the progress notes and discharge summary; this includes drawing a
+      link between the agent and the condition. Agent also means the type of agent or causative
+      organism or virus relevant to the affected body system; for example, pneumonia due to
+      klebsiella, or a urinary tract infection due to E.Coli or sepsis due to staphylococcus aureus.

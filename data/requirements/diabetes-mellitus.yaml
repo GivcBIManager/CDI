@@ -1,0 +1,19 @@
+# The booklet has no dedicated diabetes-type chapter; the only explicit instruction to
+# document diabetes 'type' (insulin dependent / non-insulin dependent) appears in the
+# Cataracts chapter's diabetic-eye-comorbidity example (CDI-2021/cataracts/p1). No
+# 'type 1'/'type 2' wording appears in the source, so only the axis itself (documenting
+# diabetes type) is claimed, not those specific labels.
+condition: diabetes mellitus
+synonyms: [DM, T2DM, T1DM, diabetic]
+axes:
+  - axis: type
+    level: required
+    evidence_terms: [type 1, type 2, type i, type ii, insulin dependent, non-insulin dependent]
+recommendation: >-
+  Diabetes mellitus is documented without the type. Please document whether the diabetes is type 1
+  (insulin dependent) or type 2 (non-insulin dependent), if known.
+citations:
+  - clause_id: "CDI-2021/cataracts/p1"
+    quote: >-
+      If the patient has diabetes, documentation should also specify the type of diabetes (insulin
+      dependent or non-insulin dependent), and clarify if the patient has diabetic cataract.
