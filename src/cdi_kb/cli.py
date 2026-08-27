@@ -1,9 +1,13 @@
 """Command-line entry points: python -m cdi_kb.cli <command>."""
 
 import argparse
+import dataclasses
+import json
 import sys
+from pathlib import Path
 
 from cdi_kb import config
+from cdi_kb.audit import run_audit
 from cdi_kb.clauses import ClauseStore, chunk_booklet
 from cdi_kb.extract import extract_pages
 from cdi_kb.index import SearchIndex
@@ -44,6 +48,12 @@ def main(argv: list[str] | None = None) -> int:
     quote = sub.add_parser("quote", help="find clauses containing text (for authoring citations)")
     quote.add_argument("search_text")
     sub.add_parser("verify", help="run V1-V5 KB verification")
+    audit = sub.add_parser("audit", help="audit a note file against the KB")
+    audit.add_argument("note_file", type=Path)
+    audit.add_argument("--llm", action="store_true", help="enable implicit-condition inference")
+    audit.add_argument("--json", action="store_true", dest="as_json")
+    demo = sub.add_parser("demo", help="serve the paste-a-note web demo")
+    demo.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
     if args.command == "build-kb":
         stored, indexed = build_kb()
@@ -60,6 +70,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"stats: {report.stats}")
         print("VERIFICATION PASSED" if report.passed else "VERIFICATION FAILED")
         return 0 if report.passed else 1
+    if args.command == "audit":
+        result = run_audit(args.note_file.read_text(encoding="utf-8"), use_llm=args.llm)
+        if args.as_json:
+            print(json.dumps(dataclasses.asdict(result), indent=2))
+        else:
+            for finding in result.findings:
+                print(f"[{finding.severity}] {finding.condition} — missing {finding.axis}")
+                print(f"  {finding.recommendation}")
+                for cite in finding.citations:
+                    print(f"  source: {cite.clause_id} (p.{cite.page}) — \"{cite.quote[:90]}...\"")
+            print(f"{len(result.findings)} finding(s)")
+        return 0
+    if args.command == "demo":
+        import uvicorn  # inline import: server dependency only needed for demo command
+        uvicorn.run("cdi_kb.webapp:app", port=args.port)
+        return 0
     return 1
 
 
