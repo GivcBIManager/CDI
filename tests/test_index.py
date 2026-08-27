@@ -34,3 +34,24 @@ def test_query_with_fts_special_chars_does_not_raise(tmp_path) -> None:
 
 def test_limit_respected(tmp_path) -> None:
     assert len(_index(tmp_path).search("documentation", limit=2)) <= 2
+
+
+def test_title_boost_weighting_discriminates(tmp_path) -> None:
+    """Verify that 5x title weight actually ranks title-matches above body-heavy matches.
+
+    Two clauses both contain "guideline": one only in title (body about implementation),
+    one only in body with multiple mentions (title about procedures). Without title boost,
+    the body-heavy clause would likely rank higher due to term frequency. With 5x boost,
+    title-match must rank first.
+    """
+    clauses = [
+        Clause("CDI-2021/guidelines/p1", "Clinical Documentation Guideline", 50,
+               "Implementation procedures must follow best practices in coding and specificity."),
+        Clause("CDI-2021/procedures/p1", "Procedures", 51,
+               "Guideline documentation for guideline compliance requires guideline adherence and guideline updates."),
+    ]
+    index = SearchIndex(tmp_path / "kb.sqlite")
+    index.rebuild(clauses)
+    hits = index.search("guideline")
+    assert hits and hits[0].clause_id == "CDI-2021/guidelines/p1", \
+        f"Expected title-match to rank first, got {[h.clause_id for h in hits]}"
