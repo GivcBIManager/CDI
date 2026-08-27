@@ -23,6 +23,6 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "-m 'not live'"
+addopts = "-m 'not live' --basetemp=var/pytest-tmp"
 markers = ["live: requires ANTHROPIC credentials and network"]
 testpaths = ["tests"]
