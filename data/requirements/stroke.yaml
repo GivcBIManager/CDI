@@ -1,11 +1,17 @@
 condition: stroke
 synonyms: [CVA, cerebrovascular accident]
 axes:
-  # DEVIATION: the booklet has no dedicated stroke chapter and no stroke-specific specificity text at all (stroke appears only in epidemiology lists and incidental allied-health mentions). Kept as the sole required axis ONLY via the generic 'onset' axis definition fallback, which lists 'sequela of' as a standard onset term.
+  # RULE A(ii): searched "stroke", "CVA", "sequela" — no condition-specific governing clause anywhere
+  # in the booklet mandates documenting stroke onset (stroke appears only in epidemiology lists and
+  # one incidental allied-health mention of "CVA"). The prior p6 citation is itself a glossary list of
+  # onset terms, not a mandate, and cannot alone anchor 'required' per RULE A. Re-anchored to the
+  # Documenting for Specificity mandate clause (p8) as the single most clinically defining axis for
+  # this entry; p6 kept as a secondary citation since it names "sequela of" as a standard onset term.
   - axis: onset
     level: required
     evidence_terms: [sequela, new, acute]
-  # DEVIATION: no booklet support at all, not even generic; downgraded from planned 'required', no citation.
+  # RULE B: no condition-specific clause, and no mandate-clause stacking beyond the one already used
+  # for 'onset' above; kept at recommended, no citation.
   - axis: type
     level: recommended
     evidence_terms: [ischemic, ischaemic, hemorrhagic, haemorrhagic]
@@ -13,6 +19,11 @@ recommendation: >-
   Stroke is documented without specifying whether it is a new event or a sequela of a prior stroke.
   Please document the onset and, if known, whether it is ischemic or hemorrhagic.
 citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p8"
+    quote: >-
+      When documenting any condition, use as many of these descriptors as clinically relevant to
+      convey full specificity of the condition. This will improve both funding, research data and
+      patient care.
   - clause_id: "CDI-2021/documenting-for-specificity/p6"
     quote: >-
       Documenting onset is important as it provides clear indication of disease chronology, the

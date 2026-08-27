@@ -4,7 +4,13 @@ axes:
   - axis: onset
     level: required
     evidence_terms: [complicating surgery, post procedural, complication, postprocedural]
-  # DEVIATION: no booklet text links a causative organism specifically to surgical/wound infection. Downgraded from planned 'required' to 'recommended', citing only the generic 'agent' axis definition.
+  # DEVIATION / RULE B, distinction note (reviewer-adjudicated): no booklet text links a causative
+  # organism specifically to surgical/wound infection. This entry cites the same generic "documenting
+  # the agent" clause (documenting-for-specificity/p4) as urinary-tract-infection.yaml, but unlike
+  # that entry's quote — which names UTI directly in a worked example ("a urinary tract infection due
+  # to E.Coli") — this clause's worked examples never name a surgical/wound-organism link, so it is
+  # secondary/glossary support only and cannot anchor 'required' per RULE A. Downgraded from planned
+  # 'required' to 'recommended'.
   - axis: agent
     level: recommended
     evidence_terms: [due to, staphylococcus, e.coli, klebsiella, pseudomonas]

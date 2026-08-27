@@ -1,10 +1,20 @@
 condition: urinary tract infection
 synonyms: [UTI, cystitis, pyelonephritis]
 axes:
+  # Distinction note (reviewer-adjudicated): this entry's citation (documenting-for-specificity/p4)
+  # is the same generic "documenting the agent" clause used by surgical-wound-infection.yaml, but its
+  # quote carries a condition-specific worked example naming UTI directly ("a urinary tract infection
+  # due to E.Coli") — RULE A(i), a condition-specific governing instruction embedded in an otherwise
+  # generic clause. Kept required on that basis. Contrast surgical-wound-infection.yaml, where the
+  # same clause carries no surgical/wound-specific worked example and its agent axis stays
+  # recommended.
   - axis: agent
     level: required
     evidence_terms: [due to, e.coli, e. coli, klebsiella, pseudomonas]
-  # DEVIATION: no booklet text distinguishes upper (pyelonephritis) vs lower (cystitis) UTI, and the Documenting for Specificity chapter has no dedicated 'site' definition paragraph to fall back on either. Downgraded from planned 'required' to 'recommended' with no citation.
+  # DEVIATION / RULE B: no booklet text distinguishes upper (pyelonephritis) vs lower (cystitis) UTI,
+  # and the Documenting for Specificity chapter has no dedicated 'site' definition paragraph, nor does
+  # the mandate clause name any site distinction, to fall back on either. Downgraded from planned
+  # 'required' to 'recommended' with no citation.
   - axis: site
     level: recommended
     evidence_terms: [cystitis, pyelonephritis, lower, upper]

@@ -1,11 +1,17 @@
 condition: heart failure
 synonyms: [HF, CCF, CHF, cardiac failure]
 axes:
-  # DEVIATION: the booklet has no heart-failure-specific specificity text anywhere (no systolic/diastolic/HFrEF/HFpEF wording; heart failure appears only as an incidental example in other chapters). Kept as the sole required axis ONLY because the generic 'type' axis definition clause supports it as a fallback per the authoring rules.
+  # RULE A(ii): searched "acute on chronic", "cardiac failure", "heart", "systolic", "ejection" — no
+  # condition-specific governing clause mandates HF type (systolic/diastolic/HFrEF/HFpEF)
+  # documentation anywhere in the booklet; the prior p1 citation was a glossary sentence ("the
+  # descriptor 'type' really means...") and cannot anchor 'required' per RULE A. Re-anchored to the
+  # Documenting for Specificity mandate clause (p8) as the single most clinically defining axis for
+  # this entry; p1 kept only as a secondary definitional citation.
   - axis: type
     level: required
     evidence_terms: [systolic, diastolic, HFrEF, HFpEF, reduced ejection, preserved ejection]
-  # No dedicated citation: no heart-failure-specific onset text in the booklet.
+  # RULE B: no condition-specific clause, and no mandate-clause stacking beyond the one already used
+  # for 'type' above; kept at recommended, no citation.
   - axis: onset
     level: recommended
     evidence_terms: [acute, chronic, acute on chronic]
@@ -13,6 +19,11 @@ recommendation: >-
   Heart failure is documented without specifying systolic vs diastolic (reduced vs preserved
   ejection fraction) type. Please document the type of heart failure, if known.
 citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p8"
+    quote: >-
+      When documenting any condition, use as many of these descriptors as clinically relevant to
+      convey full specificity of the condition. This will improve both funding, research data and
+      patient care.
   - clause_id: "CDI-2021/documenting-for-specificity/p1"
     quote: >-
       The descriptor “type” really means qualifying terms that categorise the condition into a broad

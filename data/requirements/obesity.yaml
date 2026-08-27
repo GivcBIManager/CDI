@@ -1,11 +1,17 @@
 condition: obesity
 synonyms: [obese, morbid obesity]
 axes:
-  # DEVIATION: the booklet has no obesity-specific specificity text at all (obesity appears only as a comorbidity/risk-factor mention in other chapters). Kept as the sole required axis ONLY via the generic 'type' axis definition fallback per the authoring rules.
+  # RULE A(ii): searched "obesity", "BMI", "bariatric", "morbid" — no condition-specific governing
+  # clause anywhere in the booklet instructs documenting an obesity type/class (obesity appears only
+  # as an incidental comorbidity/risk-factor mention in other chapters). The prior p1 citation was a
+  # glossary sentence and cannot anchor 'required' per RULE A. Re-anchored to the Documenting for
+  # Specificity mandate clause (p8) as the single most clinically defining axis for this entry; p1
+  # kept only as a secondary definitional citation.
   - axis: type
     level: required
     evidence_terms: [morbid, class 1, class 2, class 3]
-  # No obesity-specific stage text either; cites the generic 'stage' axis definition as a soft fallback only.
+  # RULE B: no condition-specific clause, and no mandate-clause stacking beyond the one already used
+  # for 'type' above; kept at recommended. p3 (staging definition) kept as secondary context only.
   - axis: stage
     level: recommended
     evidence_terms: [BMI]
@@ -13,6 +19,11 @@ recommendation: >-
   Obesity is documented without a BMI-based classification. Please document the BMI and/or class
   (e.g. morbid obesity), if known.
 citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p8"
+    quote: >-
+      When documenting any condition, use as many of these descriptors as clinically relevant to
+      convey full specificity of the condition. This will improve both funding, research data and
+      patient care.
   - clause_id: "CDI-2021/documenting-for-specificity/p1"
     quote: >-
       The descriptor “type” really means qualifying terms that categorise the condition into a broad

@@ -1,10 +1,18 @@
 condition: copd exacerbation
 synonyms: [COPD, chronic obstructive pulmonary disease exacerbation, infective exacerbation]
 axes:
+  # RULE A(ii): searched "COPD" and "exacerbation" broadly — the closest condition-specific text
+  # (respiratory-conditions/p1) governs oxygen-therapy-source documentation, not infective vs
+  # non-infective exacerbation type; no clause in the booklet mandates that classification for COPD.
+  # The prior p2 citation is a glossary sentence ("exacerbation is often used to describe...") and
+  # cannot alone anchor 'required' per RULE A. Re-anchored to the Documenting for Specificity mandate
+  # clause (p8) as the single most clinically defining axis for this entry; p2 kept as a secondary
+  # citation since it names COPD exacerbation specifically as an example.
   - axis: type
     level: required
     evidence_terms: [infective, non-infective, exacerbation]
-  # No dedicated citation: the booklet treats acute/chronic framing under 'type', not as separate COPD onset text.
+  # RULE B: no condition-specific clause, and no mandate-clause stacking beyond the one already used
+  # for 'type' above; kept at recommended, no citation.
   - axis: onset
     level: recommended
     evidence_terms: [acute]
@@ -12,6 +20,11 @@ recommendation: >-
   COPD exacerbation is documented without specifying whether it is infective or non-infective.
   Please document the type of exacerbation, if known.
 citations:
+  - clause_id: "CDI-2021/documenting-for-specificity/p8"
+    quote: >-
+      When documenting any condition, use as many of these descriptors as clinically relevant to
+      convey full specificity of the condition. This will improve both funding, research data and
+      patient care.
   - clause_id: "CDI-2021/documenting-for-specificity/p2"
     quote: >-
       Exacerbation is often used to describe the worsening of a chronic condition such as chronic
