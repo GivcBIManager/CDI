@@ -8,6 +8,7 @@ from cdi_kb.clauses import ClauseStore, chunk_booklet
 from cdi_kb.extract import extract_pages
 from cdi_kb.index import SearchIndex
 from cdi_kb.normalize import normalize
+from cdi_kb.verify import run_verification
 
 
 def build_kb() -> tuple[int, int]:
@@ -42,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("build-kb", help="extract, chunk, store, and index the corpus")
     quote = sub.add_parser("quote", help="find clauses containing text (for authoring citations)")
     quote.add_argument("search_text")
+    sub.add_parser("verify", help="run V1-V5 KB verification")
     args = parser.parse_args(argv)
     if args.command == "build-kb":
         stored, indexed = build_kb()
@@ -49,6 +51,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "quote":
         return _cmd_quote(args.search_text)
+    if args.command == "verify":
+        report = run_verification()
+        for failure in report.failures:
+            print(f"FAIL  {failure}")
+        for note in report.notes:
+            print(f"INFO  {note}")
+        print(f"stats: {report.stats}")
+        print("VERIFICATION PASSED" if report.passed else "VERIFICATION FAILED")
+        return 0 if report.passed else 1
     return 1
 
 

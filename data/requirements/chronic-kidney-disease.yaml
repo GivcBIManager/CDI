@@ -12,7 +12,16 @@ axes:
 recommendation: >-
   Chronic kidney disease is documented without a stage. Please document the
   CKD stage (1-5, or end-stage) and its basis (eGFR), if known.
+# V3 re-anchor: the prior sole citation (documenting-for-specificity/p3) is a generic cross-condition
+# example, not the governing clause. The dedicated Chronic Kidney Disease (CKD) section carries an
+# explicit, condition-specific mandate ("the stage or eGFR should be recorded") that outranks the
+# generic example for the "stage"-focused retrieval query; re-anchored to that clause as primary,
+# with p3 kept as a secondary supporting citation (still the specific worked example for CKD staging).
 citations:
+  - clause_id: "CDI-2021/chronic-kidney-disease-ckd/p1"
+    quote: >-
+      In the case of CKD, the stage or eGFR should be recorded within the documentation along with
+      any underlying cause such as diabetes, hypertension or drug induced.
   - clause_id: "CDI-2021/documenting-for-specificity/p3"
     quote: >-
       A disease may be described as 1st, 2nd, 3rd or 4th degree; or Stage 1
