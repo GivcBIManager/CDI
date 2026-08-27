@@ -22,11 +22,13 @@ def run_audit(note_text: str) -> AuditResult:
     by_condition = {req.condition: req for req in requirements}
     store = ClauseStore(config.KB_DB)
     result = AuditResult()
-    for gap in find_gaps(note_text, requirements):
-        finding = compose_finding(gap, by_condition[gap.condition], store)
-        if finding is None:
-            result.dropped_citations.append(f"{gap.condition}|{gap.axis}")
-        else:
-            result.findings.append(finding)
-    store.close()
+    try:
+        for gap in find_gaps(note_text, requirements):
+            finding = compose_finding(gap, by_condition[gap.condition], store)
+            if finding is None:
+                result.dropped_citations.append(f"{gap.condition}|{gap.axis}")
+            else:
+                result.findings.append(finding)
+    finally:
+        store.close()
     return result

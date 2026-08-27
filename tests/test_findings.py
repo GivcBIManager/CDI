@@ -43,3 +43,11 @@ def test_fabricated_quote_yields_no_finding(tmp_path) -> None:
 def test_unresolvable_clause_id_yields_no_finding(tmp_path) -> None:
     finding = compose_finding(GAP, _req("Stage 1 through to 5"), _store(tmp_path, []))
     assert finding is None
+
+
+def test_recommended_severity_branch(tmp_path) -> None:
+    # Exercise the recommended-severity branch (level != "required")
+    gap = Gap("chronic kidney disease", "stage", "recommended", MENTION)
+    finding = compose_finding(gap, _req("Stage 1 through to 5"), _store(tmp_path, [CLAUSE]))
+    assert finding is not None
+    assert finding.severity == "recommended"
