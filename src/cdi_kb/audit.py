@@ -15,7 +15,7 @@ class AuditResult:
     dropped_citations: list[str] = field(default_factory=list)
 
 
-def run_audit(note_text: str) -> AuditResult:
+def run_audit(note_text: str, *, use_llm: bool = False) -> AuditResult:
     if not note_text.strip():
         return AuditResult()
     requirements = load_requirements(config.REQUIREMENTS_DIR)
@@ -29,6 +29,21 @@ def run_audit(note_text: str) -> AuditResult:
                 result.dropped_citations.append(f"{gap.condition}|{gap.axis}")
             else:
                 result.findings.append(finding)
+
+        if use_llm:
+            # inline import: keeps offline path free of the anthropic dependency
+            from cdi_kb.llm_infer import infer_implicit_conditions
+            named = {gap_key.split("|")[0] for gap_key in
+                     {f.dedupe_key for f in result.findings} | set(result.dropped_citations)}
+            for implicit in infer_implicit_conditions(note_text, tuple(by_condition)):
+                req = by_condition[implicit.condition]
+                if implicit.condition in named:
+                    continue
+                synthetic_note = f"{note_text}\n[assessment: {implicit.condition}]"
+                for gap in find_gaps(synthetic_note, [req]):
+                    finding = compose_finding(gap, req, store)
+                    if finding is not None:
+                        result.findings.append(finding)
     finally:
         store.close()
     return result
