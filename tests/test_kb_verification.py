@@ -20,6 +20,34 @@ def test_stats_are_reported() -> None:
     assert report.stats["citations_checked"] >= 20
 
 
+def test_doc_type_and_necessity_stats_are_reported() -> None:
+    # Real-data breakdown (Task 7): 20 diagnosis entries carry 37 citations; the 5
+    # doc_requirements files carry 19 elements / 20 citations; the 4 necessity rules
+    # (LBPMRI excluded, flowchart genre) carry 8 citations. citations_checked now covers
+    # all three rule layers, not just diagnosis.
+    report = run_verification()
+    assert report.stats["doc_type_rules"] >= 15
+    assert report.stats["necessity_rules"] == 4
+    assert report.stats["citations_checked"] == 37 + 20 + 8
+
+
+def test_mixed_authority_entries_are_named_in_notes() -> None:
+    # Task 7 (resolves a Task 6 review finding): an entry that cites the generic
+    # specificity mandate ALONGSIDE a condition-specific clause (mixed authority) gets a
+    # dedicated V3-INFO note distinct from the mandate-anchored / title-reachable tiers --
+    # it is not a failure, just a visible flag that one axis may still rest on generic
+    # authority only. obesity is the known case: its 'type' axis is mandate-only while
+    # 'stage' cites a CHI-BARIATRIC clause.
+    report = run_verification()
+    assert report.stats["mixed_authority_entries"] >= 1
+    named = {
+        note[len("V3-INFO "):].split(":", 1)[0]
+        for note in report.notes
+        if "retains generic-authority citation" in note
+    }
+    assert "obesity" in named
+
+
 def test_stats_report_per_source_counts() -> None:
     report = run_verification()
     assert report.stats["sources"] == 10
@@ -129,3 +157,122 @@ def test_mandate_anchor_tier_verified_via_axis_query(tmp_path, monkeypatch) -> N
         for note in report.notes
     )
     assert not any(f.startswith("V3 synthfoo") for f in report.failures)
+
+
+def _write_fake_source(tmp_path, monkeypatch, clause: Clause) -> None:
+    """Shared fixture plumbing for the two synthetic V2-failure tests below: a tmp
+    ClauseStore/SearchIndex containing a single real clause, plus a matching raw-text
+    cache so V1's extract_pages() call never touches a real PDF."""
+    db_path = tmp_path / "kb.sqlite"
+    store = ClauseStore(db_path)
+    store.rebuild([clause])
+    store.close()
+    index = SearchIndex(db_path)
+    index.rebuild([clause])
+    index.close()
+
+    raw_text_dir = tmp_path / "raw_text"
+    raw_text_dir.mkdir()
+    (raw_text_dir / "fake-booklet.json").write_text(
+        json.dumps([{"page_number": clause.page, "text": clause.text}]), encoding="utf-8"
+    )
+
+    monkeypatch.setattr(
+        config,
+        "SOURCES",
+        {
+            "CDI-2021": config.SourceDoc(
+                source_id="CDI-2021",
+                path=tmp_path / "fake-booklet.pdf",
+                title="Fake Booklet",
+                authority="TEST",
+                genre="booklet",
+            )
+        },
+    )
+    monkeypatch.setattr(config, "KB_DB", db_path)
+    monkeypatch.setattr(config, "RAW_TEXT_DIR", raw_text_dir)
+
+
+def test_fabricated_doc_element_quote_yields_v2_doc_failure(tmp_path, monkeypatch) -> None:
+    clause = Clause(
+        clause_id="CDI-2021/fake-doc-section/p1",
+        section_title="Fake Doc Section",
+        page=10,
+        text="This is the real verbatim sentence stored in the clause.",
+    )
+    _write_fake_source(tmp_path, monkeypatch, clause)
+
+    requirements_dir = tmp_path / "requirements"
+    requirements_dir.mkdir()  # empty: this test only exercises the doc-requirements layer
+
+    doc_requirements_dir = tmp_path / "doc_requirements"
+    doc_requirements_dir.mkdir()
+    (doc_requirements_dir / "fake.yaml").write_text(
+        "doc_type: discharge_summary\n"
+        "elements:\n"
+        "  - name: fake_element\n"
+        "    evidence_terms: [fake]\n"
+        "    level: required\n"
+        "    recommendation: fake recommendation\n"
+        "    citations:\n"
+        f'      - clause_id: "{clause.clause_id}"\n'
+        '        quote: "This fabricated sentence never appears in the clause text."\n',
+        encoding="utf-8",
+    )
+
+    necessity_dir = tmp_path / "necessity"
+    necessity_dir.mkdir()  # empty: not exercised by this test
+
+    monkeypatch.setattr(config, "REQUIREMENTS_DIR", requirements_dir)
+    monkeypatch.setattr(config, "DOC_REQUIREMENTS_DIR", doc_requirements_dir)
+    monkeypatch.setattr(config, "NECESSITY_DIR", necessity_dir)
+
+    report = run_verification()
+
+    assert any(
+        f.startswith("V2 doc:discharge_summary/fake_element") and "quote does not match" in f
+        for f in report.failures
+    ), report.failures
+
+
+def test_fabricated_necessity_quote_yields_v2_necessity_failure(tmp_path, monkeypatch) -> None:
+    clause = Clause(
+        clause_id="CDI-2021/fake-nec-section/p1",
+        section_title="Fake Necessity Section",
+        page=11,
+        text="This is the real verbatim sentence backing the necessity rule.",
+    )
+    _write_fake_source(tmp_path, monkeypatch, clause)
+
+    requirements_dir = tmp_path / "requirements"
+    requirements_dir.mkdir()  # empty: not exercised by this test
+
+    doc_requirements_dir = tmp_path / "doc_requirements"
+    doc_requirements_dir.mkdir()  # empty: not exercised by this test
+
+    necessity_dir = tmp_path / "necessity"
+    necessity_dir.mkdir()
+    (necessity_dir / "fake.yaml").write_text(
+        "order: fake-order\n"
+        "display_name: Fake Order Test\n"
+        "order_terms: [fakeorder]\n"
+        "context_cues: [order]\n"
+        "valid_indication_terms: [fake]\n"
+        "recommendation: fake recommendation\n"
+        "citations:\n"
+        f'  - clause_id: "{clause.clause_id}"\n'
+        '    quote: "This fabricated sentence never appears in the clause text either."\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(config, "REQUIREMENTS_DIR", requirements_dir)
+    monkeypatch.setattr(config, "DOC_REQUIREMENTS_DIR", doc_requirements_dir)
+    monkeypatch.setattr(config, "NECESSITY_DIR", necessity_dir)
+
+    report = run_verification()
+
+    assert any(
+        f.startswith("V2 necessity:fake-order") and "quote does not match" in f
+        for f in report.failures
+    ), report.failures
