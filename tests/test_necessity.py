@@ -208,6 +208,63 @@ def test_will_obtain_b12_level_still_fires_not_plan_line() -> None:
     assert [g.rule.order for g in gaps] == ["vitamin-b12"]
 
 
+# --- reviewer wave-3 regression: result-word AFTER the term on window-cue path ---
+
+def test_requested_hba1c_result_to_be_faxed_is_silent() -> None:
+    assert find_necessity_gaps("Requested HbA1c result to be faxed.", _real_rules()) == []
+
+
+def test_please_check_hba1c_result_before_discharge_is_silent() -> None:
+    assert find_necessity_gaps("Please check HbA1c result before discharge.", _real_rules()) == []
+
+
+def test_nurse_to_obtain_hba1c_result_before_rounds_is_silent() -> None:
+    assert find_necessity_gaps("Nurse to obtain HbA1c result before rounds.", _real_rules()) == []
+
+
+def test_requested_urine_culture_result_be_sent_is_silent() -> None:
+    note = "Requested urine culture result be sent to the outside lab."
+    assert find_necessity_gaps(note, _real_rules()) == []
+
+
+def test_sent_for_fasting_glucose_result_from_previous_facility_is_silent() -> None:
+    note = "Sent for the fasting glucose result from the previous facility."
+    assert find_necessity_gaps(note, _real_rules()) == []
+
+
+def test_will_obtain_b12_level_still_fires_wave3() -> None:
+    # Order-object AFTER-words (level/levels/value/values/reading/readings)
+    # are scoped to the plan-line-only path -- a genuine window cue like
+    # "will obtain" is not defeated by its own object's trailing attribute.
+    gaps = find_necessity_gaps("Will obtain vitamin B12 level.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["vitamin-b12"]
+
+
+def test_requested_fasting_glucose_in_weeks_still_fires() -> None:
+    gaps = find_necessity_gaps("Requested fasting glucose in 6 weeks.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["fasting-glucose"]
+
+
+def test_plan_order_hba1c_in_months_still_fires_wave3() -> None:
+    gaps = find_necessity_gaps("Plan: order HbA1c in 3 months.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["hba1c"]
+
+
+def test_plan_bare_listed_test_still_fires_wave3() -> None:
+    gaps = find_necessity_gaps("Plan: HbA1c, lipids.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["hba1c"]
+
+
+def test_requested_urine_culture_still_fires_wave3() -> None:
+    gaps = find_necessity_gaps("Requested urine culture.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["urine-culture"]
+
+
+def test_please_check_hba1c_next_visit_still_fires() -> None:
+    gaps = find_necessity_gaps("Please check HbA1c next visit.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["hba1c"]
+
+
 # --- cue matching precision (hyphen boundary, "in order to" idiom) ---
 
 def test_hyphenated_word_does_not_match_bare_cue() -> None:

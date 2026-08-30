@@ -6,18 +6,35 @@ pre-mention negation window rather than re-implementing matching (see
 gapcheck.py module docstring for the negation window's documented
 limitations: pre-mention only, fixed cue window).
 
+IMPORTANT: this whole module is a heuristic, deterministic result-vs-order
+classifier, not an NLP model -- it does not, and cannot, understand grammar.
+Every guard below is a documented, honest trade-off, not a settled fix; a
+residual risk always remains for phrasing outside the word lists exercised by
+tests (e.g. "Requested HbA1c printout" or "Please check HbA1c copy" would
+still fire, since "printout"/"copy" name a result but aren't in either word
+list). New false positives found in review get closed by adding a word or a
+narrower rule, never by weakening a guard's scope past what its own
+positive-control tests require.
+
 A NecessityGap fires for a rule when, for some order term match:
   1. the term matches note_text (wrap-tolerant, word-boundary), AND
   2. that match is not negated (gapcheck's negation window), AND
   3. that match does not look like a RESULT mention rather than an order --
-     two UNCONDITIONAL guards (heuristic, documented limitation, apply
-     regardless of which cue justifies the match -- see _looks_like_result):
-       - a numeric/percent value immediately following the match (e.g.
-         "HbA1c 8.1%", "glucose 126", "B12 250"), OR
+     UNCONDITIONAL guards, applied on every path regardless of which cue
+     justifies the match (heuristic -- see _looks_like_result):
+       - a numeric/percent value immediately following the match, within 12
+         significant chars (e.g. "HbA1c 8.1%", "glucose 126", "B12 250"); OR
        - a result/abnormal-value word shortly BEFORE the match, within 20
          chars (result, resulted, level, levels, negative, positive,
          showed, elevated, low, high, normal, abnormal, raised, reduced --
-         e.g. "the elevated HbA1c", "Labs showed HbA1c ..."), AND
+         e.g. "the elevated HbA1c", "Labs showed HbA1c ..."); OR
+       - a RESULT-ONLY word within 25 chars AFTER the match (result,
+         results, finding, findings, report, reported, "came back", showed,
+         elevated, raised, low, high, normal, abnormal -- e.g. "Requested
+         HbA1c result to be faxed.", "Please check HbA1c result before
+         discharge."). These words can only describe something that already
+         exists (a result/finding/report), so they veto every path -- an
+         order-verb cue does not override them, AND
   4. an order-specific cue occurs within +/-60 chars of the match span (a
      verb phrase that cannot plausibly describe a result, e.g. "ordered",
      "requested", "arrange", "will obtain" -- bare, ambiguous verbs like
@@ -44,19 +61,17 @@ satisfied for a match only when, on the line containing "plan:":
     determiner ("Plan: the HbA1c today"), but that is the safe failure
     direction (silent-but-logged beats a false finding).
 
-Then, ONLY when "plan:" is the SOLE reason the cue check passed (no other
-window cue also matched -- see _cue_reason), a further AFTER-word guard
-applies: a result/finding word within 25 chars AFTER the match (result,
-results, finding, findings, level, levels, value, values, reading,
-readings, report, reported, "came back", showed, elevated, low, high,
-normal, abnormal) suppresses the match, e.g. "Plan: review fasting glucose
-findings", "Plan: go over urine culture result with parents". This guard is
-scoped to the plan-line path specifically -- NOT applied when a genuine
-order-verb window cue justified the match -- so that "Will obtain vitamin
-B12 level." still fires despite "level" following the match: an explicit
-"will obtain"/"order"/"requested"/etc. immediately establishes an order
-regardless of what test-attribute word follows it, whereas a bare "plan:"
-alone does not carry that same certainty.
+ORDER-OBJECT AFTER-words (level, levels, value, values, reading, readings)
+are a SEPARATE, narrower guard: unlike the RESULT-ONLY words above, these
+also name what a test order is FOR ("check the HbA1c level", "will obtain
+... B12 level") -- vetoing every path on them would silently kill genuine
+orders. So this guard applies ONLY when "plan:" is the SOLE reason the cue
+check passed (no other window cue also matched -- see _cue_reason): "Plan:
+review B12 level" stays silent via the plan-line verb rule already (no order
+verb, "review" precedes the term), while "Will obtain vitamin B12 level."
+still fires -- an explicit "will obtain"/"order"/"requested"/etc. window cue
+is a strong enough signal that a following order-object word does not undo
+it, whereas a bare "plan:" alone does not carry that same certainty.
 
 Two further matching-precision guards (apply to cue matches only):
   - a cue match immediately followed by "-" is rejected (hyphen counts as a
@@ -96,13 +111,21 @@ _RESULT_WORDS_BEFORE = (
 )
 _RESULT_WORD_BEFORE_PATTERNS = [term_pattern(word) for word in _RESULT_WORDS_BEFORE]
 
-_RESULT_WORD_AFTER_WINDOW_CHARS = 25  # scoped to the plan-line-only path (see above)
-_RESULT_WORDS_AFTER = (
-    "result", "results", "finding", "findings", "level", "levels", "value", "values",
-    "reading", "readings", "report", "reported", "came back", "showed",
-    "elevated", "low", "high", "normal", "abnormal",
+_RESULT_WORD_AFTER_WINDOW_CHARS = 25
+
+# RESULT-ONLY: can only describe something that already exists -- applied on
+# EVERY path (window_cue or plan_line), unconditionally, alongside the
+# BEFORE-word and numeric guards above.
+_RESULT_WORDS_AFTER_UNIVERSAL = (
+    "result", "results", "finding", "findings", "report", "reported", "came back", "showed",
+    "elevated", "raised", "low", "high", "normal", "abnormal",
 )
-_RESULT_WORD_AFTER_PATTERNS = [term_pattern(word) for word in _RESULT_WORDS_AFTER]
+_RESULT_WORD_AFTER_UNIVERSAL_PATTERNS = [term_pattern(word) for word in _RESULT_WORDS_AFTER_UNIVERSAL]
+
+# ORDER-OBJECT: also names what a test order is FOR ("obtain the ... level")
+# -- scoped to the plan-line-only path only (see module docstring).
+_RESULT_WORDS_AFTER_ORDER_OBJECT = ("level", "levels", "value", "values", "reading", "readings")
+_RESULT_WORD_AFTER_ORDER_OBJECT_PATTERNS = [term_pattern(word) for word in _RESULT_WORDS_AFTER_ORDER_OBJECT]
 
 # "plan:" is intentionally NOT matched via the +/-60 window: it must appear on
 # the same line as the order-term match (see module docstring).
@@ -148,15 +171,24 @@ def _result_word_precedes(note_text: str, start: int) -> bool:
     return any(pattern.search(before) for pattern in _RESULT_WORD_BEFORE_PATTERNS)
 
 
-def _result_word_follows(note_text: str, end: int) -> bool:
+def _result_word_follows_universal(note_text: str, end: int) -> bool:
     after = note_text[end : end + _RESULT_WORD_AFTER_WINDOW_CHARS]
-    return any(pattern.search(after) for pattern in _RESULT_WORD_AFTER_PATTERNS)
+    return any(pattern.search(after) for pattern in _RESULT_WORD_AFTER_UNIVERSAL_PATTERNS)
+
+
+def _order_object_word_follows(note_text: str, end: int) -> bool:
+    after = note_text[end : end + _RESULT_WORD_AFTER_WINDOW_CHARS]
+    return any(pattern.search(after) for pattern in _RESULT_WORD_AFTER_ORDER_OBJECT_PATTERNS)
 
 
 def _looks_like_result(note_text: str, start: int, end: int) -> bool:
     """Unconditional guards, checked for every candidate match regardless of
-    which cue will justify it."""
-    return _numeric_follows(note_text, end) or _result_word_precedes(note_text, start)
+    which cue will justify it. The narrower order-object AFTER-word guard
+    (_order_object_word_follows) is NOT included here -- see find_necessity_gaps
+    and the module docstring."""
+    return (_numeric_follows(note_text, end)
+            or _result_word_precedes(note_text, start)
+            or _result_word_follows_universal(note_text, end))
 
 
 def _line_has_order_verb(line: str) -> bool:
@@ -209,7 +241,7 @@ def find_necessity_gaps(note_text: str, rules: list[NecessityRule]) -> list[Nece
                 reason = _cue_reason(note_text, rule, match.start(), match.end())
                 if reason is None:
                     continue
-                if reason == "plan_line" and _result_word_follows(note_text, match.end()):
+                if reason == "plan_line" and _order_object_word_follows(note_text, match.end()):
                     continue
                 fired_match = match
                 break
