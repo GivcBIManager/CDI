@@ -7,7 +7,13 @@
 order: fasting-glucose
 display_name: Fasting Blood Glucose (FBG) testing
 order_terms: ["fasting blood glucose", "fasting glucose", "FBG"]
-context_cues: ["order", "ordered", "check", "obtain", "send", "request", "draw", "plan:"]
+# Context cues are order-SPECIFIC verb phrases (a result can be reported
+# without any of these); bare ambiguous verbs (check/obtain/send/draw/collect/
+# sent) were dropped after review found them false-firing on result-reporting
+# text (e.g. "HbA1c 8.1% today. Plan: continue home meds."). "plan:" only
+# counts when it is on the SAME LINE as the order-term match (see
+# necessity.py), not within the +/-60 char window used for the other cues.
+context_cues: ["order", "ordered", "ordering", "requested", "request", "send for", "sent for", "sending", "arrange", "arranged", "will obtain", "to obtain", "please check", "will check", "to be checked", "repeat", "plan:"]
 # Indication terms mined from the age/risk-factor indications (pg2/p2, pg3/p4):
 # overweight/obese, and the listed risk factors (first-degree relative with
 # diabetes, physical inactivity, cardiovascular disease, polycystic ovary

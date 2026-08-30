@@ -4,17 +4,31 @@
 # RULE: pg2/p3 lists the clinical manifestations that indicate urine testing;
 # pg4/p3 states urine culture specifically (the confirmatory step, distinct
 # from urinalysis screening) "is recommended in the following scenarios" tied
-# to UTI suspicion -- both anchor "required".
+# to UTI suspicion.
+# population_note: the source's scope (pg2/p2) is healthy infants/children 3
+# months-14 years with a FIRST UTI; it explicitly excludes patients under 3
+# months, recurrent UTI, urinary catheters/uropathies/immunosuppression, and
+# -- notably -- ALL hospitalized patients. Note text gives no reliable signal
+# of patient age or hospitalization status, so this scope cannot be verified
+# deterministically; downgraded from "required" to "recommended" rather than
+# risk a required-severity finding on an out-of-scope (e.g. adult inpatient)
+# note. See necessity.py module docstring.
 order: urine-culture
 display_name: Urine culture testing
 order_terms: ["urine culture", "urine cultures"]
-context_cues: ["order", "ordered", "check", "obtain", "send", "collect", "request", "plan:"]
+# Context cues are order-SPECIFIC verb phrases (a result can be reported
+# without any of these); bare ambiguous verbs (check/obtain/send/draw/collect/
+# sent) were dropped after review found them false-firing on result-reporting
+# text (e.g. "HbA1c 8.1% today. Plan: continue home meds."). "plan:" only
+# counts when it is on the SAME LINE as the order-term match (see
+# necessity.py), not within the +/-60 char window used for the other cues.
+context_cues: ["order", "ordered", "ordering", "requested", "request", "send for", "sent for", "sending", "arrange", "arranged", "will obtain", "to obtain", "please check", "will check", "to be checked", "repeat", "plan:"]
 # Indication terms mined from the clinical-manifestations list (pg2/p3-pg3/p1)
 # and the urine-culture-specific scenarios (pg4/p3-pg5/p1): dysuria, urgency,
 # flank pain, new-onset incontinence, fever, and suspicion of a urinary tract
 # infection (including a positive leukocyte esterase/nitrite dipstick).
 valid_indication_terms: ["dysuria", "urgency", "flank pain", "incontinence", "fever", "UTI", "urinary tract infection", "leukocyte esterase", "nitrite"]
-level: required
+level: recommended
 recommendation: >-
   A urine culture order is documented without a supporting indication. Please document
   the indication, if applicable (e.g. clinical manifestations of UTI, or a positive

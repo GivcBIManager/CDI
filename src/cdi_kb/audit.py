@@ -93,10 +93,10 @@ def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool 
             else:
                 result.findings.append(finding)
 
-        for rule in find_necessity_gaps(note_text, necessity_rules):
-            finding = compose_necessity_finding(rule, store)
+        for gap in find_necessity_gaps(note_text, necessity_rules):
+            finding = compose_necessity_finding(gap, store)
             if finding is None:
-                result.dropped_citations.append(f"necessity|{rule.order}")
+                result.dropped_citations.append(f"necessity|{gap.rule.order}")
             else:
                 result.findings.append(finding)
 

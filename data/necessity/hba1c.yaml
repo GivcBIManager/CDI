@@ -7,7 +7,13 @@
 order: hba1c
 display_name: HbA1c testing
 order_terms: ["HbA1c", "hemoglobin A1c", "glycated hemoglobin", "glycated haemoglobin"]
-context_cues: ["order", "ordered", "check", "obtain", "send", "request", "draw", "plan:"]
+# Context cues are order-SPECIFIC verb phrases (a result can be reported
+# without any of these); bare ambiguous verbs (check/obtain/send/draw/collect/
+# sent) were dropped after review found them false-firing on result-reporting
+# text (e.g. "HbA1c 8.1% today. Plan: continue home meds."). "plan:" only
+# counts when it is on the SAME LINE as the order-term match (see
+# necessity.py), not within the +/-60 char window used for the other cues.
+context_cues: ["order", "ordered", "ordering", "requested", "request", "send for", "sent for", "sending", "arrange", "arranged", "will obtain", "to obtain", "please check", "will check", "to be checked", "repeat", "plan:"]
 # Indication terms mined from the Recommendations list (pg3/p3-pg4/p2): scope
 # names T2DM; the indications bullets name signs/symptoms of diabetes mellitus,
 # confirming a Diabetes Mellitus diagnosis, prediabetes follow-up, and prior

@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from cdi_kb.clauses import ClauseStore
 from cdi_kb.config import QUOTE_MATCH_THRESHOLD
 from cdi_kb.gapcheck import Gap
+from cdi_kb.necessity import NecessityGap
 from cdi_kb.normalize import find_quote
-from cdi_kb.requirements_model import Citation, DiagnosisRequirement, Element, NecessityRule
+from cdi_kb.requirements_model import Citation, DiagnosisRequirement, Element
 
 
 @dataclass(frozen=True)
@@ -79,17 +80,17 @@ def compose_element_finding(doc_type: str, element: Element, store: ClauseStore)
     )
 
 
-def compose_necessity_finding(rule: NecessityRule, store: ClauseStore) -> Finding | None:
-    verified = _verified_citations(rule.citations, store)
+def compose_necessity_finding(gap: NecessityGap, store: ClauseStore) -> Finding | None:
+    verified = _verified_citations(gap.rule.citations, store)
     if not verified:
         return None
     return Finding(
         finding_type="necessity_mismatch",
-        severity=rule.level,
-        condition=rule.order,
+        severity=gap.rule.level,
+        condition=gap.rule.order,
         axis="indication",
-        evidence_excerpt=f"{rule.display_name} ordered without a documented indication",
-        recommendation=rule.recommendation,
+        evidence_excerpt=gap.evidence_excerpt,
+        recommendation=gap.rule.recommendation,
         citations=tuple(verified),
-        dedupe_key=f"necessity|{rule.order}",
+        dedupe_key=f"necessity|{gap.rule.order}",
     )
