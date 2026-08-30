@@ -97,3 +97,23 @@ urinary-tract-infection-gap.txt:
   must_find: ["urinary tract infection|agent"]
 urinary-tract-infection-control.txt:
   must_not_find: ["urinary tract infection|agent"]
+
+discharge-summary-gap.txt:
+  must_find: ["discharge_summary|follow_up_plan"]
+discharge-summary-control.txt:
+  must_not_find: ["discharge_summary|follow_up_plan"]
+
+diagnosis-list-gap.txt:
+  must_find: ["diagnosis_list|principal_diagnosis"]
+diagnosis-list-control.txt:
+  must_not_find: ["diagnosis_list|principal_diagnosis"]
+
+necessity-hba1c-gap.txt:
+  must_find: ["necessity|hba1c"]
+necessity-hba1c-control.txt:
+  must_not_find: ["necessity|hba1c"]
+
+necessity-b12-gap.txt:
+  must_find: ["necessity|vitamin-b12"]
+necessity-b12-control.txt:
+  must_not_find: ["necessity|vitamin-b12"]

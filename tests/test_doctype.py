@@ -107,14 +107,23 @@ def test_header_phrase_mid_sentence_is_not_a_header_match() -> None:
     assert detect_doc_type(note) == "any"
 
 
+# Task 8: 8 notes (discharge-summary-*, diagnosis-list-*, necessity-hba1c-*,
+# necessity-b12-*) are intentionally typed/necessity fixtures -- see
+# test_eval_suite._TYPED_NOTE_PREFIXES. Excluded here by filename prefix so
+# this guard keeps covering exactly the original 40 free-prose notes.
+_TYPED_NOTE_PREFIXES = ("discharge-summary-", "diagnosis-list-", "necessity-hba1c-", "necessity-b12-")
+
+
 def test_all_eval_notes_detect_as_any() -> None:
-    """Corpus-level guard: all 40 eval notes are prose gap/control notes with
-    no headers, SOAP markers, or diagnosis-list shape -- every one must
-    detect as "any" so applies_to-scoped rules (default ["any"]) behave
+    """Corpus-level guard: the original 40 eval notes are prose gap/control
+    notes with no headers, SOAP markers, or diagnosis-list shape -- every one
+    must detect as "any" so applies_to-scoped rules (default ["any"]) behave
     identically to before doc-type detection existed."""
     notes_dir = config.EVAL_DIR / "notes"
     misclassified = []
     for path in sorted(notes_dir.glob("*.txt")):
+        if path.name.startswith(_TYPED_NOTE_PREFIXES):
+            continue
         detected = detect_doc_type(path.read_text(encoding="utf-8"))
         if detected != "any":
             misclassified.append(f"{path.name} -> {detected}")

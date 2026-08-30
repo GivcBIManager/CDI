@@ -13,6 +13,7 @@ from cdi_kb.clauses import Clause, ClauseStore, chunk_booklet
 from cdi_kb.extract import extract_pages
 from cdi_kb.index import SearchIndex
 from cdi_kb.normalize import normalize
+from cdi_kb.requirements_model import DOC_TYPES
 from cdi_kb.verify import run_verification
 
 MIN_SOURCE_CLAUSES = 5
@@ -67,6 +68,10 @@ def main(argv: list[str] | None = None) -> int:
     audit.add_argument("note_file", type=Path)
     audit.add_argument("--llm", action="store_true", help="enable implicit-condition inference")
     audit.add_argument("--json", action="store_true", dest="as_json")
+    audit.add_argument(
+        "--doc-type", dest="doc_type", choices=("auto", *DOC_TYPES), default="auto",
+        help="override auto-detected doc type ('auto' lets the note's own shape decide)",
+    )
     demo = sub.add_parser("demo", help="serve the paste-a-note web demo")
     demo.add_argument("--port", type=int, default=8000)
     args = parser.parse_args(argv)
@@ -86,10 +91,12 @@ def main(argv: list[str] | None = None) -> int:
         print("VERIFICATION PASSED" if report.passed else "VERIFICATION FAILED")
         return 0 if report.passed else 1
     if args.command == "audit":
-        result = run_audit(args.note_file.read_text(encoding="utf-8"), use_llm=args.llm)
+        doc_type = None if args.doc_type == "auto" else args.doc_type
+        result = run_audit(args.note_file.read_text(encoding="utf-8"), doc_type=doc_type, use_llm=args.llm)
         if args.as_json:
             print(json.dumps(dataclasses.asdict(result), indent=2))
         else:
+            print(f"doc type: {result.active_doc_type}")
             for finding in result.findings:
                 print(f"[{finding.severity}] {finding.condition} — missing {finding.axis}")
                 print(f"  {finding.recommendation}")
