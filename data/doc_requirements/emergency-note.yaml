@@ -1,9 +1,12 @@
 doc_type: emergency_note
 elements:
   # RULE A(i): explicit "must document" mandate, booklet "Different Types of Documentation" >
-  # Emergency Note section (p.69).
+  # Emergency Note section (p.69). Evidence terms tightened (reviewer fix): bare "observations"
+  # is a common English word that would match ordinary unrelated commentary and silently
+  # suppress a real completeness gap. Replaced with phrase-anchored, ED-specific terms.
   - name: presenting_complaint_observations
-    evidence_terms: ["presenting complaint", "presenting complaints", "observations"]
+    evidence_terms: ["presenting complaint", "presenting complaints", "vital signs",
+                     "triage category", "observations on arrival"]
     level: required
     recommendation: >-
       The emergency note does not document presenting complaints and observations. Please document

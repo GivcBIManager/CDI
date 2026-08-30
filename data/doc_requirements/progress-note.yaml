@@ -15,8 +15,13 @@ elements:
       - clause_id: "CDI-2021/progress-note/p1"
         quote: >-
           The progress note is intended to reflect the progress of the patient across an episode of care and the actions taken by the clinician to manage the presenting complaint, active co-morbidities and any conditions arising in the episode of care.
+  # Evidence terms tightened (reviewer fix): bare "wellbeing" and "behaviour" are common English
+  # words that would match ordinary unrelated commentary and silently suppress a real
+  # completeness gap. Replaced with the phrase-anchored forms the source clause itself uses
+  # ("physical wellbeing", "physical appearance") plus a behavioural-observation phrase.
   - name: wellbeing_observations
-    evidence_terms: ["wellbeing", "emotional state", "physical appearance", "behaviour"]
+    evidence_terms: ["physical wellbeing", "emotional state", "physical appearance",
+                     "behavioural observations"]
     level: recommended
     recommendation: >-
       The progress note does not document observations of the patient's wellbeing. Please include
@@ -25,8 +30,11 @@ elements:
       - clause_id: "CDI-2021/progress-note/p1"
         quote: >-
           The progress note should include observations related to behaviour, emotional state, physical wellbeing and physical appearance. This note should include relevant information related to incidents or health concerns that impact on a patient’s wellbeing.
+  # Evidence terms colon-anchored (reviewer fix): bare "subjective"/"objective" are common
+  # English words; anchored with ":" like the SOAP heading style itself, consistent with the
+  # existing "assessment:"/"plan:" terms.
   - name: soap_structure
-    evidence_terms: ["subjective", "objective", "assessment:", "plan:"]
+    evidence_terms: ["subjective:", "objective:", "assessment:", "plan:"]
     level: recommended
     recommendation: >-
       The progress note does not follow the SOAP structure. Please document Subjective impressions,

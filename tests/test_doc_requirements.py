@@ -64,6 +64,42 @@ def test_invalid_doc_requirement_file_rejected(tmp_path) -> None:
         load_doc_requirements(tmp_path)
 
 
+# Single common English/clinical words as lone evidence terms are prone to
+# matching ordinary, unrelated text and silently suppressing a real
+# completeness gap (e.g. bare "observations" or "procedure" -- see the
+# reviewer fix that tightened the 19 elements above). Multi-word phrases and
+# colon-anchored terms ("plan:") are exempt -- they are inherently more
+# specific. A short, explicitly justified allowlist covers the few single
+# tokens that ARE genuinely distinctive despite being short.
+ALLOWED_SINGLE_WORD_TERMS = {
+    "hopc",  # History Of Presenting Complaint -- a specific clinical acronym, not ordinary English
+    "pdx",   # Principal Diagnosis acronym (booklet's own "PDx") -- not ordinary English
+    "adx",   # Additional Diagnosis acronym (booklet's own "ADx") -- not ordinary English
+}
+
+
+def test_no_over_broad_single_word_evidence_terms() -> None:
+    """Mechanical guard: a lone evidence term that is a single word of <= 8
+    characters (and doesn't end with ":") is too generic to trust -- it must
+    either be phrase-anchored, colon-anchored, or explicitly allowlisted
+    above with a justification."""
+    offenders: list[str] = []
+    for doc_type, doc_req in load_doc_requirements(config.DOC_REQUIREMENTS_DIR).items():
+        for element in doc_req.elements:
+            for term in element.evidence_terms:
+                is_single_word = len(term.split()) == 1
+                if not is_single_word:
+                    continue
+                if term.endswith(":"):
+                    continue
+                if len(term) > 8:
+                    continue
+                if term.lower() in ALLOWED_SINGLE_WORD_TERMS:
+                    continue
+                offenders.append(f"{doc_type}|{element.name}: {term!r}")
+    assert not offenders, offenders
+
+
 # --- firewall ---------------------------------------------------------------
 
 def test_element_with_verified_citation_produces_finding(tmp_path) -> None:
