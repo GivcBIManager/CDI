@@ -1,4 +1,4 @@
-from cdi_kb.gapcheck import detect_conditions, find_gaps, scan_axes
+from cdi_kb.gapcheck import detect_conditions, find_gaps, rule_applies, scan_axes
 from cdi_kb.requirements_model import AxisRule, Citation, DiagnosisRequirement
 
 CKD = DiagnosisRequirement(
@@ -79,3 +79,43 @@ def test_wrapped_negation_cue_still_suppresses() -> None:
     the wrapping behavior this fix actually addresses."""
     mentions = detect_conditions("Ruled\nout: chronic kidney disease on imaging.", [CKD])
     assert len(mentions) == 1 and mentions[0].negated
+
+
+SCOPED_CKD = DiagnosisRequirement(
+    condition="chronic kidney disease",
+    synonyms=["CKD", "chronic renal failure"],
+    axes=[AxisRule(axis="stage", level="required",
+                   evidence_terms=["stage 4"], applies_to=["discharge_summary"])],
+    recommendation="CKD is documented without a stage. Please document the stage, if known.",
+    citations=[Citation(clause_id="CDI-2021/x/p1", quote="q")],
+)
+
+
+def test_default_applies_to_is_any() -> None:
+    assert CKD.axes[0].applies_to == ["any"]
+
+
+def test_rule_applies_true_for_matching_doc_type_and_for_any() -> None:
+    rule = SCOPED_CKD.axes[0]
+    assert rule_applies(rule, "discharge_summary")
+    assert rule_applies(rule, "any")
+
+
+def test_rule_applies_false_for_non_matching_doc_type() -> None:
+    rule = SCOPED_CKD.axes[0]
+    assert not rule_applies(rule, "progress_note")
+
+
+def test_rule_applies_default_any_matches_every_doc_type() -> None:
+    rule = CKD.axes[0]  # applies_to defaults to ["any"]
+    assert rule_applies(rule, "progress_note")
+    assert rule_applies(rule, "discharge_summary")
+
+
+def test_find_gaps_scoped_rule_fires_under_matching_doc_type_and_any() -> None:
+    assert find_gaps("Known CKD.", [SCOPED_CKD], doc_type="discharge_summary") != []
+    assert find_gaps("Known CKD.", [SCOPED_CKD], doc_type="any") != []
+
+
+def test_find_gaps_scoped_rule_does_not_fire_under_other_doc_type() -> None:
+    assert find_gaps("Known CKD.", [SCOPED_CKD], doc_type="progress_note") == []

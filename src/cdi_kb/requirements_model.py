@@ -14,6 +14,16 @@ from pydantic import BaseModel, Field, ValidationError
 
 Axis = Literal["type", "stage", "agent", "onset", "site"]
 
+DocType = Literal[
+    "discharge_summary", "admission_note", "progress_note",
+    "emergency_note", "diagnosis_list", "any",
+]
+
+DOC_TYPES: tuple[str, ...] = (
+    "discharge_summary", "admission_note", "progress_note",
+    "emergency_note", "diagnosis_list",
+)
+
 
 class Citation(BaseModel):
     clause_id: str
@@ -24,6 +34,7 @@ class AxisRule(BaseModel):
     axis: Axis
     level: Literal["required", "recommended"]
     evidence_terms: list[str] = Field(min_length=1)
+    applies_to: list[DocType] = ["any"]
 
 
 class DiagnosisRequirement(BaseModel):

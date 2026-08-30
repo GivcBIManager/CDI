@@ -11,7 +11,7 @@ NLP/LLM stage takes over.
 import re
 from dataclasses import dataclass
 
-from cdi_kb.requirements_model import DiagnosisRequirement
+from cdi_kb.requirements_model import AxisRule, DiagnosisRequirement
 
 _NEGATION_CUES = ("no ", "not ", "denies", "denied", "without", "negative for",
                   "ruled out", "no evidence of", "resolved")
@@ -84,7 +84,19 @@ def scan_axes(note_text: str, requirement: DiagnosisRequirement) -> set[str]:
     return present
 
 
-def find_gaps(note_text: str, requirements: list[DiagnosisRequirement]) -> list[Gap]:
+def rule_applies(rule: AxisRule, doc_type: str) -> bool:
+    """Whether an axis rule scoped by `rule.applies_to` is in scope for
+    `doc_type`. A rule scoped to "any" (the default) always applies; a note
+    whose doc type could not be pinned down ("any") is matched by every
+    rule regardless of that rule's own scoping."""
+    return "any" in rule.applies_to or doc_type == "any" or doc_type in rule.applies_to
+
+
+def find_gaps(
+    note_text: str,
+    requirements: list[DiagnosisRequirement],
+    doc_type: str = "any",
+) -> list[Gap]:
     by_condition = {req.condition: req for req in requirements}
     gaps: list[Gap] = []
     seen: set[tuple[str, str]] = set()
@@ -94,6 +106,8 @@ def find_gaps(note_text: str, requirements: list[DiagnosisRequirement]) -> list[
         req = by_condition[mention.condition]
         present = scan_axes(note_text, req)
         for rule in req.axes:
+            if not rule_applies(rule, doc_type):
+                continue
             key = (mention.condition, rule.axis)
             if rule.axis not in present and key not in seen:
                 seen.add(key)
