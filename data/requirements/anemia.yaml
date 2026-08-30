@@ -10,9 +10,24 @@ axes:
 recommendation: >-
   Anemia is documented without a specific type. Please document the type of anemia (e.g. iron
   deficiency, acute blood loss, hemolytic, aplastic), if known.
-# CHI secondary: CHI-ANEMIA introduces the guideline's own MCV/MCH-based classification framework
-# for anemia type (CHI-ANEMIA/pg6/p2) — a condition-specific classification clause — added as a
-# secondary citation.
+# CHI probe (Task 6 reviewer fix): a CHI-ANEMIA secondary was previously added at
+# CHI-ANEMIA/pg6/p2 ("There are different classification systems for anemia... based on mean
+# corpuscular volume (MCV) and mean corpuscular hemoglobin (MCH)"), but that clause governs the
+# MORPHOLOGIC classification (microcytic/normocytic/macrocytic), not the ETIOLOGIC 'type' this
+# axis's evidence_terms encode (iron deficiency, acute blood loss, hemolytic, aplastic,
+# sickle-cell) — this file's own header comment above already deliberately excluded
+# 'macrocytic'/'microcytic' from evidence_terms, so citing the morphologic clause here would
+# contradict that choice. Dropped. Note also: the morphologic category rows themselves
+# (Microcytic MCV <80 fL / Normocytic / Macrocytic MCV >100 fL) hit the same chi_chunker
+# heading-heuristic artifact obesity's BMI-class table hit — each "<Category> MCV ... fL" line
+# reads as a 2-capitalized-word heading, so the category list is consumed as heading text rather
+# than clause body (confirmed live: CHI-ANEMIA/pg6/p3's stored section_title is literally
+# "Macrocytic MCV >100 fL", not real body prose).
+# Searched CHI-ANEMIA directly for etiologic-typing governance ("iron deficiency", "cause of
+# anemia", "underlying cause", "etiology", "should be classified/documented/specified") — every
+# hit is diagnostic-workup flowchart content (STEP 01-04 boxes) or referral criteria, not a
+# classification/documentation imperative for etiologic type. No governing CHI-ANEMIA clause
+# exists; anemia stays booklet-only (CDI-2021/anaemia/p1).
 citations:
   - clause_id: "CDI-2021/anaemia/p1"
     quote: >-
@@ -21,7 +36,3 @@ citations:
       isolation do not sufficiently indicate the condition a patient is being managed for, and so
       clinical documentation should be assessed to ensure it captures a clinical diagnosis. For
       example, iron deficiency anemia treated with transfusion of packed cells.
-  - clause_id: "CHI-ANEMIA/pg6/p2"
-    quote: >-
-      There are different classification systems for anemia, but the most popular one is based on
-      mean corpuscular volume (MCV) and mean corpuscular hemoglobin (MCH), as follows:

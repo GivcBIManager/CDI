@@ -22,6 +22,17 @@ axes:
 recommendation: >-
   Heart failure is documented without specifying systolic vs diastolic (reduced vs preserved
   ejection fraction) type. Please document the type of heart failure, if known.
+# CHI governance disclosure (Task 6 reviewer fix): CHI-HF/pg14/p3 is a FIGURE CAPTION ("The
+# classification for baseline and subsequent LVEF IS SHOWN...") describing the EF-based
+# classification scheme, not an imperative documentation/classification instruction — it never
+# says HF type "should be classified" or "must be documented". Grepped all 721 CHI-HF clauses for
+# "should be classified", "should be documented", "should specify", "type of heart failure",
+# "diagnosis of heart failure" — zero hits; the guideline's actual imperative prose (e.g. Section
+# 2.2's body text, CHI-HF/pg13/p1) is corrupted by two-column PDF extraction bleed (interleaved,
+# unquotable without splicing unrelated column text mid-sentence — see task-6-report.md). This
+# figure caption is therefore the BEST QUOTABLE governing clause in the corpus for HF type, not a
+# genuine mandate; the booklet's Documenting for Specificity mandate clause (p8) is kept as a
+# secondary citation precisely because CHI-HF itself carries no explicit documentation imperative.
 citations:
   - clause_id: "CHI-HF/pg14/p3"
     quote: |-
