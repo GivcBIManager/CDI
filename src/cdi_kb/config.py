@@ -34,6 +34,6 @@ KB_DB = VAR_DIR / "kb.sqlite"
 REQUIREMENTS_DIR = REPO_ROOT / "data" / "requirements"
 EVAL_DIR = REPO_ROOT / "data" / "eval"
 
-ANTHROPIC_MODEL = "claude-opus-5"
+ANTHROPIC_MODEL = "claude-sonnet-5"
 QUOTE_MATCH_THRESHOLD = 0.95
 SOURCE_ID = "CDI-2021"  # citation prefix for the booklet
