@@ -16,6 +16,12 @@ def test_stats_are_reported() -> None:
     assert report.stats["citations_checked"] >= 20
 
 
+def test_stats_report_per_source_counts() -> None:
+    report = run_verification()
+    assert report.stats["sources"] == 9
+    assert report.stats["clauses_CHI-ANEMIA"] > 10
+
+
 def test_mandate_anchored_entries_are_named_in_notes() -> None:
     report = run_verification()
     assert report.stats["mandate_anchored_entries"] >= 1

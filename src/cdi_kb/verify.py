@@ -1,6 +1,9 @@
 """KB verification: five checks proving every layer matches the source PDFs.
 
-V1  Extraction fidelity: every stored clause text occurs in the raw page text.
+V1  Extraction fidelity: every stored clause text occurs in the raw page text of
+    its OWN source PDF (clauses are grouped by the clause_id's source-id prefix
+    and checked against that source only, not the booklet). A clause whose
+    prefix does not match a known config.SOURCES id is itself a V1 failure.
 V2  Citation integrity: every requirement citation's quote matches its clause
     (find_quote >= threshold) and its clause_id resolves in Layer 1.
 V3  Retrieval adequacy (two-tier): for every requirement, searching the condition +
@@ -22,7 +25,7 @@ V5  Coverage: all EXPECTED_CONDITIONS have an entry with a required axis.
 from dataclasses import dataclass, field
 
 from cdi_kb import config
-from cdi_kb.clauses import ClauseStore
+from cdi_kb.clauses import Clause, ClauseStore
 from cdi_kb.extract import extract_pages
 from cdi_kb.index import SearchIndex
 from cdi_kb.normalize import find_quote, normalize
@@ -42,17 +45,30 @@ class VerificationReport:
 def run_verification() -> VerificationReport:
     failures: list[str] = []
     notes: list[str] = []
-    pages = extract_pages(config.BOOKLET_PDF, config.RAW_TEXT_DIR)
-    full_source = normalize(" ".join(page.text for page in pages))
+    full_source_by_id = {
+        sid: normalize(" ".join(page.text for page in extract_pages(src.path, config.RAW_TEXT_DIR)))
+        for sid, src in config.SOURCES.items()
+    }
     store = ClauseStore(config.KB_DB)
     index = SearchIndex(config.KB_DB)
     clauses = store.all()
     requirements = load_requirements(config.REQUIREMENTS_DIR)
 
-    # V1 — every clause is verbatim source text
+    # V1 — every clause is verbatim text of its own source PDF (per-source, not booklet-only)
+    clauses_by_source: dict[str, list[Clause]] = {}
     for clause in clauses:
-        if normalize(clause.text) not in full_source:
-            failures.append(f"V1 {clause.clause_id}: clause text not found in source PDF")
+        source_id = clause.clause_id.split("/", 1)[0]
+        clauses_by_source.setdefault(source_id, []).append(clause)
+
+    for source_id, group in clauses_by_source.items():
+        source_text = full_source_by_id.get(source_id)
+        if source_text is None:
+            for clause in group:
+                failures.append(f"V1 {clause.clause_id}: unknown source id '{source_id}'")
+            continue
+        for clause in group:
+            if normalize(clause.text) not in source_text:
+                failures.append(f"V1 {clause.clause_id}: clause text not found in source PDF")
 
     # V2 — every citation quote matches its clause
     citations_checked = 0
@@ -116,11 +132,18 @@ def run_verification() -> VerificationReport:
 
     store.close()
     index.close()
+    stats = {
+        "clauses": len(clauses),
+        "requirements": len(requirements),
+        "citations_checked": citations_checked,
+        "mandate_anchored_entries": mandate_anchored_entries,
+        "sources": len(config.SOURCES),
+    }
+    for source_id in config.SOURCES:
+        stats[f"clauses_{source_id}"] = len(clauses_by_source.get(source_id, []))
     return VerificationReport(
         passed=not failures,
         failures=failures,
-        stats={"clauses": len(clauses), "requirements": len(requirements),
-               "citations_checked": citations_checked,
-               "mandate_anchored_entries": mandate_anchored_entries},
+        stats=stats,
         notes=notes,
     )
