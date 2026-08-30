@@ -1,19 +1,27 @@
 condition: obesity
 synonyms: [obese, morbid obesity]
 axes:
-  # RULE A(ii): searched "obesity", "BMI", "bariatric", "morbid" — no condition-specific governing
-  # clause anywhere in the booklet instructs documenting an obesity type/class (obesity appears only
-  # as an incidental comorbidity/risk-factor mention in other chapters). The prior p1 citation was a
-  # glossary sentence and cannot anchor 'required' per RULE A. Re-anchored to the Documenting for
-  # Specificity mandate clause (p8) as the single most clinically defining axis for this entry; p1
-  # kept only as a secondary definitional citation.
+  # RULE A(ii): searched "obesity", "BMI", "bariatric", "morbid", "classification" broadly across
+  # CHI-BARIATRIC (Bariatric and Metabolic Surgery guideline) — the DEFINITIONS section's BMI
+  # classification table (Normal / Overweight / Obesity class I-III / Super Obesity) is a genuine
+  # condition-specific classification scheme, but its class-label rows were consumed by the
+  # heading-detection heuristic in chi_chunker (each "Obesity class N ..." line reads as a
+  # 2-capitalized-word heading and is stripped out before any body text accumulates under it), so
+  # the class labels never survive into any clause's stored text and cannot be quoted verbatim. No
+  # other condition-specific clause mandates HF-style "type" documentation (morbid/class 1/2/3).
+  # Kept anchored to the Documenting for Specificity mandate clause (p8); p1 kept as a secondary
+  # definitional citation.
   - axis: type
     level: required
     evidence_terms: [morbid, class 1, class 2, class 3]
-  # RULE B: no condition-specific clause, and no mandate-clause stacking beyond the one already used
-  # for 'type' above; kept at recommended. p3 (staging definition) kept as secondary context only.
+  # RULE A(i): CHI-BARIATRIC Chapter 3.1 "SURGICAL INDICATIONS" (CHI-BARIATRIC/pg9/p1) states a
+  # genuine BMI documentation/classification expectation — the general indications, including the
+  # BMI threshold criterion (item 3.1.2), "should be clearly documented in each patient's chart".
+  # This governs the 'stage' (BMI) axis directly, unlike the booklet's generic mandate. Upgraded
+  # from recommended to required on the strength of this clause; p3 (staging definition) kept as a
+  # secondary citation.
   - axis: stage
-    level: recommended
+    level: required
     evidence_terms: [BMI]
 recommendation: >-
   Obesity is documented without a BMI-based classification. Please document the BMI and/or class
@@ -28,6 +36,10 @@ citations:
     quote: >-
       The descriptor “type” really means qualifying terms that categorise the condition into a broad
       group.
+  - clause_id: "CHI-BARIATRIC/pg9/p1"
+    quote: >-
+      Patients must have a BMI of 40 kg/m2 (37.5 kg/m2 for
+      Asians) or 35 kg/m2 (32.5 kg/m2 for Asians) if one or more comorbid factors are documented.
   - clause_id: "CDI-2021/documenting-for-specificity/p3"
     quote: >-
       Staging terms may be used in isolation or as an extension of the type, to provide further

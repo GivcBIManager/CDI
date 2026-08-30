@@ -1,17 +1,21 @@
 condition: heart failure
 synonyms: [HF, CCF, CHF, cardiac failure]
 axes:
-  # RULE A(ii): searched "acute on chronic", "cardiac failure", "heart", "systolic", "ejection" — no
-  # condition-specific governing clause mandates HF type (systolic/diastolic/HFrEF/HFpEF)
-  # documentation anywhere in the booklet; the prior p1 citation was a glossary sentence ("the
-  # descriptor 'type' really means...") and cannot anchor 'required' per RULE A. Re-anchored to the
-  # Documenting for Specificity mandate clause (p8) as the single most clinically defining axis for
-  # this entry; p1 kept only as a secondary definitional citation.
+  # RULE A(i): CHI-HF (2022 AHA/ACC/HFSA Heart Failure Guideline) Section 2.2 "Classification of
+  # HF by Left Ventricular Ejection Fraction" states the EF-based classification scheme
+  # (HFrEF/HFmrEF/HFpEF/HFimpEF) that documenting HF "type" is built on (Figure 3 caption,
+  # CHI-HF/pg14/p3) — a genuine condition-specific classification clause, unlike the booklet's
+  # generic mandate. Re-anchored: CHI-HF/pg14/p3 is now the primary citation; the booklet's
+  # Documenting for Specificity mandate clause (p8) is kept as a secondary citation, and the
+  # definitional p1 clause is kept as a secondary citation too.
   - axis: type
     level: required
     evidence_terms: [systolic, diastolic, HFrEF, HFpEF, reduced ejection, preserved ejection]
-  # RULE B: no condition-specific clause, and no mandate-clause stacking beyond the one already used
-  # for 'type' above; kept at recommended, no citation.
+  # RULE B: no condition-specific clause found for onset (searched "acute decompensated",
+  # "new-onset heart failure", "acute on chronic", "chronic heart failure is" — CHI-HF only uses
+  # these as inclusion-criteria phrasing for unrelated workup recommendations, not as an onset
+  # documentation mandate); no mandate-clause stacking beyond the one already used for 'type'
+  # above; kept at recommended, no citation.
   - axis: onset
     level: recommended
     evidence_terms: [acute, chronic, acute on chronic]
@@ -19,6 +23,10 @@ recommendation: >-
   Heart failure is documented without specifying systolic vs diastolic (reduced vs preserved
   ejection fraction) type. Please document the type of heart failure, if known.
 citations:
+  - clause_id: "CHI-HF/pg14/p3"
+    quote: |-
+      TheclassificationforbaselineandsubsequentLVEFisshown.PatientswithHFrEFwho
+      improvetheirLVEFto>40%areconsideredtohaveHFimpEFandshouldcontinueHFrEFtreatment.
   - clause_id: "CDI-2021/documenting-for-specificity/p8"
     quote: >-
       When documenting any condition, use as many of these descriptors as clinically relevant to

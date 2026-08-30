@@ -10,6 +10,9 @@ axes:
 recommendation: >-
   Anemia is documented without a specific type. Please document the type of anemia (e.g. iron
   deficiency, acute blood loss, hemolytic, aplastic), if known.
+# CHI secondary: CHI-ANEMIA introduces the guideline's own MCV/MCH-based classification framework
+# for anemia type (CHI-ANEMIA/pg6/p2) — a condition-specific classification clause — added as a
+# secondary citation.
 citations:
   - clause_id: "CDI-2021/anaemia/p1"
     quote: >-
@@ -18,3 +21,7 @@ citations:
       isolation do not sufficiently indicate the condition a patient is being managed for, and so
       clinical documentation should be assessed to ensure it captures a clinical diagnosis. For
       example, iron deficiency anemia treated with transfusion of packed cells.
+  - clause_id: "CHI-ANEMIA/pg6/p2"
+    quote: >-
+      There are different classification systems for anemia, but the most popular one is based on
+      mean corpuscular volume (MCV) and mean corpuscular hemoglobin (MCH), as follows:

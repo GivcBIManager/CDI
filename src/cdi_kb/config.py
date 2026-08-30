@@ -66,6 +66,13 @@ SOURCES: dict[str, SourceDoc] = {
             "CHI-STROKE", _CHI_DIR / "Saudi Stroke Standards.pdf", "Saudi Stroke Standards", "CHI", "chi_prose"
         ),
         SourceDoc(
+            "CHI-BARIATRIC",
+            _CHI_DIR / "Bariatric and Metabolic Surgery.pdf",
+            "CHI Bariatric and Metabolic Surgery Guidelines",
+            "CHI",
+            "chi_prose",
+        ),
+        SourceDoc(
             "CHI-NEC-HBA1C",
             _CHI_DIR / "Medical Necessity Criteria for HgA1c Testing.pdf",
             "CHI Necessity Criteria: HbA1c",
