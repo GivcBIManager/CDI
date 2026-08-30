@@ -1,6 +1,7 @@
 """Paste-a-note demo UI. Single page, no external assets."""
 
 import dataclasses
+from typing import Literal
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
@@ -10,6 +11,13 @@ from cdi_kb import config
 from cdi_kb.audit import run_audit
 from cdi_kb.index import SearchIndex
 from cdi_kb.requirements_model import DOC_TYPES
+
+# Built from DOC_TYPES (the single source of truth) rather than hardcoded, so
+# the accepted values can never drift from the CLI's --doc-type choices.
+# Deliberately excludes "any" -- that's the internal auto-detect fallback
+# value, never a valid client-supplied choice (the dropdown only offers Auto,
+# which sends None/omits the field, plus the 5 concrete types).
+_DocTypeChoice = Literal[DOC_TYPES]
 
 app = FastAPI(title="CDI Audit Demo")
 
@@ -28,8 +36,11 @@ class AuditRequest(BaseModel):
     note_text: str
     # None (omitted or null) means Auto -- run_audit auto-detects the doc type
     # from the note's own shape. A concrete value overrides detection, same
-    # as the CLI's --doc-type.
-    doc_type: str | None = None
+    # as the CLI's --doc-type. Restricted to exactly the 5 DOC_TYPES (never
+    # "any", never arbitrary text) -- FastAPI/pydantic returns 422 on anything
+    # else, closing the reflected-XSS path where an unvalidated doc_type would
+    # otherwise come back verbatim in active_doc_type for the page to render.
+    doc_type: _DocTypeChoice | None = None
     use_llm: bool = False
 
 
@@ -72,6 +83,13 @@ _PAGE_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8"><title>CDI 
 <button onclick="audit()">Audit note</button>
 <div id="out"></div>
 <script>
+// Every field below originates from the server response (findings are
+// KB-authored today, but nothing here should ever be trusted to be safe
+// markup) -- escape before string-concatenating into innerHTML.
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 async function audit(){
   const docType = document.getElementById('doctype').value || null;
   const r = await fetch('/api/audit',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -80,14 +98,14 @@ async function audit(){
                          use_llm:document.getElementById('llm').checked})});
   const d = await r.json();
   const out = document.getElementById('out');
-  out.innerHTML = '<p id="doctype-result">Detected/selected type: '+d.active_doc_type+'</p>'
+  out.innerHTML = '<p id="doctype-result">Detected/selected type: '+esc(d.active_doc_type)+'</p>'
     +'<h2>'+d.findings.length+' finding(s)</h2>';
   for(const f of d.findings){
     const div = document.createElement('div');
     div.className = 'finding '+f.severity;
-    div.innerHTML = '<strong>'+f.condition+'</strong> — missing <em>'+f.axis+'</em> ('+f.severity+')'
-      +'<div>'+f.recommendation+'</div>'
-      +f.citations.map(c=>'<div class="cite">source: '+c.clause_id+' (p.'+c.page+') — "'+c.quote+'"</div>').join('');
+    div.innerHTML = '<strong>'+esc(f.condition)+'</strong> — missing <em>'+esc(f.axis)+'</em> ('+esc(f.severity)+')'
+      +'<div>'+esc(f.recommendation)+'</div>'
+      +f.citations.map(c=>'<div class="cite">source: '+esc(c.clause_id)+' (p.'+esc(c.page)+') — "'+esc(c.quote)+'"</div>').join('');
     out.appendChild(div);
   }
 }

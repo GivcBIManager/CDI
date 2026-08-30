@@ -1,3 +1,5 @@
+import pytest
+
 from cdi_kb.audit import run_audit
 
 
@@ -41,3 +43,19 @@ def test_explicit_doc_type_override_wins_even_for_empty_note() -> None:
     result = run_audit("", doc_type="progress_note")
     assert result.active_doc_type == "progress_note"
     assert result.findings == []
+
+
+def test_run_audit_rejects_unknown_doc_type() -> None:
+    # Defense in depth: doc_type must be one of DOC_TYPES or None even when
+    # called directly (not just via the FastAPI/CLI validated entry points) --
+    # a caller passing an arbitrary string (e.g. unsanitized user input) must
+    # fail loudly rather than silently becoming the note's active_doc_type.
+    with pytest.raises(ValueError, match="bogus"):
+        run_audit("Known CKD.", doc_type="bogus")
+
+
+def test_run_audit_rejects_any_as_explicit_doc_type() -> None:
+    # "any" is the internal auto-detect fallback value, never a valid
+    # explicit override -- callers who want auto-detect must pass None.
+    with pytest.raises(ValueError, match="any"):
+        run_audit("Known CKD.", doc_type="any")

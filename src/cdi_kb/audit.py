@@ -10,7 +10,7 @@ from cdi_kb.findings import Finding, compose_element_finding, compose_finding, c
 from cdi_kb.gapcheck import ConditionMention, Gap, detect_conditions, find_gaps, rule_applies, scan_axes
 from cdi_kb.necessity import find_necessity_gaps
 from cdi_kb.requirements_model import (
-    DiagnosisRequirement, DocType, load_doc_requirements, load_necessity_rules, load_requirements,
+    DOC_TYPES, DiagnosisRequirement, DocType, load_doc_requirements, load_necessity_rules, load_requirements,
 )
 
 
@@ -71,6 +71,14 @@ def _inferred_findings(
 
 
 def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool = False) -> AuditResult:
+    # Defense in depth: doc_type must be a concrete DOC_TYPES value or None
+    # (auto-detect), even for callers that bypass the FastAPI/CLI validated
+    # entry points (e.g. reflected-XSS-style arbitrary strings). "any" is the
+    # internal auto-detect fallback value, never a valid explicit override.
+    if doc_type is not None and doc_type not in DOC_TYPES:
+        raise ValueError(
+            f"doc_type must be one of {DOC_TYPES} or None (auto-detect), got {doc_type!r}"
+        )
     # Requirements are loaded BEFORE doc-type resolution (and passed into it) so
     # the diagnosis-list shape heuristic's known-condition-term check is active;
     # doc_type itself is still resolved BEFORE the empty-note early return: an

@@ -54,3 +54,35 @@ def test_audit_endpoint_auto_doc_type_on_plain_note_returns_any() -> None:
 def test_search_endpoint() -> None:
     response = client.get("/api/search", params={"q": "specificity stage"})
     assert response.status_code == 200 and isinstance(response.json()["hits"], list)
+
+
+def test_audit_endpoint_rejects_xss_doc_type() -> None:
+    response = client.post(
+        "/api/audit",
+        json={"note_text": "Known CKD, stable.", "doc_type": "<img src=x onerror=alert(1)>", "use_llm": False},
+    )
+    assert response.status_code == 422
+
+
+def test_audit_endpoint_rejects_any_as_explicit_doc_type() -> None:
+    # The dropdown only ever offers Auto (omitted/null) + the 5 concrete
+    # types -- "any" is the internal auto-detect fallback value, never a
+    # valid client-supplied choice.
+    response = client.post(
+        "/api/audit", json={"note_text": "Known CKD, stable.", "doc_type": "any", "use_llm": False}
+    )
+    assert response.status_code == 422
+
+
+def test_index_page_escapes_server_supplied_fields_before_innerhtml() -> None:
+    # Defense in depth: the JS must run every server-supplied field (findings
+    # are KB-authored today, but active_doc_type/condition/axis/severity/
+    # recommendation/clause_id/page/quote all reach the page verbatim from
+    # the API response) through an escaping helper before string-concatenating
+    # into innerHTML -- never interpolate raw response text into innerHTML.
+    response = client.get("/")
+    text = response.text
+    assert "function esc(" in text
+    for field in ("d.active_doc_type", "f.condition", "f.axis", "f.severity",
+                  "f.recommendation", "c.clause_id", "c.page", "c.quote"):
+        assert f"esc({field})" in text, f"{field} is interpolated without esc()"
