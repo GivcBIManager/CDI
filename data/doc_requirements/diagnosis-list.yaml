@@ -1,0 +1,43 @@
+doc_type: diagnosis_list
+elements:
+  # RULE A(i): explicit mandate ("there must be a principal diagnosis"), booklet "The Principal
+  # Diagnosis" section (p.56).
+  - name: principal_diagnosis
+    evidence_terms: ["principal diagnosis", "primary diagnosis", "pdx"]
+    level: required
+    recommendation: >-
+      The diagnosis list does not identify a principal diagnosis. Please identify the single
+      principal diagnosis (the condition established after study as chiefly responsible for the
+      episode of care).
+    citations:
+      - clause_id: "CDI-2021/the-principal-diagnosis/p4"
+        quote: >-
+          For each episode of care, there must be a principal diagnosis. This means there must be one and only for each episode.
+  # RULE B: "should be recorded ... if it meets the clinical significance criteria" -- conditional
+  # "should" language, not a "must"/"mandatory" for a specific list of additional diagnoses --
+  # downgraded to recommended.
+  - name: additional_diagnoses
+    evidence_terms: ["additional diagnosis", "additional diagnoses", "adx"]
+    level: recommended
+    recommendation: >-
+      The diagnosis list does not identify any additional diagnoses. Please record any other
+      diagnoses, complications, or conditions arising in the episode of care that meet the clinical
+      significance criteria.
+    citations:
+      - clause_id: "CDI-2021/the-principal-diagnosis/p4"
+        quote: >-
+          Any differential diagnosis not ruled out, other additional diagnoses, complications and conditions arising in the episode of care as well as relevant transfer diagnoses should be recorded as an additional diagnosis (ADx) if it meets the clinical significance criteria.
+  # RULE B: "should always be clearly documented" -- "should" language, not "must" -- downgraded to
+  # recommended. Evidence terms drawn directly from the clause's own worked list of causal-link
+  # terms (booklet "Criteria for Assigning an ADx", p.58).
+  - name: causal_linkage
+    evidence_terms: ["secondary to", "due to", "as a consequence of", "as a result of", "sequela of", "complication of"]
+    level: recommended
+    recommendation: >-
+      The diagnosis list does not link additional diagnoses to a causative condition. Where an
+      additional diagnosis has a causal relationship to another condition, please document the link
+      (e.g. "secondary to", "due to", "as a consequence of").
+    citations:
+      - clause_id: "CDI-2021/criteria-for-assigning-an-adx/p7"
+        quote: >-
+          Documentation of additional diagnoses with a causative relationship or link to another condition should always be clearly documented, using the terms “secondary to”, “due to”, “as a consequence of”, “with”, “as a result of”, “due to current injury caused by”, “sequela of”, or “complication of”.

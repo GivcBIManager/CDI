@@ -56,6 +56,31 @@ def load_requirements(directory: Path) -> list[DiagnosisRequirement]:
     return entries
 
 
+class Element(BaseModel):
+    name: str
+    evidence_terms: list[str] = Field(min_length=1)
+    level: Literal["required", "recommended"]
+    recommendation: str
+    citations: list[Citation] = Field(min_length=1)
+
+
+class DocTypeRequirement(BaseModel):
+    doc_type: DocType
+    elements: list[Element] = Field(min_length=1)
+
+
+def load_doc_requirements(directory: Path) -> dict[str, DocTypeRequirement]:
+    entries: dict[str, DocTypeRequirement] = {}
+    for path in sorted(directory.glob("*.yaml")):
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        try:
+            entry = DocTypeRequirement.model_validate(raw)
+        except ValidationError as error:
+            raise ValueError(f"invalid doc requirement file {path.name}: {error}") from error
+        entries[entry.doc_type] = entry
+    return entries
+
+
 EXPECTED_CONDITIONS: tuple[str, ...] = (
     "sepsis", "pneumonia", "diabetes mellitus", "chronic kidney disease",
     "acute kidney injury", "anemia", "acute respiratory failure", "heart failure",

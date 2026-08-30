@@ -1,0 +1,37 @@
+doc_type: progress_note
+elements:
+  # RULE B: booklet "Different Types of Documentation" > Progress Note section (p.71) describes
+  # what the note "is intended to reflect" -- no "must"/"mandatory" language anywhere in this
+  # (thin) section. All three elements below are downgraded to recommended on that basis; searched
+  # "progress note", "SOAP" -- no stronger condition-specific mandate clause found.
+  - name: presenting_complaint_management
+    evidence_terms: ["presenting complaint", "co-morbidities", "comorbidities"]
+    level: recommended
+    recommendation: >-
+      The progress note does not document the actions taken to manage the presenting complaint,
+      active co-morbidities, or conditions arising during the episode of care. Please document the
+      clinical actions taken.
+    citations:
+      - clause_id: "CDI-2021/progress-note/p1"
+        quote: >-
+          The progress note is intended to reflect the progress of the patient across an episode of care and the actions taken by the clinician to manage the presenting complaint, active co-morbidities and any conditions arising in the episode of care.
+  - name: wellbeing_observations
+    evidence_terms: ["wellbeing", "emotional state", "physical appearance", "behaviour"]
+    level: recommended
+    recommendation: >-
+      The progress note does not document observations of the patient's wellbeing. Please include
+      observations related to behaviour, emotional state, physical wellbeing and appearance.
+    citations:
+      - clause_id: "CDI-2021/progress-note/p1"
+        quote: >-
+          The progress note should include observations related to behaviour, emotional state, physical wellbeing and physical appearance. This note should include relevant information related to incidents or health concerns that impact on a patient’s wellbeing.
+  - name: soap_structure
+    evidence_terms: ["subjective", "objective", "assessment:", "plan:"]
+    level: recommended
+    recommendation: >-
+      The progress note does not follow the SOAP structure. Please document Subjective impressions,
+      Objective measurable outcomes, an Assessment and a Plan to treat.
+    citations:
+      - clause_id: "CDI-2021/soap-notes-style/p1"
+        quote: >-
+          According to the SOAP notes style, documentation should be Subjective impressions, Objective measurable outcomes, Assessment reflecting analysis and Plan to treat.

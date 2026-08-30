@@ -1,0 +1,56 @@
+doc_type: discharge_summary
+elements:
+  # RULE A(i): condition-specific mandate clause ("must include ... the principal
+  # diagnosis, all additional diagnoses and procedures ..."), booklet "Different
+  # Types of Documentation" > Discharge Summary section (p.67). Anchors both
+  # principal_diagnosis and procedures_operations below.
+  - name: principal_diagnosis
+    evidence_terms: ["principal diagnosis", "admission diagnosis", "discharge diagnosis"]
+    level: required
+    recommendation: >-
+      The discharge summary does not clearly document the principal diagnosis. Please state the
+      principal diagnosis (the condition established after study as chiefly responsible for the
+      admission) at the top of the summary.
+    citations:
+      - clause_id: "CDI-2021/discharge-summary/p3"
+        quote: >-
+          The content of the summary must include information relating to the history of presenting condition, hospital course, the principal diagnosis, all additional diagnoses and procedures with actions required on discharge.
+  # RULE A(i): same mandate sentence as above (names "procedures" alongside the diagnoses);
+  # p6's "theatre and ward-based procedures" phrase kept as a secondary, more specific example.
+  - name: procedures_operations
+    evidence_terms: ["procedure", "operation", "surgery", "theatre"]
+    level: required
+    recommendation: >-
+      The discharge summary does not document the procedures or operations performed during the
+      admission. Please document all procedures/operations, including dates performed.
+    citations:
+      - clause_id: "CDI-2021/discharge-summary/p3"
+        quote: >-
+          The content of the summary must include information relating to the history of presenting condition, hospital course, the principal diagnosis, all additional diagnoses and procedures with actions required on discharge.
+      - clause_id: "CDI-2021/discharge-summary/p6"
+        quote: >-
+          However, the key information that should be covered on the discharge summary is: • doctor’s examination and findings on presentation, • key results of diagnostic findings in hospital, and • treatment including medications, • allied health intervention, theatre and ward-based procedures.
+  # RULE B: p8 lists this as "other components ... include" -- no "must"/"mandatory" language
+  # anywhere in the Discharge Summary section for medications specifically -- downgraded to
+  # recommended (contrast follow_up_plan below, which IS mandate language).
+  - name: medications_on_discharge
+    evidence_terms: ["medications on discharge", "discharge medications", "medication list"]
+    level: recommended
+    recommendation: >-
+      The discharge summary does not list medications on discharge. Please document the discharge
+      medication list, including any reasons for cessation or commencement of therapy.
+    citations:
+      - clause_id: "CDI-2021/discharge-summary/p8"
+        quote: >-
+          Other components of the discharge summary include • list of medications on admission and discharge, as well as • reasons for cessation or commencement, • relevant pathology, • the patient’s functional, emotional or psychological status, • with comment given to their response to the hospital stay.
+  # RULE A(i): explicit mandate language ("is mandatory").
+  - name: follow_up_plan
+    evidence_terms: ["follow up", "follow-up", "review in", "clinic appointment"]
+    level: required
+    recommendation: >-
+      The discharge summary does not document follow-up care. Please document the follow-up plan,
+      including appointment dates/times or who is responsible for booking them.
+    citations:
+      - clause_id: "CDI-2021/discharge-summary/p9"
+        quote: >-
+          Documentation of follow-up care is mandatory. This includes dates and times of appointments booked, or who is responsible for booking, with a timeframe provided.

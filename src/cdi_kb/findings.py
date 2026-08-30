@@ -7,7 +7,7 @@ from cdi_kb.clauses import ClauseStore
 from cdi_kb.config import QUOTE_MATCH_THRESHOLD
 from cdi_kb.gapcheck import Gap
 from cdi_kb.normalize import find_quote
-from cdi_kb.requirements_model import DiagnosisRequirement
+from cdi_kb.requirements_model import Citation, DiagnosisRequirement, Element
 
 
 @dataclass(frozen=True)
@@ -30,9 +30,12 @@ class Finding:
     dedupe_key: str
 
 
-def compose_finding(gap: Gap, requirement: DiagnosisRequirement, store: ClauseStore) -> Finding | None:
+def _verified_citations(citations: list[Citation], store: ClauseStore) -> list[VerifiedCitation]:
+    """THE only citation-verification code path: every Finding-producing
+    composer (diagnosis-gap, doc-type-element-gap, and any future finding
+    type) must route through this to keep a single audited firewall."""
     verified: list[VerifiedCitation] = []
-    for citation in requirement.citations:
+    for citation in citations:
         clause = store.get(citation.clause_id)
         if clause is None:
             continue
@@ -41,6 +44,11 @@ def compose_finding(gap: Gap, requirement: DiagnosisRequirement, store: ClauseSt
                 clause_id=clause.clause_id, section_title=clause.section_title,
                 page=clause.page, quote=citation.quote,
             ))
+    return verified
+
+
+def compose_finding(gap: Gap, requirement: DiagnosisRequirement, store: ClauseStore) -> Finding | None:
+    verified = _verified_citations(requirement.citations, store)
     if not verified:
         return None
     return Finding(
@@ -52,4 +60,20 @@ def compose_finding(gap: Gap, requirement: DiagnosisRequirement, store: ClauseSt
         recommendation=requirement.recommendation,
         citations=tuple(verified),
         dedupe_key=f"{gap.condition}|{gap.axis}",
+    )
+
+
+def compose_element_finding(doc_type: str, element: Element, store: ClauseStore) -> Finding | None:
+    verified = _verified_citations(element.citations, store)
+    if not verified:
+        return None
+    return Finding(
+        finding_type="completeness_gap",
+        severity="required" if element.level == "required" else "recommended",
+        condition=doc_type,
+        axis=element.name,
+        evidence_excerpt=f"{doc_type} (element not found)",
+        recommendation=element.recommendation,
+        citations=tuple(verified),
+        dedupe_key=f"{doc_type}|{element.name}",
     )

@@ -1,0 +1,49 @@
+doc_type: emergency_note
+elements:
+  # RULE A(i): explicit "must document" mandate, booklet "Different Types of Documentation" >
+  # Emergency Note section (p.69).
+  - name: presenting_complaint_observations
+    evidence_terms: ["presenting complaint", "presenting complaints", "observations"]
+    level: required
+    recommendation: >-
+      The emergency note does not document presenting complaints and observations. Please document
+      all presenting complaints, observations taken, and planned actions for the patient.
+    citations:
+      - clause_id: "CDI-2021/emergency-note/p5"
+        quote: >-
+          When the patient is brought inside the emergency ward for assessment and observation by the emergency nurse, the nurse must document all presenting complaints, additional patient information about their presentation, all observations taken and planned actions for the patient.
+  # RULE A(i): explicit "must also be clearly documented" / "must be documented" mandate.
+  - name: differential_and_final_diagnoses
+    evidence_terms: ["differential diagnosis", "differential diagnoses", "final diagnosis", "additional diagnosis"]
+    level: required
+    recommendation: >-
+      The emergency note does not document differential, final, or additional diagnoses. Please
+      document the differential diagnoses considered and the final/additional diagnoses reached.
+    citations:
+      - clause_id: "CDI-2021/emergency-note/p6"
+        quote: >-
+          Documentation of differential diagnoses, emerging conditions and proposed treatment must also be clearly documented. Final diagnoses and additional diagnoses must be documented in accordance with the documentation requirements discussed in previous topics.
+  # RULE A(i): explicit "must be documented" mandate for handover/treatment-outcome content.
+  - name: handover_treatment_outcomes
+    evidence_terms: ["handover of care", "treatment outcomes", "findings from investigations"]
+    level: required
+    recommendation: >-
+      The emergency note does not document handover of care, treatment outcomes, or investigation
+      findings. Please document this information in the Emergency Clinical Record.
+    citations:
+      - clause_id: "CDI-2021/emergency-note/p7"
+        quote: >-
+          All information related to handover of care, treatment outcomes and findings from investigations must be documented in the Emergency Clinical Record, or on the casualty card.
+  # RULE A(i): explicit "must be clearly documented" / "must document" mandate for the
+  # discharge-or-admit disposition and follow-up plan.
+  - name: disposition_plan
+    evidence_terms: ["discharge or admit", "follow-up care", "outpatient appointment"]
+    level: required
+    recommendation: >-
+      The emergency note does not document the disposition plan. Please clearly document the plan
+      to discharge or admit, and, if discharged, the follow-up care plan including any outpatient
+      appointments.
+    citations:
+      - clause_id: "CDI-2021/emergency-note/p7"
+        quote: >-
+          Plans to discharge or admit must be clearly documented. If being discharged, the clinician must document follow-up care plans, including any outpatient appointments.

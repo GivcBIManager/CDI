@@ -49,11 +49,11 @@ _PROSE_MIN_WORDS = 8
 
 
 def _normalize_header_line(line: str) -> str:
-    """Strip, drop an optional leading '#'/'*' marker, lowercase, drop an
-    optional trailing ':' -- so "# Discharge Summary:" and "discharge
-    summary" normalize the same way."""
+    """Strip, drop any leading run of '#'/'*' markers (e.g. "##", "**"),
+    lowercase, drop an optional trailing ':' -- so "## Discharge Summary:"
+    and "discharge summary" normalize the same way."""
     line = line.strip()
-    if line[:1] in _HEADER_MARKER_PREFIXES:
+    while line[:1] in _HEADER_MARKER_PREFIXES:
         line = line[1:].strip()
     line = line.lower()
     if line.endswith(":"):

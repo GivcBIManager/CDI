@@ -11,6 +11,13 @@ def test_discharge_summary_header_detected() -> None:
     assert detect_doc_type(note) == "discharge_summary"
 
 
+def test_repeated_header_marker_chars_stripped() -> None:
+    """Regression: a repeated marker prefix (e.g. Markdown "## " or "** ")
+    must be stripped entirely, not just a single leading character."""
+    note = "## Discharge Summary\nAdmitted with pneumonia, treated with antibiotics, discharged home."
+    assert detect_doc_type(note) == "discharge_summary"
+
+
 def test_progress_note_header_with_soap_body_detected() -> None:
     note = (
         "Progress Note\n"

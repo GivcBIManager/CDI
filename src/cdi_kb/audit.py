@@ -4,10 +4,11 @@ from dataclasses import dataclass, field
 
 from cdi_kb import config
 from cdi_kb.clauses import ClauseStore
+from cdi_kb.doc_gaps import find_element_gaps
 from cdi_kb.doctype import detect_doc_type
-from cdi_kb.findings import Finding, compose_finding
+from cdi_kb.findings import Finding, compose_element_finding, compose_finding
 from cdi_kb.gapcheck import ConditionMention, Gap, detect_conditions, find_gaps, rule_applies, scan_axes
-from cdi_kb.requirements_model import DiagnosisRequirement, DocType, load_requirements
+from cdi_kb.requirements_model import DiagnosisRequirement, DocType, load_doc_requirements, load_requirements
 
 
 @dataclass
@@ -67,14 +68,17 @@ def _inferred_findings(
 
 
 def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool = False) -> AuditResult:
-    # Resolve doc_type BEFORE the empty-note early return: an explicit caller
-    # override must always win, even over an empty note (whose auto-detected
-    # value would otherwise be "any").
-    resolved_doc_type: str = doc_type if doc_type is not None else detect_doc_type(note_text)
+    # Requirements are loaded BEFORE doc-type resolution (and passed into it) so
+    # the diagnosis-list shape heuristic's known-condition-term check is active;
+    # doc_type itself is still resolved BEFORE the empty-note early return: an
+    # explicit caller override must always win, even over an empty note (whose
+    # auto-detected value would otherwise be "any").
+    requirements = load_requirements(config.REQUIREMENTS_DIR)
+    resolved_doc_type: str = doc_type if doc_type is not None else detect_doc_type(note_text, requirements)
     if not note_text.strip():
         return AuditResult(active_doc_type=resolved_doc_type)
-    requirements = load_requirements(config.REQUIREMENTS_DIR)
     by_condition = {req.condition: req for req in requirements}
+    doc_requirements = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)
     store = ClauseStore(config.KB_DB)
     result = AuditResult(active_doc_type=resolved_doc_type)
     try:
@@ -84,6 +88,15 @@ def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool 
                 result.dropped_citations.append(f"{gap.condition}|{gap.axis}")
             else:
                 result.findings.append(finding)
+
+        doc_req = doc_requirements.get(resolved_doc_type)
+        if resolved_doc_type != "any" and doc_req is not None:
+            for element in find_element_gaps(note_text, doc_req):
+                finding = compose_element_finding(resolved_doc_type, element, store)
+                if finding is None:
+                    result.dropped_citations.append(f"{resolved_doc_type}|{element.name}")
+                else:
+                    result.findings.append(finding)
 
         if use_llm:
             # inline import: keeps offline path free of the anthropic dependency

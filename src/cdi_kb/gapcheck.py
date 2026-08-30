@@ -48,9 +48,14 @@ class Gap:
     mention: ConditionMention
 
 
-def _term_pattern(term: str) -> re.Pattern[str]:
+def term_pattern(term: str) -> re.Pattern[str]:
+    """Wrap-tolerant, word-boundary regex for a (possibly multi-word) term --
+    the shared matcher used across condition/axis/element detection."""
     escaped = _whitespace_flexible_pattern(term)
     return re.compile(rf"(?<![A-Za-z0-9]){escaped}(?![A-Za-z0-9])", re.IGNORECASE)
+
+
+_term_pattern = term_pattern  # back-compat alias for existing internal/test references
 
 
 def _is_negated(note_text: str, start: int) -> bool:
@@ -64,7 +69,7 @@ def detect_conditions(note_text: str, requirements: list[DiagnosisRequirement]) 
         terms = sorted({req.condition, *req.synonyms}, key=len, reverse=True)
         claimed: list[tuple[int, int]] = []
         for term in terms:
-            for match in _term_pattern(term).finditer(note_text):
+            for match in term_pattern(term).finditer(note_text):
                 if any(match.start() < end and match.end() > start for start, end in claimed):
                     continue  # longer term already claimed this span
                 claimed.append((match.start(), match.end()))
@@ -79,7 +84,7 @@ def detect_conditions(note_text: str, requirements: list[DiagnosisRequirement]) 
 def scan_axes(note_text: str, requirement: DiagnosisRequirement) -> set[str]:
     present: set[str] = set()
     for rule in requirement.axes:
-        if any(_term_pattern(term).search(note_text) for term in rule.evidence_terms):
+        if any(term_pattern(term).search(note_text) for term in rule.evidence_terms):
             present.add(rule.axis)
     return present
 

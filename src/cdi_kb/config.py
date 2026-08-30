@@ -33,6 +33,7 @@ RAW_TEXT_DIR = VAR_DIR / "raw_text"
 KB_DB = VAR_DIR / "kb.sqlite"
 
 REQUIREMENTS_DIR = REPO_ROOT / "data" / "requirements"
+DOC_REQUIREMENTS_DIR = REPO_ROOT / "data" / "doc_requirements"
 EVAL_DIR = REPO_ROOT / "data" / "eval"
 
 ANTHROPIC_MODEL = "claude-sonnet-5"
