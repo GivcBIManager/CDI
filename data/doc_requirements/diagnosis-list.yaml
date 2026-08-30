@@ -28,23 +28,27 @@ elements:
         quote: >-
           Any differential diagnosis not ruled out, other additional diagnoses, complications and conditions arising in the episode of care as well as relevant transfer diagnoses should be recorded as an additional diagnosis (ADx) if it meets the clinical significance criteria.
   # RULE B: "should always be clearly documented" -- "should" language, not "must" -- downgraded to
-  # recommended. Evidence terms drawn directly from the clause's own worked list of causal-link
-  # terms (booklet "Criteria for Assigning an ADx", p.58). Evidence terms tightened (reviewer
-  # fix): dropped bare "due to" -- an extremely common bigram in ordinary notes ("admitted due to
-  # chest pain") unrelated to diagnosis linkage -- which would silently suppress a real
-  # completeness gap. Kept the term set condition/diagnosis-linkage-specific ("secondary to",
-  # "complicating", ...) plus a few "<condition-noun> due to" phrases distinctive enough to signal
-  # an actual causal link (mirrors the booklet's own worked examples, e.g. "due to a traumatic
-  # brain injury", "due to cerebrovascular attack").
+  # recommended.
+  # Evidence terms tightened (reviewer fix, wave 1): dropped bare "due to" -- an extremely common
+  # bigram in ordinary notes ("admitted due to chest pain") unrelated to diagnosis linkage --
+  # which would silently suppress a real completeness gap.
+  # Wave 2 fix: dropped bare "complicating" too -- it matches ordinary constructions ("diabetes
+  # complicating wound healing") that are not necessarily a documented ADx causal link either.
+  # Final term set: "secondary to" and "as a result of" are quoted VERBATIM from the cited
+  # clause's own worked list of causal-link terms (booklet "Criteria for Assigning an ADx", p.58,
+  # `using the terms "secondary to", ... "as a result of", ...`); "failure due to"/"infection due
+  # to"/"injury due to" are NOT quoted from that list -- they are derived phrases, constructed to
+  # mirror the clause's own adjacent worked examples ("due to a traumatic brain injury", "due to
+  # cerebrovascular attack"), narrow enough to avoid the bare-"due to" false-match risk while still
+  # signaling a genuine causal link.
   - name: causal_linkage
-    evidence_terms: ["secondary to", "complicating", "as a consequence of", "as a result of",
-                     "sequela of", "complication of", "failure due to", "infection due to",
+    evidence_terms: ["secondary to", "as a result of", "failure due to", "infection due to",
                      "injury due to"]
     level: recommended
     recommendation: >-
       The diagnosis list does not link additional diagnoses to a causative condition. Where an
       additional diagnosis has a causal relationship to another condition, please document the link
-      (e.g. "secondary to", "complicating", "as a consequence of").
+      (e.g. "secondary to", "as a result of", "due to").
     citations:
       - clause_id: "CDI-2021/criteria-for-assigning-an-adx/p7"
         quote: >-

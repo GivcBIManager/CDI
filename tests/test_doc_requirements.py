@@ -67,37 +67,68 @@ def test_invalid_doc_requirement_file_rejected(tmp_path) -> None:
 # Single common English/clinical words as lone evidence terms are prone to
 # matching ordinary, unrelated text and silently suppressing a real
 # completeness gap (e.g. bare "observations" or "procedure" -- see the
-# reviewer fix that tightened the 19 elements above). Multi-word phrases and
-# colon-anchored terms ("plan:") are exempt -- they are inherently more
-# specific. A short, explicitly justified allowlist covers the few single
-# tokens that ARE genuinely distinctive despite being short.
+# reviewer fixes that tightened the 19 elements above). This allowlist is the
+# ONLY escape hatch from the specificity rule enforced below: every entry
+# must be a genuinely distinctive clinical term/acronym/compound, never an
+# ordinary English word, and carries its own justification comment.
 ALLOWED_SINGLE_WORD_TERMS = {
-    "hopc",  # History Of Presenting Complaint -- a specific clinical acronym, not ordinary English
-    "pdx",   # Principal Diagnosis acronym (booklet's own "PDx") -- not ordinary English
-    "adx",   # Additional Diagnosis acronym (booklet's own "ADx") -- not ordinary English
+    "hopc",            # History Of Presenting Complaint -- a specific clinical acronym, not ordinary English
+    "pdx",             # Principal Diagnosis acronym (booklet's own "PDx") -- not ordinary English
+    "adx",             # Additional Diagnosis acronym (booklet's own "ADx") -- not ordinary English
+    "comorbidities",   # specific clinical concept term, not a generic filler word
+    "co-morbidities",  # hyphenated variant spelling of the above
+    "operative",       # specific to surgical/procedural documentation ("operative note", "post-operative")
+    "follow-up",       # hyphenated compound clinical term; distinct from (and needed alongside) the
+                       # two-word "follow up" term -- the \s+-joined pattern for "follow up" requires
+                       # literal whitespace between the words and does NOT also match the hyphenated
+                       # spelling, so both variants are carried for recall
 }
 
 
 def test_no_over_broad_single_word_evidence_terms() -> None:
-    """Mechanical guard: a lone evidence term that is a single word of <= 8
-    characters (and doesn't end with ":") is too generic to trust -- it must
-    either be phrase-anchored, colon-anchored, or explicitly allowlisted
-    above with a justification."""
+    """Structural guard: every evidence term must be EITHER multi-word
+    (contains whitespace -- e.g. "care plan"), OR colon-anchored (ends with
+    ":" -- e.g. "plan:"), OR an explicitly justified single-word token in
+    ALLOWED_SINGLE_WORD_TERMS. No length-based exception: a bare single
+    common word can never slip through this guard merely by being long."""
     offenders: list[str] = []
     for doc_type, doc_req in load_doc_requirements(config.DOC_REQUIREMENTS_DIR).items():
         for element in doc_req.elements:
             for term in element.evidence_terms:
-                is_single_word = len(term.split()) == 1
-                if not is_single_word:
-                    continue
+                if len(term.split()) > 1:
+                    continue  # multi-word: inherently more specific
                 if term.endswith(":"):
-                    continue
-                if len(term) > 8:
-                    continue
+                    continue  # colon-anchored: inherently more specific
                 if term.lower() in ALLOWED_SINGLE_WORD_TERMS:
                     continue
                 offenders.append(f"{doc_type}|{element.name}: {term!r}")
     assert not offenders, offenders
+
+
+# --- empirical detection (realistic snippets, wave-2 reviewer fix) ---------
+
+def test_procedures_operations_detects_colon_header() -> None:
+    doc_req = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)["discharge_summary"]
+    gaps = find_element_gaps("Procedures: Laparoscopic appendicectomy performed on Day 2.", doc_req)
+    assert "procedures_operations" not in {e.name for e in gaps}
+
+
+def test_procedures_operations_does_not_fire_on_unrelated_underwent() -> None:
+    doc_req = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)["discharge_summary"]
+    gaps = find_element_gaps("Patient underwent CT scan of the abdomen.", doc_req)
+    assert "procedures_operations" in {e.name for e in gaps}
+
+
+def test_wellbeing_observations_detects_behaviour_header() -> None:
+    doc_req = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)["progress_note"]
+    gaps = find_element_gaps("Behaviour: settled and cooperative.", doc_req)
+    assert "wellbeing_observations" not in {e.name for e in gaps}
+
+
+def test_causal_linkage_does_not_fire_on_unrelated_complicating() -> None:
+    doc_req = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)["diagnosis_list"]
+    gaps = find_element_gaps("Type 2 diabetes complicating wound healing.", doc_req)
+    assert "causal_linkage" in {e.name for e in gaps}
 
 
 # --- firewall ---------------------------------------------------------------

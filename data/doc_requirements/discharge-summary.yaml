@@ -17,13 +17,20 @@ elements:
           The content of the summary must include information relating to the history of presenting condition, hospital course, the principal diagnosis, all additional diagnoses and procedures with actions required on discharge.
   # RULE A(i): same mandate sentence as above (names "procedures" alongside the diagnoses);
   # p6's "theatre and ward-based procedures" phrase kept as a secondary, more specific example.
-  # Evidence terms tightened (reviewer fix): bare "procedure"/"operation"/"surgery"/"theatre" are
-  # generic English words that appear in ordinary notes without a procedure ever being
-  # documented (e.g. an unrelated mention of "operation") -- would silently suppress a real
-  # completeness gap. Replaced with phrase-anchored / colon-anchored forms.
+  # Evidence terms tightened (reviewer fix, wave 1): bare "procedure"/"operation"/"surgery"/
+  # "theatre" are generic English words that appear in ordinary notes without a procedure ever
+  # being documented -- would silently suppress a real completeness gap. Replaced with
+  # phrase-anchored / colon-anchored forms.
+  # Wave 2 fix: added plural/header forms ("procedures:", "operations:", "procedure performed")
+  # so a real "Procedures:" header is actually detected. Removed bare "underwent" -- it fires on
+  # any unrelated procedure ("underwent CT scan") that is not a documented surgical/interventional
+  # procedure for THIS element's purpose; replaced with anchored "underwent <noun>" forms that
+  # name an actual procedure/operation.
   - name: procedures_operations
-    evidence_terms: ["procedures performed", "operation performed", "underwent", "operative",
-                     "surgery performed", "procedure:"]
+    evidence_terms: ["procedures performed", "procedure performed", "operation performed",
+                     "operative", "surgery performed", "procedure:", "procedures:", "operations:",
+                     "underwent surgery", "underwent operation", "underwent procedure",
+                     "underwent repair", "underwent resection"]
     level: required
     recommendation: >-
       The discharge summary does not document the procedures or operations performed during the
