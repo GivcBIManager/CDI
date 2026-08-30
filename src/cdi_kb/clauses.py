@@ -51,7 +51,7 @@ def parse_toc(pages: list[PageText]) -> list[TocEntry]:
     return entries
 
 
-def _split_paragraphs(text: str) -> list[str]:
+def split_paragraphs(text: str) -> list[str]:
     """Split section text into paragraph-sized chunks.
 
     pdfplumber's extract_text() does not preserve blank lines between
@@ -77,6 +77,9 @@ def _split_paragraphs(text: str) -> list[str]:
     if current:
         paragraphs.append("\n".join(current))
     return [p.strip() for p in paragraphs if len(p.strip()) >= MIN_CLAUSE_CHARS]
+
+
+_split_paragraphs = split_paragraphs  # back-compat alias for existing internal/test references
 
 
 def _locate_sections(pages: list[PageText], toc: list[TocEntry]) -> list[tuple[TocEntry, int]]:

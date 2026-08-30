@@ -8,23 +8,38 @@ from pathlib import Path
 
 from cdi_kb import config
 from cdi_kb.audit import run_audit
-from cdi_kb.clauses import ClauseStore, chunk_booklet
+from cdi_kb.chi_chunker import chunk_chi
+from cdi_kb.clauses import Clause, ClauseStore, chunk_booklet
 from cdi_kb.extract import extract_pages
 from cdi_kb.index import SearchIndex
 from cdi_kb.normalize import normalize
 from cdi_kb.verify import run_verification
 
+MIN_SOURCE_CLAUSES = 5
+MIN_SOURCE_CHARS = 1000
+
 
 def build_kb() -> tuple[int, int]:
-    pages = extract_pages(config.BOOKLET_PDF, config.RAW_TEXT_DIR)
-    clauses = chunk_booklet(pages)
+    all_clauses: list[Clause] = []
+    for source in config.SOURCES.values():
+        pages = extract_pages(source.path, config.RAW_TEXT_DIR)
+        extracted_chars = sum(len(page.text) for page in pages)
+        clauses = chunk_booklet(pages) if source.genre == "booklet" else chunk_chi(pages, source)
+        if len(clauses) < MIN_SOURCE_CLAUSES or extracted_chars < MIN_SOURCE_CHARS:
+            raise ValueError(
+                f"{source.source_id}: only {len(clauses)} clause(s) from {extracted_chars} extracted "
+                f"char(s) — below the minimum ({MIN_SOURCE_CLAUSES} clauses / {MIN_SOURCE_CHARS} chars); "
+                "source PDF may be unreadable or image-based"
+            )
+        print(f"{source.source_id}: {len(clauses)} clauses")
+        all_clauses.extend(clauses)
     store = ClauseStore(config.KB_DB)
-    store.rebuild(clauses)
+    store.rebuild(all_clauses)
     store.close()
     index = SearchIndex(config.KB_DB)
-    index.rebuild(clauses)
+    index.rebuild(all_clauses)
     index.close()
-    return len(clauses), len(clauses)
+    return len(all_clauses), len(all_clauses)
 
 
 def _cmd_quote(search_text: str) -> int:
