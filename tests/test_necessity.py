@@ -155,6 +155,59 @@ def test_will_obtain_still_fires_for_vitamin_b12_despite_level_word() -> None:
     assert [g.rule.order for g in gaps] == ["vitamin-b12"]
 
 
+# --- reviewer re-review regression: result-word AFTER the term (plan-line path) ---
+
+def test_plan_review_b12_result_is_silent() -> None:
+    assert find_necessity_gaps("Plan: review B12 result", _real_rules()) == []
+
+
+def test_plan_discuss_hba1c_results_is_silent() -> None:
+    assert find_necessity_gaps("Plan: discuss HbA1c results with patient", _real_rules()) == []
+
+
+def test_plan_review_fasting_glucose_findings_is_silent() -> None:
+    assert find_necessity_gaps("Plan: review fasting glucose findings", _real_rules()) == []
+
+
+def test_plan_go_over_urine_culture_result_is_silent() -> None:
+    assert find_necessity_gaps("Plan: go over urine culture result with parents", _real_rules()) == []
+
+
+def test_plan_discuss_elevated_hba1c_is_silent() -> None:
+    note = "Plan: discuss the elevated HbA1c with patient and adjust insulin"
+    assert find_necessity_gaps(note, _real_rules()) == []
+
+
+def test_plan_order_verb_with_timeframe_still_fires() -> None:
+    gaps = find_necessity_gaps("Plan: order HbA1c in 3 months.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["hba1c"]
+
+
+def test_plan_bare_listed_test_still_fires() -> None:
+    # No verb at all precedes the term on the "Plan:" line -- a bare listed
+    # test is itself an order.
+    gaps = find_necessity_gaps("Plan: HbA1c, lipids.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["hba1c"]
+
+
+def test_plan_repeat_still_fires() -> None:
+    gaps = find_necessity_gaps("Plan: repeat fasting glucose next visit.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["fasting-glucose"]
+
+
+def test_requested_urine_culture_still_fires() -> None:
+    gaps = find_necessity_gaps("Requested urine culture.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["urine-culture"]
+
+
+def test_will_obtain_b12_level_still_fires_not_plan_line() -> None:
+    # Not a "plan:" note at all -- the window cue "will obtain" justifies the
+    # match directly, so the plan-line-only AFTER-word guard never applies
+    # and the trailing "level" does not suppress it.
+    gaps = find_necessity_gaps("Will obtain vitamin B12 level.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["vitamin-b12"]
+
+
 # --- cue matching precision (hyphen boundary, "in order to" idiom) ---
 
 def test_hyphenated_word_does_not_match_bare_cue() -> None:
