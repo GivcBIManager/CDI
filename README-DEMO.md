@@ -37,7 +37,10 @@ Latest offline run:
 
     58 passed, 1 deselected in 16.49s
 
-Live LLM inference test: pending — requires ANTHROPIC_API_KEY (or `ant auth login`); run
+Live LLM inference test: pending — requires ANTHROPIC_API_KEY. Easiest setup: put the key
+in the gitignored `.env` file at the repo root (`ANTHROPIC_API_KEY=sk-ant-...`, template in
+`.env.example`) — it is loaded automatically; an exported environment variable or
+`ant auth login` also works and takes precedence. Then run
 `/c/python/python -m pytest -m live -v` once available, then
 `/c/python/python -m cdi_kb.cli audit data/eval/notes/chronic-kidney-disease-gap.txt --llm`
 to confirm implicit-condition inference end-to-end.
