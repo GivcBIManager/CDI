@@ -35,7 +35,7 @@ src/cdi_kb/
   verify.py       V1–V5 complete-match gate (two-tier V3 with visible V3-INFO notes)
   cli.py          build-kb | quote | verify | audit | demo
   webapp.py       paste-a-note FastAPI UI
-data/requirements/*.yaml   20 diagnosis entries; data/eval/ 40-note gap/control suite
+data/requirements/*.yaml   20 diagnosis entries; data/eval/ 48-note gap/control suite
 ```
 
 ## Non-negotiables (violating any of these fails review)
@@ -78,8 +78,13 @@ data/requirements/*.yaml   20 diagnosis entries; data/eval/ 40-note gap/control 
 - heart failure, obesity, stroke have no condition-specific booklet clauses —
   they cite the generic specificity mandate (V3 Tier 2, visible in verify).
 - CHI PDFs: Heart Failure (838K chars), CKD (813K), Anemia (50K), Saudi Stroke
-  Standards (239K) are prose-extractable; Diabetes/UTI/LRTI are flowcharts that
+  Standards (239K) are prose-extractable; Diabetes/UTI are flowcharts that
   need VLM linearization (credential-gated, not yet done).
+- LRTI (Lower Respiratory Tract Infection.pdf, 11.6K chars) is NOT a flowchart:
+  registered as `CHI-LRTI` (18 clauses). Page 3 (scope/population) is clean
+  prose; pg6/p1 opens with clean HAP/VAP bullets but its second half is a
+  garbled dosing table; the dosing tables (pp. 4–5, 7) extract garbled-but-
+  verbatim — quote only the clean sentences. pneumonia.yaml carries its clauses.
 
 ## How to work
 

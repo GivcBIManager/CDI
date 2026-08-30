@@ -40,6 +40,7 @@ def test_sources_registry_has_expected_keys() -> None:
         "CHI-ANEMIA",
         "CHI-STROKE",
         "CHI-BARIATRIC",
+        "CHI-LRTI",
         "CHI-NEC-HBA1C",
         "CHI-NEC-FBG",
         "CHI-NEC-UCULT",

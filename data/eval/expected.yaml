@@ -69,9 +69,9 @@ obesity-control.txt:
   must_not_find: ["obesity|type"]
 
 pneumonia-gap.txt:
-  must_find: ["pneumonia|onset", "pneumonia|agent"]
+  must_find: ["pneumonia|onset", "pneumonia|agent", "pneumonia|type"]
 pneumonia-control.txt:
-  must_not_find: ["pneumonia|onset", "pneumonia|agent"]
+  must_not_find: ["pneumonia|onset", "pneumonia|agent", "pneumonia|type"]
 
 pressure-injury-gap.txt:
   must_find: ["pressure injury|stage", "pressure injury|site", "pressure injury|onset"]

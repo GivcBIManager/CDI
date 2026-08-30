@@ -72,6 +72,17 @@ SOURCES: dict[str, SourceDoc] = {
             "CHI",
             "chi_prose",
         ),
+        # Prose-extractable despite the table-heavy layout: page 3 (scope/population) is
+        # clean paragraphs and pg6/p1 opens with clean HAP/VAP bullets before degrading
+        # into a dosing table; the dosing tables (pages 4-5, 7 and the tail of pg6/p1)
+        # extract garbled-but-verbatim (V1 still holds; only clean sentences are quoted).
+        SourceDoc(
+            "CHI-LRTI",
+            _CHI_DIR / "Lower Respiratory Tract Infection.pdf",
+            "CHI Lower Respiratory Tract Infections Management Protocol",
+            "CHI",
+            "chi_prose",
+        ),
         SourceDoc(
             "CHI-NEC-HBA1C",
             _CHI_DIR / "Medical Necessity Criteria for HgA1c Testing.pdf",
