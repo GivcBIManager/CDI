@@ -43,7 +43,6 @@ def test_sources_registry_has_expected_keys() -> None:
         "CHI-NEC-FBG",
         "CHI-NEC-UCULT",
         "CHI-NEC-B12",
-        "CHI-NEC-LBPMRI",
     }
     assert set(config.SOURCES.keys()) == expected
 

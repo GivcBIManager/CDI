@@ -91,12 +91,7 @@ SOURCES: dict[str, SourceDoc] = {
             "CHI",
             "necessity",
         ),
-        SourceDoc(
-            "CHI-NEC-LBPMRI",
-            _CHI_DIR / "Low Back Pain MRI.pdf",
-            "CHI Necessity Criteria: Low Back Pain MRI",
-            "CHI",
-            "necessity",
-        ),
+        # CHI-NEC-LBPMRI (Low Back Pain MRI.pdf): flowchart genre — excluded until VLM
+        # linearization; see task-1-report
     )
 }
