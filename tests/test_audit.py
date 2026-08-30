@@ -31,3 +31,13 @@ def test_auto_detect_sets_active_doc_type_to_detected_value() -> None:
 def test_default_active_doc_type_is_any_for_free_prose() -> None:
     result = run_audit("Patient admitted with pneumonia due to klebsiella, community acquired. Known CKD.")
     assert result.active_doc_type == "any"
+
+
+def test_explicit_doc_type_override_wins_even_for_empty_note() -> None:
+    # doc_type is an explicit caller override, not a claim about the note's
+    # content -- it must be honored even when there is no text to auto-detect
+    # from (auto-detect on empty text yields "any", which must never shadow
+    # an explicit override).
+    result = run_audit("", doc_type="progress_note")
+    assert result.active_doc_type == "progress_note"
+    assert result.findings == []

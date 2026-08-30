@@ -67,9 +67,12 @@ def _inferred_findings(
 
 
 def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool = False) -> AuditResult:
-    if not note_text.strip():
-        return AuditResult()
+    # Resolve doc_type BEFORE the empty-note early return: an explicit caller
+    # override must always win, even over an empty note (whose auto-detected
+    # value would otherwise be "any").
     resolved_doc_type: str = doc_type if doc_type is not None else detect_doc_type(note_text)
+    if not note_text.strip():
+        return AuditResult(active_doc_type=resolved_doc_type)
     requirements = load_requirements(config.REQUIREMENTS_DIR)
     by_condition = {req.condition: req for req in requirements}
     store = ClauseStore(config.KB_DB)

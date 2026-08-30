@@ -1,7 +1,9 @@
 """Tests for cdi_kb.doctype.detect_doc_type: header phrase, SOAP-marker, and
 diagnosis-list shape heuristics, falling back to "any" for free prose."""
 
+from cdi_kb import config
 from cdi_kb.doctype import detect_doc_type
+from cdi_kb.requirements_model import AxisRule, Citation, DiagnosisRequirement
 
 
 def test_discharge_summary_header_detected() -> None:
@@ -56,3 +58,57 @@ def test_admission_note_header_detected() -> None:
 
 def test_empty_note_falls_back_to_any() -> None:
     assert detect_doc_type("") == "any"
+
+
+def test_terse_short_prose_not_misdetected_as_diagnosis_list() -> None:
+    """Regression: short unrelated sentences (not a numbered/bulleted list, no
+    known condition terms) must not trip the diagnosis-list shape heuristic
+    merely because they are all short lines."""
+    note = "Pt seen today.\nStable.\nNo new complaints."
+    assert detect_doc_type(note) == "any"
+
+
+def test_diagnosis_list_via_known_condition_terms_when_requirements_supplied() -> None:
+    reqs = [
+        DiagnosisRequirement(
+            condition="chronic kidney disease", synonyms=["CKD"],
+            axes=[AxisRule(axis="stage", level="required", evidence_terms=["stage 4"])],
+            recommendation="r", citations=[Citation(clause_id="CDI-2021/x/p1", quote="q")],
+        ),
+        DiagnosisRequirement(
+            condition="anemia", synonyms=["anaemia"],
+            axes=[AxisRule(axis="type", level="required", evidence_terms=["iron deficiency"])],
+            recommendation="r", citations=[Citation(clause_id="CDI-2021/x/p1", quote="q")],
+        ),
+    ]
+    note = "Chronic kidney disease\nAnemia\nHypertension"
+    assert detect_doc_type(note, requirements=reqs) == "diagnosis_list"
+    # Without the catalogue, the same note falls back to digit/bullet-only and
+    # does not qualify (none of the lines are numbered or bulleted).
+    assert detect_doc_type(note) == "any"
+
+
+def test_header_phrase_mid_sentence_is_not_a_header_match() -> None:
+    """Regression: a header phrase must be line-anchored (first two non-empty
+    lines only, the line itself naming the doc type) -- a prose sentence that
+    merely mentions e.g. "emergency department" must not be misdetected."""
+    note = (
+        "66M presented to the emergency department with central chest pain radiating\n"
+        "to the left arm, associated with diaphoresis and nausea, onset two hours\n"
+        "prior to arrival. Background: hypertension, hyperlipidemia, ex-smoker."
+    )
+    assert detect_doc_type(note) == "any"
+
+
+def test_all_eval_notes_detect_as_any() -> None:
+    """Corpus-level guard: all 40 eval notes are prose gap/control notes with
+    no headers, SOAP markers, or diagnosis-list shape -- every one must
+    detect as "any" so applies_to-scoped rules (default ["any"]) behave
+    identically to before doc-type detection existed."""
+    notes_dir = config.EVAL_DIR / "notes"
+    misclassified = []
+    for path in sorted(notes_dir.glob("*.txt")):
+        detected = detect_doc_type(path.read_text(encoding="utf-8"))
+        if detected != "any":
+            misclassified.append(f"{path.name} -> {detected}")
+    assert not misclassified, "\n".join(misclassified)

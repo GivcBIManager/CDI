@@ -10,7 +10,7 @@ import pytest
 from cdi_kb import config
 from cdi_kb.audit import AuditResult, _inferred_findings, _named_conditions
 from cdi_kb.clauses import ClauseStore
-from cdi_kb.requirements_model import load_requirements
+from cdi_kb.requirements_model import AxisRule, Citation, DiagnosisRequirement, load_requirements
 
 
 @pytest.fixture()
@@ -109,3 +109,34 @@ def test_inferred_findings_skips_condition_from_named_conditions_guard(by_condit
     )
     assert findings == []
     assert dropped == []
+
+
+def test_inferred_findings_respects_applies_to_doc_type_scoping(by_condition_and_store) -> None:
+    # Regression: an axis rule scoped to a specific doc_type (applies_to) must be
+    # filtered out of LLM-inferred findings exactly as it is for deterministic
+    # find_gaps -- otherwise a doc-type-scoped rule would still fire (as a finding
+    # or a dropped citation) for a note of the wrong doc type via the LLM path,
+    # even though find_gaps itself would correctly skip it.
+    by_condition, store = by_condition_and_store
+    scoped_req = DiagnosisRequirement(
+        condition="chronic kidney disease",
+        synonyms=["CKD"],
+        axes=[AxisRule(axis="stage", level="required",
+                       evidence_terms=["stage 4"], applies_to=["discharge_summary"])],
+        recommendation="r",
+        citations=[Citation(clause_id="CDI-2021/x/p1", quote="q")],
+    )
+    scoped_by_condition = {**by_condition, "chronic kidney disease": scoped_req}
+    note = "Renal impairment noted, stage not documented."
+    implicits = [("chronic kidney disease", "renal impairment evidence")]
+
+    findings, dropped = _inferred_findings(
+        implicits, note, scoped_by_condition, store, set(), doc_type="progress_note",
+    )
+    assert "chronic kidney disease|stage" not in ({f.dedupe_key for f in findings} | set(dropped))
+
+    for doc_type in ("discharge_summary", "any"):
+        findings, dropped = _inferred_findings(
+            implicits, note, scoped_by_condition, store, set(), doc_type=doc_type,
+        )
+        assert "chronic kidney disease|stage" in ({f.dedupe_key for f in findings} | set(dropped))
