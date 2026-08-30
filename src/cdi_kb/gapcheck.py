@@ -63,6 +63,13 @@ def _is_negated(note_text: str, start: int) -> bool:
     return any(pattern.search(window) for pattern in _NEGATION_CUE_PATTERNS)
 
 
+def is_negated(note_text: str, start: int) -> bool:
+    """Public wrapper around the pre-mention negation-window check -- shared
+    with necessity.py so order-term negation reuses this exact cue list/window
+    instead of re-implementing it."""
+    return _is_negated(note_text, start)
+
+
 def detect_conditions(note_text: str, requirements: list[DiagnosisRequirement]) -> list[ConditionMention]:
     mentions: list[ConditionMention] = []
     for req in requirements:

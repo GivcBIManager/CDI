@@ -1,0 +1,26 @@
+# CHI-NEC-B12: "Medical Necessity Criteria for Vitamin B12 Testing" (CHI).
+# RULE: pg3/p2 states directly that "Routine vitamin B12 testing in healthy,
+# asymptomatic adults is not indicated" -- the necessity concept itself, in the
+# source's own words. pg3/p3 lists the symptomatic indications for testing.
+# Both anchor "required".
+order: vitamin-b12
+display_name: Vitamin B12 testing
+order_terms: ["vitamin B12", "cobalamin", "B12"]
+context_cues: ["order", "ordered", "check", "obtain", "send", "request", "plan:"]
+# Indication terms mined from the symptomatic and high-risk-group indications
+# (pg3/p3-pg4/p3): neurological/cognitive symptoms, and the high-risk
+# conditions (malabsorption, celiac disease, post-bariatric surgery,
+# glossitis, metformin use, anemia, macrocytosis).
+valid_indication_terms: ["confusion", "impaired memory", "paresthesia", "numbness", "malabsorption", "celiac disease", "bariatric surgery", "glossitis", "metformin", "anemia", "macrocytosis"]
+level: required
+recommendation: >-
+  A vitamin B12 order is documented without a supporting indication. Please document
+  the indication, if applicable (e.g. neurological/cognitive symptoms, or a high-risk
+  condition/medication for deficiency).
+citations:
+  - clause_id: "CHI-NEC-B12/pg3/p2"
+    quote: >-
+      Routine vitamin B12 testing in healthy, asymptomatic adults is not indicated.
+  - clause_id: "CHI-NEC-B12/pg3/p3"
+    quote: >-
+      Abnormalities of gait, mobility, or coordination.

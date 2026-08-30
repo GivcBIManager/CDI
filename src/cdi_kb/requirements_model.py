@@ -81,6 +81,28 @@ def load_doc_requirements(directory: Path) -> dict[str, DocTypeRequirement]:
     return entries
 
 
+class NecessityRule(BaseModel):
+    order: str
+    display_name: str
+    order_terms: list[str] = Field(min_length=1)
+    context_cues: list[str] = Field(min_length=1)
+    valid_indication_terms: list[str] = Field(min_length=1)
+    level: Literal["required", "recommended"] = "required"
+    recommendation: str
+    citations: list[Citation] = Field(min_length=1)
+
+
+def load_necessity_rules(directory: Path) -> list[NecessityRule]:
+    entries: list[NecessityRule] = []
+    for path in sorted(directory.glob("*.yaml")):
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        try:
+            entries.append(NecessityRule.model_validate(raw))
+        except ValidationError as error:
+            raise ValueError(f"invalid necessity rule file {path.name}: {error}") from error
+    return entries
+
+
 EXPECTED_CONDITIONS: tuple[str, ...] = (
     "sepsis", "pneumonia", "diabetes mellitus", "chronic kidney disease",
     "acute kidney injury", "anemia", "acute respiratory failure", "heart failure",

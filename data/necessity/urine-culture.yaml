@@ -1,0 +1,32 @@
+# CHI-NEC-UCULT: "Medical Necessity Criteria for Urine Culture Testing in
+# Pediatrics" (CHI, in collaboration with the Saudi Pediatric Infectious
+# Disease Society).
+# RULE: pg2/p3 lists the clinical manifestations that indicate urine testing;
+# pg4/p3 states urine culture specifically (the confirmatory step, distinct
+# from urinalysis screening) "is recommended in the following scenarios" tied
+# to UTI suspicion -- both anchor "required".
+order: urine-culture
+display_name: Urine culture testing
+order_terms: ["urine culture", "urine cultures"]
+context_cues: ["order", "ordered", "check", "obtain", "send", "collect", "request", "plan:"]
+# Indication terms mined from the clinical-manifestations list (pg2/p3-pg3/p1)
+# and the urine-culture-specific scenarios (pg4/p3-pg5/p1): dysuria, urgency,
+# flank pain, new-onset incontinence, fever, and suspicion of a urinary tract
+# infection (including a positive leukocyte esterase/nitrite dipstick).
+valid_indication_terms: ["dysuria", "urgency", "flank pain", "incontinence", "fever", "UTI", "urinary tract infection", "leukocyte esterase", "nitrite"]
+level: required
+recommendation: >-
+  A urine culture order is documented without a supporting indication. Please document
+  the indication, if applicable (e.g. clinical manifestations of UTI, or a positive
+  urinalysis screen).
+citations:
+  - clause_id: "CHI-NEC-UCULT/pg2/p3"
+    quote: >-
+      In older children (3 – 14 years) important findings include dysuria, urgency
+      and/or frequency, abdominal or flank pain and new-onset incontinence.
+  - clause_id: "CHI-NEC-UCULT/pg4/p3"
+    quote: >-
+      Urine culture is recommended in the following scenarios:
+      - If there is suspicion of upper UTI (symptoms and
+      signs that increase the likelihood of urinary tract
+      infection)

@@ -6,9 +6,12 @@ from cdi_kb import config
 from cdi_kb.clauses import ClauseStore
 from cdi_kb.doc_gaps import find_element_gaps
 from cdi_kb.doctype import detect_doc_type
-from cdi_kb.findings import Finding, compose_element_finding, compose_finding
+from cdi_kb.findings import Finding, compose_element_finding, compose_finding, compose_necessity_finding
 from cdi_kb.gapcheck import ConditionMention, Gap, detect_conditions, find_gaps, rule_applies, scan_axes
-from cdi_kb.requirements_model import DiagnosisRequirement, DocType, load_doc_requirements, load_requirements
+from cdi_kb.necessity import find_necessity_gaps
+from cdi_kb.requirements_model import (
+    DiagnosisRequirement, DocType, load_doc_requirements, load_necessity_rules, load_requirements,
+)
 
 
 @dataclass
@@ -79,6 +82,7 @@ def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool 
         return AuditResult(active_doc_type=resolved_doc_type)
     by_condition = {req.condition: req for req in requirements}
     doc_requirements = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)
+    necessity_rules = load_necessity_rules(config.NECESSITY_DIR)
     store = ClauseStore(config.KB_DB)
     result = AuditResult(active_doc_type=resolved_doc_type)
     try:
@@ -86,6 +90,13 @@ def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool 
             finding = compose_finding(gap, by_condition[gap.condition], store)
             if finding is None:
                 result.dropped_citations.append(f"{gap.condition}|{gap.axis}")
+            else:
+                result.findings.append(finding)
+
+        for rule in find_necessity_gaps(note_text, necessity_rules):
+            finding = compose_necessity_finding(rule, store)
+            if finding is None:
+                result.dropped_citations.append(f"necessity|{rule.order}")
             else:
                 result.findings.append(finding)
 

@@ -1,0 +1,29 @@
+# CHI-NEC-FBG: "Medical Necessity Criteria for Fasting Blood Glucose Testing"
+# (CHI, in collaboration with the National Diabetes Center at the Saudi Health
+# Council).
+# RULE: pg3/p1 states the guide's purpose is to screen/diagnose/monitor glucose
+# metabolism-related disorders; pg3/p4 gives the population-level age/risk-factor
+# indications for FBG testing -- both anchor "required".
+order: fasting-glucose
+display_name: Fasting Blood Glucose (FBG) testing
+order_terms: ["fasting blood glucose", "fasting glucose", "FBG"]
+context_cues: ["order", "ordered", "check", "obtain", "send", "request", "draw", "plan:"]
+# Indication terms mined from the age/risk-factor indications (pg2/p2, pg3/p4):
+# overweight/obese, and the listed risk factors (first-degree relative with
+# diabetes, physical inactivity, cardiovascular disease, polycystic ovary
+# syndrome).
+valid_indication_terms: ["diabetes", "overweight", "obese", "cardiovascular disease", "polycystic ovary syndrome", "physical inactivity"]
+level: required
+recommendation: >-
+  A fasting blood glucose order is documented without a supporting indication. Please
+  document the indication, if applicable (e.g. age/risk-factor screening criteria, or a
+  glucose-metabolism disorder being investigated).
+citations:
+  - clause_id: "CHI-NEC-FBG/pg3/p1"
+    quote: >-
+      This guide provides evidence-based recommendations for the use of Fasting Blood Glucose (FBG)
+      to screen, diagnose, and monitor Glucose metabolism-related disorders and conditions.
+  - clause_id: "CHI-NEC-FBG/pg3/p4"
+    quote: >-
+      All individuals ≥35 years of age should undergo fasting blood glucose (FBG)
+      testing.

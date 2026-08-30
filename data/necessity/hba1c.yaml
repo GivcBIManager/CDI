@@ -1,0 +1,29 @@
+# CHI-NEC-HBA1C: "Medical Necessity Criteria for HgA1c Testing" (CHI, in
+# collaboration with the National Diabetes Center at the Saudi Health Council).
+# RULE: the Scope clause (pg3/p2) names screening/diagnosis/monitoring of Type 2
+# Diabetes Mellitus (T2DM) as the entire purpose of the test; the Recommendations
+# clause (pg4/p2) states the test "is indicated in patients presenting with
+# signs or symptoms of diabetes mellitus" -- both anchor "required".
+order: hba1c
+display_name: HbA1c testing
+order_terms: ["HbA1c", "hemoglobin A1c", "glycated hemoglobin", "glycated haemoglobin"]
+context_cues: ["order", "ordered", "check", "obtain", "send", "request", "draw", "plan:"]
+# Indication terms mined from the Recommendations list (pg3/p3-pg4/p2): scope
+# names T2DM; the indications bullets name signs/symptoms of diabetes mellitus,
+# confirming a Diabetes Mellitus diagnosis, prediabetes follow-up, and prior
+# gestational diabetes in pregnancy.
+valid_indication_terms: ["diabetes", "prediabetes", "T2DM", "gestational diabetes"]
+level: required
+recommendation: >-
+  An HbA1c order is documented without a supporting indication. Please document the
+  indication, if applicable (e.g. diabetes risk factors, signs/symptoms of diabetes, or
+  known diabetes/prediabetes follow-up).
+citations:
+  - clause_id: "CHI-NEC-HBA1C/pg3/p2"
+    quote: >-
+      This guidance focuses on testing hemoglobin A1c (HbA1c) levels for screening, diagnosis
+      and monitoring of Type 2 Diabetes Mellitus (T2DM) in adults in Saudi Arabia.
+  - clause_id: "CHI-NEC-HBA1C/pg4/p2"
+    quote: >-
+      HbA1c testing is indicated in patients presenting with signs or symptoms of diabetes
+      mellitus.
