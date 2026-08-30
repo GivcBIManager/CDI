@@ -2,6 +2,15 @@
 
 clause_id is page-anchored ({SRC}/pg<page>/p<n>) so citation stability does not
 depend on heading-detection quality; V1 guarantees verbatim fidelity either way.
+
+Per-page lines are split into (heading, lines) SEGMENTS at each detected
+heading line: a heading line closes the current segment (attributed to the
+heading that was active while its lines accumulated), then starts a new one
+under the new heading. This makes V1 contiguity independent of heading-
+heuristic quality — a false-positive heading line still just becomes a
+segment boundary, so both halves of an interrupted paragraph remain
+contiguous substrings of the source page text; a false-positive can only
+ever over-split a paragraph, never splice text across the removed line.
 """
 
 import re
@@ -30,19 +39,25 @@ def chunk_chi(pages: list[PageText], source: SourceDoc) -> list[Clause]:
     clauses: list[Clause] = []
     current_heading = source.title
     for page in pages:
-        body_lines: list[str] = []
+        segments: list[tuple[str, list[str]]] = []
+        segment_lines: list[str] = []
         for line in page.text.splitlines():
             if _is_heading(line):
+                segments.append((current_heading, segment_lines))
                 current_heading = line.strip()
+                segment_lines = []
             else:
-                body_lines.append(line)
+                segment_lines.append(line)
+        segments.append((current_heading, segment_lines))  # flush the final segment
+
         ordinal = 0
-        for paragraph in split_paragraphs("\n".join(body_lines)):
-            ordinal += 1
-            clauses.append(Clause(
-                clause_id=f"{source.source_id}/pg{page.page_number}/p{ordinal}",
-                section_title=current_heading,
-                page=page.page_number,
-                text=paragraph,
-            ))
+        for heading, lines in segments:
+            for paragraph in split_paragraphs("\n".join(lines)):
+                ordinal += 1
+                clauses.append(Clause(
+                    clause_id=f"{source.source_id}/pg{page.page_number}/p{ordinal}",
+                    section_title=heading,
+                    page=page.page_number,
+                    text=paragraph,
+                ))
     return clauses

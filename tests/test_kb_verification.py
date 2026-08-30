@@ -28,6 +28,19 @@ def test_mandate_anchored_entries_are_named_in_notes() -> None:
     named = set()
     for note in report.notes:
         assert note.startswith("V3-INFO "), note
+        if "generic authority only" not in note:
+            continue  # a different V3-INFO fallback tier (title-reachable); see below
         condition = note[len("V3-INFO "):].split(":", 1)[0]
         named.add(condition)
     assert named == {"heart failure", "obesity", "stroke"}
+
+
+def test_title_reachable_entries_are_named_in_notes() -> None:
+    report = run_verification()
+    assert report.stats["title_reachable_entries"] >= 1
+    named = {
+        note[len("V3-INFO "):].split(":", 1)[0]
+        for note in report.notes
+        if "reachable by title query only" in note
+    }
+    assert {"acute kidney injury", "diabetes mellitus"} <= named

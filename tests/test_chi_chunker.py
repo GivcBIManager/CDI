@@ -35,3 +35,39 @@ def test_heading_becomes_section_title():
 def test_necessity_doc_extracts():
     clauses = _clauses("CHI-NEC-HBA1C")
     assert len(clauses) >= 3
+
+
+def test_false_heading_line_splits_but_stays_contiguous():
+    """A Title-Case line that trips the heading heuristic mid-paragraph must not
+    splice the paragraph across it: both halves are emitted as separate clauses,
+    and each clause's text is still a contiguous substring of the raw page text.
+    """
+    from cdi_kb.extract import PageText
+    from cdi_kb.normalize import normalize
+
+    page_text = (
+        "Correct anemia and monitor the patient closely for signs of continued blood loss "
+        "or malabsorption during\n"
+        "the treatment course before considering additional intervention options for this "
+        "clinical presentation.\n"
+        "Clinical Pathway Update\n"
+        "Iron studies including serum ferritin and transferrin saturation should be checked "
+        "at baseline and repeated\n"
+        "after eight weeks of oral iron therapy to confirm an adequate hematologic response "
+        "to treatment given.\n"
+    )
+    page = PageText(page_number=1, text=page_text)
+    source = config.SOURCES["CHI-ANEMIA"]
+    fake_source = type(source)(
+        source_id="TEST-SRC", path=source.path, title="Test Source",
+        authority=source.authority, genre=source.genre,
+    )
+
+    clauses = chunk_chi([page], fake_source)
+
+    assert len(clauses) == 2
+    normalized_page = normalize(page_text)
+    for clause in clauses:
+        assert normalize(clause.text) in normalized_page
+    assert clauses[0].section_title == "Test Source"
+    assert clauses[1].section_title == "Clinical Pathway Update"
