@@ -87,6 +87,21 @@ plan-line-only path: a strong window cue does not make "B12 injections" or
 obtain vitamin B12 level." and "Plan: repeat B12 in 3 months." are unaffected
 (neither "level" nor "in 3 months" is a treatment-object word) and still fire.
 
+SCOPE (fix: reviewer F1 regression -- the guard's window used to run 25 raw
+chars with no sentence boundary, so a genuine order followed by an unrelated
+medication line in the SAME note, e.g. "Plan: HbA1c today. Metformin 500 mg
+BD.", was wrongly silenced by "mg" belonging to a different sentence
+entirely). The guard now looks ONLY at the SAME sentence/line as the
+order-term match -- the scanned text stops at the first ".", ";", or newline
+after the match -- AND only at the treatment word appearing within the FIRST
+3 whitespace-separated tokens of that same-sentence remainder, not "immediately
+after" (adjacent) as an earlier version of this docstring said. This keeps
+"B12 injections", "B12 replacement", and "vitamin B12 IM 1 mg" as treatment
+mentions (the word is within the first 1-3 tokens of the SAME clause), while
+"Ordered vitamin B12; on iron therapy." still fires ("therapy" is in a
+DIFFERENT clause, past the ";") and "Plan: HbA1c today. Metformin 500 mg
+BD." still fires ("mg" is in a different sentence, past the ".").
+
 Two further matching-precision guards (apply to cue matches only):
   - a cue match immediately followed by "-" is rejected (hyphen counts as a
     word boundary for cues -- "check-up"/"order-set" must not satisfy a
@@ -143,7 +158,11 @@ _RESULT_WORD_AFTER_ORDER_OBJECT_PATTERNS = [term_pattern(word) for word in _RESU
 
 # TREATMENT-OBJECT: names an EXISTING TREATMENT the patient is already on ("B12
 # injections monthly", "B12 replacement") rather than a fresh order for the
-# substance -- universal, applied on every path (see module docstring).
+# substance -- universal, applied on every path (see module docstring). Scoped
+# to the SAME sentence/line as the match (bounded at the first ".", ";", or
+# newline) and to the first N whitespace-separated tokens of that remainder --
+# NOT the raw-char window the other AFTER-word guards use (see module
+# docstring, SCOPE paragraph, for the false-silence regression this fixes).
 _TREATMENT_OBJECT_WORDS_AFTER_UNIVERSAL = (
     "injection", "injections", "replacement", "supplement", "supplements",
     "supplementation", "therapy", "tablet", "tablets", "im", "po", "mcg", "mg",
@@ -152,6 +171,8 @@ _TREATMENT_OBJECT_WORDS_AFTER_UNIVERSAL = (
 _TREATMENT_OBJECT_WORD_AFTER_UNIVERSAL_PATTERNS = [
     term_pattern(word) for word in _TREATMENT_OBJECT_WORDS_AFTER_UNIVERSAL
 ]
+_TREATMENT_OBJECT_TOKEN_LOOKAHEAD = 3
+_SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.;\n]")
 
 # "plan:" is intentionally NOT matched via the +/-60 window: it must appear on
 # the same line as the order-term match (see module docstring).
@@ -217,15 +238,34 @@ def _looks_like_result(note_text: str, start: int, end: int) -> bool:
             or _result_word_follows_universal(note_text, end))
 
 
+def _same_sentence_after(note_text: str, end: int) -> str:
+    """The text from `end` up to (but not including) the next sentence/line
+    boundary (".", ";", or newline), or to the end of the note if none
+    follows -- scopes an AFTER-word guard to the SAME sentence/line as the
+    match, not an unrelated later clause (see _looks_like_existing_treatment
+    and the module docstring's SCOPE paragraph)."""
+    boundary = _SENTENCE_BOUNDARY_PATTERN.search(note_text, end)
+    stop = boundary.start() if boundary is not None else len(note_text)
+    return note_text[end:stop]
+
+
 def _looks_like_existing_treatment(note_text: str, end: int) -> bool:
     """Universal guard, checked for every candidate match regardless of which
     cue will justify it -- same mechanism as _result_word_follows_universal
     (see the TREATMENT-OBJECT AFTER-words paragraph in the module docstring):
-    a route/form/dose word immediately after the order-term match names an
-    EXISTING TREATMENT ("B12 injections monthly", "B12 replacement") rather
-    than a fresh order for the substance itself."""
-    after = note_text[end : end + _RESULT_WORD_AFTER_WINDOW_CHARS]
-    return any(pattern.search(after) for pattern in _TREATMENT_OBJECT_WORD_AFTER_UNIVERSAL_PATTERNS)
+    a route/form/dose word within the first few tokens of the order-term
+    match's OWN sentence/line names an EXISTING TREATMENT ("B12 injections
+    monthly", "B12 replacement") rather than a fresh order for the substance
+    itself. Deliberately narrower than the other AFTER-word guards' raw-char
+    window (see module docstring, SCOPE paragraph): bounded at the first
+    ".", ";", or newline after the match, and only within the first
+    _TREATMENT_OBJECT_TOKEN_LOOKAHEAD whitespace-separated tokens of that
+    same-sentence remainder -- a treatment word in a LATER sentence/clause
+    (e.g. "HbA1c today. Metformin 500 mg BD.") must not veto a genuine,
+    unrelated order."""
+    same_sentence = _same_sentence_after(note_text, end)
+    near_tokens = " ".join(same_sentence.split()[:_TREATMENT_OBJECT_TOKEN_LOOKAHEAD])
+    return any(pattern.search(near_tokens) for pattern in _TREATMENT_OBJECT_WORD_AFTER_UNIVERSAL_PATTERNS)
 
 
 def _line_has_order_verb(line: str) -> bool:

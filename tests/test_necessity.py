@@ -261,6 +261,24 @@ def test_plan_repeat_b12_in_months_still_fires() -> None:
     assert [g.rule.order for g in gaps] == ["vitamin-b12"]
 
 
+# --- reviewer F1 regression: the treatment-object guard must be bound to the
+# SAME sentence/line as the order-term match, not an unbounded raw-char window
+# -- a genuine order followed by an unrelated medication line/clause must fire ---
+
+def test_hba1c_order_followed_by_unrelated_medication_sentence_still_fires() -> None:
+    # "mg" belongs to a LATER sentence ("Metformin 500 mg BD.") than the HbA1c
+    # order -- must not be treated as HbA1c's own treatment-object word.
+    gaps = find_necessity_gaps("Plan: HbA1c today. Metformin 500 mg BD.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["hba1c"]
+
+
+def test_ordered_b12_followed_by_unrelated_therapy_clause_still_fires() -> None:
+    # "therapy" belongs to a DIFFERENT clause, past the ";" -- must not be
+    # treated as the B12 order's own treatment-object word.
+    gaps = find_necessity_gaps("Ordered vitamin B12; on iron therapy.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["vitamin-b12"]
+
+
 # --- cue matching precision (hyphen boundary, "in order to" idiom) ---
 
 def test_hyphenated_word_does_not_match_bare_cue() -> None:
