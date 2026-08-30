@@ -10,6 +10,7 @@ SOAP markers -> a diagnosis-list shape -> "any".
 
 import re
 
+from cdi_kb.gapcheck import term_pattern
 from cdi_kb.requirements_model import DiagnosisRequirement, DocType
 
 # (phrase, doc type) pairs. A phrase counts only when it anchors a whole
@@ -32,6 +33,10 @@ _HEADER_PHRASES: tuple[tuple[str, DocType], ...] = (
 
 _HEADER_LOOKBACK_LINES = 2
 _HEADER_MARKER_PREFIXES = ("#", "*")
+# A header line may carry a few extra title-ish tokens beyond the phrase
+# itself (a day count, a date, a parenthetical) without stopping being a
+# header -- but a whole extra sentence's worth of words means it is prose.
+_HEADER_MAX_EXTRA_WORDS = 3
 
 # ">= 3 lines starting (after optional leading whitespace) with S/O/A/P
 # followed by a colon" -- the classic SOAP-note skeleton.
@@ -65,9 +70,21 @@ def _header_match(note_text: str) -> DocType | None:
     lines = [line for line in note_text.splitlines() if line.strip()]
     for line in lines[:_HEADER_LOOKBACK_LINES]:
         normalized = _normalize_header_line(line)
+        # A header line is title-like, not a sentence: it must not end with a
+        # sentence period, and it must not run much longer than the phrase it
+        # names (regression: "Emergency department attendance overnight with
+        # chest pain, now admitted to CCU." starts with "emergency
+        # department" but is prose, not a header -- both conditions below
+        # rule that out while still allowing genuine short headers like
+        # "Progress Note - Day 3" or "Admission note 12/08/2026").
+        if normalized.endswith("."):
+            continue
         for phrase, doc_type in _HEADER_PHRASES:
-            if normalized == phrase or normalized.startswith(phrase):
-                return doc_type
+            if not (normalized == phrase or normalized.startswith(phrase)):
+                continue
+            if len(normalized.split()) > len(phrase.split()) + _HEADER_MAX_EXTRA_WORDS:
+                continue
+            return doc_type
     return None
 
 
@@ -76,12 +93,17 @@ def _is_soap(note_text: str) -> bool:
 
 
 def _is_list_item_line(line: str, terms: list[str]) -> bool:
-    if line[0].isdigit() or line.startswith(_DIAGNOSIS_LIST_BULLET_CHARS):
-        return True
-    if not terms:
-        return False
-    lowered = line.lower()
-    return any(lowered.startswith(term.lower()) for term in terms)
+    """A line counts as a list item when either (a) no requirement catalogue
+    is available and it opens with a digit/bullet lead, or (b) a catalogue IS
+    available and the line contains one of its condition/synonym terms
+    anywhere (via gapcheck.term_pattern, not just a leading match). The
+    digit/bullet lead is deliberately NOT sufficient on its own once a
+    catalogue exists -- a numbered plan or medication list ("1. Continue IV
+    antibiotics") is otherwise indistinguishable from a numbered diagnosis
+    list purely by shape (see the numbered-plan/med-list regression)."""
+    if terms:
+        return any(term_pattern(term).search(line) for term in terms)
+    return line[0].isdigit() or line.startswith(_DIAGNOSIS_LIST_BULLET_CHARS)
 
 
 def _is_diagnosis_list(
@@ -108,10 +130,11 @@ def _is_diagnosis_list(
         if line.endswith(".") and len(following.split()) >= _PROSE_MIN_WORDS:
             return False
 
-    # Most lines must actually look like list items: numbered/bulleted, or
-    # (when a requirement catalogue is supplied) opening with a known
-    # condition/synonym term. Without a catalogue this falls back to
-    # digit/bullet leads only -- terse unrelated sentences do not qualify.
+    # Most lines must actually look like list items: numbered/bulleted (only
+    # when no catalogue is supplied), or (when a requirement catalogue IS
+    # supplied) containing a known condition/synonym term. Without a
+    # catalogue this falls back to digit/bullet leads only -- terse unrelated
+    # sentences do not qualify.
     terms: list[str] = []
     if requirements is not None:
         for req in requirements:
@@ -120,6 +143,15 @@ def _is_diagnosis_list(
     list_item_count = sum(1 for line in lines if _is_list_item_line(line, terms))
     if list_item_count / len(lines) < _DIAGNOSIS_LIST_ITEM_RATIO:
         return False
+
+    # Regression: a numbered/bulleted plan or medication list ("Plan:\n1.
+    # Continue IV antibiotics\n2. Repeat CXR tomorrow\n...") has the exact
+    # shape of a diagnosis list but names no catalogue condition anywhere --
+    # when a catalogue is supplied, require at least one line to actually
+    # contain a condition/synonym term, or this is not a diagnosis list.
+    if requirements is not None:
+        if not any(any(term_pattern(term).search(line) for term in terms) for line in lines):
+            return False
 
     return True
 

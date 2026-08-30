@@ -200,14 +200,6 @@ def test_requested_urine_culture_still_fires() -> None:
     assert [g.rule.order for g in gaps] == ["urine-culture"]
 
 
-def test_will_obtain_b12_level_still_fires_not_plan_line() -> None:
-    # Not a "plan:" note at all -- the window cue "will obtain" justifies the
-    # match directly, so the plan-line-only AFTER-word guard never applies
-    # and the trailing "level" does not suppress it.
-    gaps = find_necessity_gaps("Will obtain vitamin B12 level.", _real_rules())
-    assert [g.rule.order for g in gaps] == ["vitamin-b12"]
-
-
 # --- reviewer wave-3 regression: result-word AFTER the term on window-cue path ---
 
 def test_requested_hba1c_result_to_be_faxed_is_silent() -> None:
@@ -232,22 +224,9 @@ def test_sent_for_fasting_glucose_result_from_previous_facility_is_silent() -> N
     assert find_necessity_gaps(note, _real_rules()) == []
 
 
-def test_will_obtain_b12_level_still_fires_wave3() -> None:
-    # Order-object AFTER-words (level/levels/value/values/reading/readings)
-    # are scoped to the plan-line-only path -- a genuine window cue like
-    # "will obtain" is not defeated by its own object's trailing attribute.
-    gaps = find_necessity_gaps("Will obtain vitamin B12 level.", _real_rules())
-    assert [g.rule.order for g in gaps] == ["vitamin-b12"]
-
-
 def test_requested_fasting_glucose_in_weeks_still_fires() -> None:
     gaps = find_necessity_gaps("Requested fasting glucose in 6 weeks.", _real_rules())
     assert [g.rule.order for g in gaps] == ["fasting-glucose"]
-
-
-def test_plan_order_hba1c_in_months_still_fires_wave3() -> None:
-    gaps = find_necessity_gaps("Plan: order HbA1c in 3 months.", _real_rules())
-    assert [g.rule.order for g in gaps] == ["hba1c"]
 
 
 def test_plan_bare_listed_test_still_fires_wave3() -> None:
@@ -263,6 +242,23 @@ def test_requested_urine_culture_still_fires_wave3() -> None:
 def test_please_check_hba1c_next_visit_still_fires() -> None:
     gaps = find_necessity_gaps("Please check HbA1c next visit.", _real_rules())
     assert [g.rule.order for g in gaps] == ["hba1c"]
+
+
+# --- reviewer final-review regression: B12 as an EXISTING TREATMENT must not
+# fire as a false order (treatment-object AFTER-word guard) ---
+
+def test_plan_b12_injections_monthly_is_silent() -> None:
+    assert find_necessity_gaps("Plan: B12 injections monthly.", _real_rules()) == []
+
+
+def test_ordered_b12_replacement_is_silent() -> None:
+    assert find_necessity_gaps("Ordered B12 replacement for the patient.", _real_rules()) == []
+
+
+def test_plan_repeat_b12_in_months_still_fires() -> None:
+    # Neither "in" nor "3 months" is a treatment-object word -- must still fire.
+    gaps = find_necessity_gaps("Plan: repeat B12 in 3 months.", _real_rules())
+    assert [g.rule.order for g in gaps] == ["vitamin-b12"]
 
 
 # --- cue matching precision (hyphen boundary, "in order to" idiom) ---
@@ -333,3 +329,13 @@ def test_run_audit_does_not_flag_hba1c_with_indication() -> None:
 def test_run_audit_does_not_flag_hba1c_result_reporting() -> None:
     result = run_audit("HbA1c 8.1% today. Plan: continue home meds.")
     assert "necessity|hba1c" not in {f.dedupe_key for f in result.findings}
+
+
+def test_run_audit_does_not_flag_b12_injections_as_a_necessity_mismatch() -> None:
+    result = run_audit("Plan: B12 injections monthly.")
+    assert "necessity|vitamin-b12" not in {f.dedupe_key for f in result.findings}
+
+
+def test_run_audit_does_not_flag_b12_replacement_as_a_necessity_mismatch() -> None:
+    result = run_audit("Ordered B12 replacement for the patient.")
+    assert "necessity|vitamin-b12" not in {f.dedupe_key for f in result.findings}

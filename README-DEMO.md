@@ -4,7 +4,7 @@
     /c/python/python -m pip install -e ".[dev]"
     /c/python/python -m cdi_kb.cli build-kb
 
-## Sources in the KB (10)
+## Sources in the KB (11)
 | source_id | title | authority | genre |
 |---|---|---|---|
 | CDI-2021 | CDI Course Booklet – Clinicians (2021) | TCC | booklet |
@@ -13,6 +13,7 @@
 | CHI-ANEMIA | CHI Anemia Guideline | CHI | chi_prose |
 | CHI-STROKE | Saudi Stroke Standards | CHI | chi_prose |
 | CHI-BARIATRIC | CHI Bariatric and Metabolic Surgery Guidelines | CHI | chi_prose |
+| CHI-LRTI | CHI Lower Respiratory Tract Infections Management Protocol | CHI | chi_prose |
 | CHI-NEC-HBA1C | CHI Necessity Criteria: HbA1c | CHI | necessity |
 | CHI-NEC-FBG | CHI Necessity Criteria: Fasting Blood Glucose | CHI | necessity |
 | CHI-NEC-UCULT | CHI Necessity Criteria: Urine Culture (Pediatrics) | CHI | necessity |
@@ -22,18 +23,18 @@
     /c/python/python -m cdi_kb.cli verify
 Latest run (all 11 INFO lines):
 
-    INFO  V3-INFO acute kidney injury: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority alone
+    INFO  V3-INFO acute kidney injury: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO acute kidney injury: cited section reachable by title query only (index diluted by multi-source content)
-    INFO  V3-INFO chronic kidney disease: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority alone
+    INFO  V3-INFO chronic kidney disease: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO diabetes mellitus: cited section reachable by title query only (index diluted by multi-source content)
-    INFO  V3-INFO heart failure: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority alone
+    INFO  V3-INFO heart failure: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO heart failure: cited section reachable by title query only (index diluted by multi-source content)
-    INFO  V3-INFO obesity: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority alone
-    INFO  V3-INFO stroke: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority alone
+    INFO  V3-INFO obesity: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
+    INFO  V3-INFO stroke: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO stroke: cited section reachable by title query only (index diluted by multi-source content)
-    INFO  V3-INFO surgical wound infection: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority alone
+    INFO  V3-INFO surgical wound infection: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO doc:diagnosis_list: cited section reachable by title query only (index diluted by multi-source content)
-    stats: {'clauses': 2728, 'requirements': 20, 'citations_checked': 65, 'mandate_anchored_entries': 0, 'title_reachable_entries': 5, 'mixed_authority_entries': 6, 'doc_type_rules': 19, 'necessity_rules': 4, 'sources': 10, 'clauses_CDI-2021': 768, 'clauses_CHI-HF': 721, 'clauses_CHI-CKD': 591, 'clauses_CHI-ANEMIA': 110, 'clauses_CHI-STROKE': 443, 'clauses_CHI-BARIATRIC': 54, 'clauses_CHI-NEC-HBA1C': 9, 'clauses_CHI-NEC-FBG': 8, 'clauses_CHI-NEC-UCULT': 15, 'clauses_CHI-NEC-B12': 9}
+    stats: {'clauses': 2746, 'requirements': 20, 'citations_checked': 68, 'mandate_anchored_entries': 0, 'title_reachable_entries': 5, 'mixed_authority_entries': 6, 'doc_type_rules': 19, 'necessity_rules': 4, 'sources': 11, 'clauses_CDI-2021': 768, 'clauses_CHI-HF': 721, 'clauses_CHI-CKD': 591, 'clauses_CHI-ANEMIA': 110, 'clauses_CHI-STROKE': 443, 'clauses_CHI-BARIATRIC': 54, 'clauses_CHI-LRTI': 18, 'clauses_CHI-NEC-HBA1C': 9, 'clauses_CHI-NEC-FBG': 8, 'clauses_CHI-NEC-UCULT': 15, 'clauses_CHI-NEC-B12': 9}
     VERIFICATION PASSED
 
 (On a cp1252 Windows console the em dash in the INFO lines above can render
@@ -107,7 +108,7 @@ Latest run:
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    179 passed, 1 deselected in 31.48s
+    209 passed, 1 deselected in 44.46s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -116,7 +117,7 @@ works and takes precedence) and the account has credits:
 
     /c/python/python -m pytest -m live -v
     tests/test_llm_infer.py::test_live_inference_names_respiratory_failure PASSED
-    1 passed, 2 deselected
+    1 passed, 209 deselected
 
 End-to-end confirmation of implicit-condition inference:
 
@@ -127,8 +128,8 @@ note), each still routed through the same citation firewall as every other
 finding.
 
 ## What this demo proves / does not prove
-Proves: a 3-layer KB (booklet + 4 CHI condition-specific guidelines + 4 CHI
-necessity-criteria docs, 10 sources / 2,728 clauses) with citation-verified
+Proves: a 3-layer KB (booklet + 6 CHI condition-specific guidelines + 4 CHI
+necessity-criteria docs, 11 sources / 2,746 clauses) with citation-verified
 findings across three finding types — diagnosis-specificity gaps (20
 conditions), doc-type completeness gaps (5 doc types, 19 elements), and
 order-necessity mismatches (4 rules); every finding traceable to verbatim
@@ -138,10 +139,13 @@ CLI/web UI pick the right completeness rules from the note's own shape, with
 an explicit override always available.
 
 ### Honest limits
-- **Flowchart CPGs pending API credits.** Four CHI guidelines are
-  flowchart-genre PDFs (Diabetes Mellitus, Urinary Tract Infection, Lower
-  Respiratory Tract Infection, Low Back Pain MRI) — no linear prose to chunk
-  and cite. They need VLM (vision-model) linearization before they can enter
+- **Flowchart CPGs pending API credits.** Three CHI guidelines are
+  flowchart-genre PDFs (Diabetes Mellitus, Urinary Tract Infection, Low Back
+  Pain MRI) — no linear prose to chunk and cite. (The Lower Respiratory Tract
+  Infection protocol was previously assumed to be in this group; it extracts
+  as prose and is now source `CHI-LRTI` — its pages 3 and 6 are clean
+  paragraphs, while the dosing tables on pages 4–5 and 7 extract
+  garbled-but-verbatim and are never quoted.) They need VLM (vision-model) linearization before they can enter
   the KB as sources; that step needs API credits for the vision calls and has
   not been run. Not a text-extraction bug — these PDFs are diagrams, not
   paragraphs.

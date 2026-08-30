@@ -2,8 +2,13 @@ doc_type: admission_note
 elements:
   # RULE A(i): condition-specific mandate clause, booklet "Different Types of Documentation" >
   # Admission Note section (p.70).
+  # Evidence terms widened (reviewer wave-3 fix): realistic shorthand notes name the
+  # admitting diagnosis via a colon-anchored header ("Impression:", "Dx:") rather than
+  # the booklet's own phrase -- added the standard clinical-shorthand equivalents.
   - name: admitting_diagnosis
-    evidence_terms: ["admitting diagnosis", "diagnosis on admission", "presenting diagnosis"]
+    evidence_terms: ["admitting diagnosis", "diagnosis on admission", "presenting diagnosis",
+                     "impression:", "imp:", "diagnosis:", "dx:", "working diagnosis",
+                     "provisional diagnosis"]
     level: required
     recommendation: >-
       The admission note does not document the admitting diagnosis. Please note the admitting
@@ -13,8 +18,12 @@ elements:
         quote: >-
           The clinician must note the admitting diagnosis along with any symptoms or confirmed conditions noted on arrival to the ward.
   # RULE A(i): explicit "must be clearly documented" mandate.
+  # Evidence terms widened (reviewer wave-3 fix): realistic shorthand notes use "HPC:"/
+  # "HPI:" (History Presenting Complaint / History of Present Illness), not the
+  # booklet's own "HOPC" abbreviation.
   - name: history_presenting_complaint
-    evidence_terms: ["history of presenting complaint", "hopc", "presenting complaint"]
+    evidence_terms: ["history of presenting complaint", "hopc", "presenting complaint",
+                     "hpc", "hpc:", "hpi", "hpi:", "history of present illness"]
     level: required
     recommendation: >-
       The admission note does not document a history of presenting complaint. Please document the
@@ -24,8 +33,11 @@ elements:
         quote: >-
           A history of presenting complaint (HOPC) and systems review of the patient must be clearly documented.
   # RULE A(i): same paragraph, explicit "must be recorded" mandate for co-morbidities specifically.
+  # Evidence terms widened (reviewer wave-3 fix): "PMH:"/"PMHx" (Past Medical History) is
+  # the standard clinical-shorthand header for this content.
   - name: comorbidities
-    evidence_terms: ["co-morbidities", "comorbidities", "chronic conditions"]
+    evidence_terms: ["co-morbidities", "comorbidities", "chronic conditions",
+                     "pmh", "pmh:", "pmhx", "past medical history", "background:"]
     level: required
     recommendation: >-
       The admission note does not document co-morbidities. Please record all co-morbidities,
@@ -35,8 +47,11 @@ elements:
         quote: >-
           All co-morbidities, including chronic conditions, must be recorded.
   # RULE A(i): explicit "must include" mandate for discharge planning content.
+  # Evidence terms widened (reviewer wave-3 fix): "D/C plan(ning)"/"EDD" (Estimated Date
+  # of Discharge)/"discharge destination" are standard shorthand for this content.
   - name: discharge_planning
-    evidence_terms: ["discharge planning", "discharge plan"]
+    evidence_terms: ["discharge planning", "discharge plan", "d/c plan", "d/c planning",
+                     "edd", "discharge destination"]
     level: required
     recommendation: >-
       The admission note does not document discharge planning. Please include pertinent

@@ -82,6 +82,19 @@ ALLOWED_SINGLE_WORD_TERMS = {
                        # two-word "follow up" term -- the \s+-joined pattern for "follow up" requires
                        # literal whitespace between the words and does NOT also match the hyphenated
                        # spelling, so both variants are carried for recall
+    # Wave 3 (reviewer fix): realistic shorthand-note evidence terms added to widen
+    # completeness detection past booklet vocabulary. Every entry below is a specific
+    # clinical acronym/shorthand token, never an ordinary English word.
+    "hpc",             # History Presenting Complaint -- clinical acronym, not ordinary English
+    "hpi",             # History of Present Illness -- clinical acronym, not ordinary English
+    "pmh",             # Past Medical History -- clinical acronym, not ordinary English
+    "pmhx",            # Past Medical History (x-suffixed variant spelling) -- clinical acronym
+    "edd",             # Estimated Date of Discharge -- clinical acronym, not ordinary English
+    "f/u",             # Follow-Up -- clinical shorthand token (slash form), not ordinary English
+    "opd",             # Outpatient Department -- clinical acronym, not ordinary English
+    "outpatient",      # specific to non-inpatient clinic care, not a generic filler word
+    "ddx",             # Differential Diagnosis -- clinical acronym, not ordinary English
+    "handover",        # specific to clinical handoff of patient care, not a generic filler word
 }
 
 
@@ -247,3 +260,100 @@ def test_any_doc_type_yields_no_completeness_gap_findings() -> None:
     )
     assert result.active_doc_type == "any"
     assert not any(f.finding_type == "completeness_gap" for f in result.findings)
+
+
+# --- Important 3: realistic shorthand notes must not fire required completeness
+# gaps just because they use note vocabulary instead of booklet vocabulary ------
+
+def _required_completeness_findings(result) -> list:
+    return [f for f in result.findings if f.finding_type == "completeness_gap" and f.severity == "required"]
+
+
+def test_shorthand_admission_note_yields_no_required_completeness_findings() -> None:
+    note = (
+        "Admission Note\n"
+        "HPC: Central chest pain, onset 2 hours ago, radiating to left arm.\n"
+        "PMH: Hypertension, type 2 diabetes mellitus.\n"
+        "Impression: Unstable angina, admit for cardiology workup.\n"
+        "D/C planning: anticipate discharge home in 3-4 days with GP follow-up.\n"
+    )
+    result = run_audit(note, doc_type="admission_note")
+    findings = _required_completeness_findings(result)
+    assert findings == [], [f.dedupe_key for f in findings]
+
+
+def test_shorthand_emergency_note_yields_no_required_completeness_findings() -> None:
+    note = (
+        "Emergency Department note\n"
+        "PC: Chest pain and shortness of breath, onset 1 hour ago.\n"
+        "Triage cat 2.\n"
+        "Obs: HR 110, BP 100/70, SpO2 94% on room air.\n"
+        "DDx: Acute coronary syndrome, pulmonary embolism.\n"
+        "Impression: likely ACS.\n"
+        "Disposition: admit under cardiology.\n"
+        "Handed over to CCU team at 14:00.\n"
+    )
+    result = run_audit(note, doc_type="emergency_note")
+    findings = _required_completeness_findings(result)
+    assert findings == [], [f.dedupe_key for f in findings]
+
+
+def test_shorthand_discharge_summary_with_dx_and_fu_yields_no_required_completeness_findings() -> None:
+    note = (
+        "Discharge Summary\n"
+        "Dx: ST-elevation myocardial infarction.\n"
+        "Procedure performed: PCI to LAD in the cath lab.\n"
+        "Meds on discharge: aspirin 75mg OD, clopidogrel 75mg OD, atorvastatin 80mg ON.\n"
+        "F/U: cardiology clinic in 6 weeks.\n"
+    )
+    result = run_audit(note, doc_type="discharge_summary")
+    findings = _required_completeness_findings(result)
+    assert findings == [], [f.dedupe_key for f in findings]
+
+
+def test_shorthand_discharge_summary_with_gp_and_opd_yields_no_required_completeness_findings() -> None:
+    note = (
+        "DISCHARGE SUMMARY\n"
+        "Diagnosis: Community acquired pneumonia.\n"
+        "Procedures: none during this admission.\n"
+        "Medications: amoxicillin 500mg TDS for 5 days.\n"
+        "GP to see patient in one week; respiratory OPD booked.\n"
+    )
+    result = run_audit(note, doc_type="discharge_summary")
+    findings = _required_completeness_findings(result)
+    assert findings == [], [f.dedupe_key for f in findings]
+
+
+# --- Important 4: soap_structure must not fire on a genuine SOAP-structured note ---
+
+def test_soap_structure_does_not_fire_on_labs_colon_false_boundary() -> None:
+    """Regression: "Labs:" must NOT satisfy the "s:" evidence term -- the character
+    immediately before "s" is "b" (alphanumeric), so gapcheck.term_pattern's
+    word-boundary lookbehind correctly rejects it."""
+    doc_req = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)["progress_note"]
+    gaps = find_element_gaps("Labs: normal.", doc_req)
+    assert "soap_structure" in {e.name for e in gaps}
+
+
+def test_soap_structure_satisfied_by_single_letter_soap_note() -> None:
+    note = (
+        "S: Patient reports feeling better today.\n"
+        "O: Afebrile, vitals stable.\n"
+        "A: Community acquired pneumonia, improving.\n"
+        "P: Continue current antibiotic course.\n"
+    )
+    doc_req = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)["progress_note"]
+    gaps = find_element_gaps(note, doc_req)
+    assert "soap_structure" not in {e.name for e in gaps}
+
+
+def test_run_audit_soap_note_yields_no_soap_structure_finding() -> None:
+    note = (
+        "S: Patient reports feeling better today, appetite improving.\n"
+        "O: Afebrile, vitals stable, chest clear on auscultation.\n"
+        "A: Community acquired pneumonia, improving on antibiotics.\n"
+        "P: Continue current antibiotic course, reassess tomorrow.\n"
+    )
+    result = run_audit(note)
+    assert result.active_doc_type == "progress_note"
+    assert not any(f.dedupe_key == "progress_note|soap_structure" for f in result.findings)

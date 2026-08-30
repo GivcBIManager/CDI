@@ -183,12 +183,7 @@ def run_verification() -> VerificationReport:
             notes.append(
                 f"V3-INFO {req.condition}: retains generic-authority citation (mandate clause) "
                 "alongside condition-specific clauses — at least one axis may rest on generic "
-                # NOTE: "alone", not "only" -- avoids an exact-substring collision with the
-                # pre-existing mandate-anchored-tier note ("generic authority only — no
-                # condition-specific clause..."), which test_mandate_anchored_entries_are_named_
-                # in_notes discriminates on via `"generic authority only" in note`. Same meaning,
-                # kept distinguishable so that unchanged test's tier filter still holds.
-                "authority alone"
+                "authority only"
             )
 
         if not cited_sections or cited_sections & hit_sections:

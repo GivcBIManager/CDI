@@ -4,8 +4,12 @@ elements:
   # diagnosis, all additional diagnoses and procedures ..."), booklet "Different
   # Types of Documentation" > Discharge Summary section (p.67). Anchors both
   # principal_diagnosis and procedures_operations below.
+  # Evidence terms widened (reviewer wave-3 fix): realistic shorthand notes name the
+  # principal diagnosis via a colon-anchored header ("Dx:", "Diagnosis:", "Impression:")
+  # rather than the booklet's own phrase.
   - name: principal_diagnosis
-    evidence_terms: ["principal diagnosis", "admission diagnosis", "discharge diagnosis"]
+    evidence_terms: ["principal diagnosis", "admission diagnosis", "discharge diagnosis",
+                     "diagnosis:", "diagnoses:", "dx:", "impression:"]
     level: required
     recommendation: >-
       The discharge summary does not clearly document the principal diagnosis. Please state the
@@ -45,8 +49,11 @@ elements:
   # RULE B: p8 lists this as "other components ... include" -- no "must"/"mandatory" language
   # anywhere in the Discharge Summary section for medications specifically -- downgraded to
   # recommended (contrast follow_up_plan below, which IS mandate language).
+  # Evidence terms widened (reviewer wave-3 fix): realistic shorthand notes use "Meds on
+  # discharge:", "Discharge meds:", or a bare "Medications:"/"Meds:" header for this content.
   - name: medications_on_discharge
-    evidence_terms: ["medications on discharge", "discharge medications", "medication list"]
+    evidence_terms: ["medications on discharge", "discharge medications", "medication list",
+                     "meds on discharge", "discharge meds", "medications:", "meds:"]
     level: recommended
     recommendation: >-
       The discharge summary does not list medications on discharge. Please document the discharge
@@ -56,8 +63,13 @@ elements:
         quote: >-
           Other components of the discharge summary include • list of medications on admission and discharge, as well as • reasons for cessation or commencement, • relevant pathology, • the patient’s functional, emotional or psychological status, • with comment given to their response to the hospital stay.
   # RULE A(i): explicit mandate language ("is mandatory").
+  # Evidence terms widened (reviewer wave-3 fix): "F/U"/"FU" abbreviations and
+  # outpatient-clinic shorthand ("OPD", "GP to ...", "clinic in ...") are the standard
+  # ways this content is documented in realistic notes.
   - name: follow_up_plan
-    evidence_terms: ["follow up", "follow-up", "review in", "clinic appointment"]
+    evidence_terms: ["follow up", "follow-up", "review in", "clinic appointment",
+                     "f/u", "f/u:", "fu:", "opd", "outpatient", "gp to", "clinic in",
+                     "follow up in", "follow-up in"]
     level: required
     recommendation: >-
       The discharge summary does not document follow-up care. Please document the follow-up plan,

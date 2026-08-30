@@ -76,7 +76,7 @@ _PAGE_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8"><title>CDI 
  #doctype-result{font-weight:600;margin:.8rem 0 0}
 </style></head><body>
 <h1>CDI Audit Demo</h1>
-<p>Paste a clinical note. Findings cite the CDI booklet verbatim — no citation, no finding.</p>
+<p>Paste a clinical note. Findings cite the CDI booklet and CHI guidelines verbatim — no citation, no finding.</p>
 <textarea id="note" placeholder="e.g. 62M admitted with fluid overload. Background: CKD..."></textarea><br>
 <label>Document type: <select id="doctype">__DOC_TYPE_OPTIONS__</select></label><br>
 <label><input type="checkbox" id="llm"> infer treated-but-unnamed conditions (LLM)</label><br>

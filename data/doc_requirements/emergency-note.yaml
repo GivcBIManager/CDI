@@ -6,9 +6,12 @@ elements:
   # silently suppress a real completeness gap. Replaced with phrase-anchored, ED-specific terms.
   # Wave 2 fix: added the colon-anchored "obs:" abbreviation (common ED shorthand for
   # observations/vital-sign charting).
+  # Evidence terms widened (reviewer wave-3 fix): "PC:" and "Triage cat N" are standard ED
+  # shorthand for presenting complaint / triage category.
   - name: presenting_complaint_observations
     evidence_terms: ["presenting complaint", "presenting complaints", "vital signs",
-                     "triage category", "observations on arrival", "obs:"]
+                     "triage category", "observations on arrival", "obs:", "pc:",
+                     "presenting complaint:", "triage cat"]
     level: required
     recommendation: >-
       The emergency note does not document presenting complaints and observations. Please document
@@ -18,8 +21,13 @@ elements:
         quote: >-
           When the patient is brought inside the emergency ward for assessment and observation by the emergency nurse, the nurse must document all presenting complaints, additional patient information about their presentation, all observations taken and planned actions for the patient.
   # RULE A(i): explicit "must also be clearly documented" / "must be documented" mandate.
+  # Evidence terms widened (reviewer wave-3 fix): "DDx" is the standard clinical
+  # abbreviation for differential diagnosis; "Impression:"/"Diagnosis:" are common
+  # colon-anchored headers for the final/working diagnosis in ED shorthand notes.
   - name: differential_and_final_diagnoses
-    evidence_terms: ["differential diagnosis", "differential diagnoses", "final diagnosis", "additional diagnosis"]
+    evidence_terms: ["differential diagnosis", "differential diagnoses", "final diagnosis",
+                     "additional diagnosis", "ddx", "ddx:", "differential:", "impression:",
+                     "diagnosis:"]
     level: required
     recommendation: >-
       The emergency note does not document differential, final, or additional diagnoses. Please
@@ -29,8 +37,12 @@ elements:
         quote: >-
           Documentation of differential diagnoses, emerging conditions and proposed treatment must also be clearly documented. Final diagnoses and additional diagnoses must be documented in accordance with the documentation requirements discussed in previous topics.
   # RULE A(i): explicit "must be documented" mandate for handover/treatment-outcome content.
+  # Evidence terms widened (reviewer wave-3 fix): "handed over"/"handover" and
+  # colon-anchored "Investigations:"/"Ix:"/"Results:" headers are the standard shorthand
+  # for this content.
   - name: handover_treatment_outcomes
-    evidence_terms: ["handover of care", "treatment outcomes", "findings from investigations"]
+    evidence_terms: ["handover of care", "treatment outcomes", "findings from investigations",
+                     "handover", "handed over", "investigations:", "ix:", "results:"]
     level: required
     recommendation: >-
       The emergency note does not document handover of care, treatment outcomes, or investigation
@@ -41,8 +53,13 @@ elements:
           All information related to handover of care, treatment outcomes and findings from investigations must be documented in the Emergency Clinical Record, or on the casualty card.
   # RULE A(i): explicit "must be clearly documented" / "must document" mandate for the
   # discharge-or-admit disposition and follow-up plan.
+  # Evidence terms widened (reviewer wave-3 fix): "Disposition:"/"Dispo:" and
+  # "admit(ted) under"/"discharged home" are the standard ED shorthand for the
+  # discharge-or-admit disposition plan.
   - name: disposition_plan
-    evidence_terms: ["discharge or admit", "follow-up care", "outpatient appointment"]
+    evidence_terms: ["discharge or admit", "follow-up care", "outpatient appointment",
+                     "disposition:", "dispo:", "admit under", "admitted under",
+                     "discharged home"]
     level: required
     recommendation: >-
       The emergency note does not document the disposition plan. Please clearly document the plan

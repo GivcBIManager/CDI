@@ -21,14 +21,16 @@ def test_stats_are_reported() -> None:
 
 
 def test_doc_type_and_necessity_stats_are_reported() -> None:
-    # Real-data breakdown (Task 7): 20 diagnosis entries carry 37 citations; the 5
+    # Real-data breakdown (Task 7, updated for CHI-LRTI): 20 diagnosis entries carry 40
+    # citations (37 + the 3 CHI-LRTI secondaries pneumonia gained when the Lower
+    # Respiratory Tract Infection protocol was registered as a source); the 5
     # doc_requirements files carry 19 elements / 20 citations; the 4 necessity rules
     # (LBPMRI excluded, flowchart genre) carry 8 citations. citations_checked now covers
     # all three rule layers, not just diagnosis.
     report = run_verification()
-    assert report.stats["doc_type_rules"] >= 15
+    assert report.stats["doc_type_rules"] == 19
     assert report.stats["necessity_rules"] == 4
-    assert report.stats["citations_checked"] == 37 + 20 + 8
+    assert report.stats["citations_checked"] == 40 + 20 + 8
 
 
 def test_mixed_authority_entries_are_named_in_notes() -> None:
@@ -50,7 +52,8 @@ def test_mixed_authority_entries_are_named_in_notes() -> None:
 
 def test_stats_report_per_source_counts() -> None:
     report = run_verification()
-    assert report.stats["sources"] == 10
+    assert report.stats["sources"] == 11
+    assert report.stats["clauses_CHI-LRTI"] >= 5
     assert report.stats["clauses_CHI-ANEMIA"] > 10
 
 
@@ -59,13 +62,19 @@ def test_mandate_anchored_entries_are_named_in_notes() -> None:
     # condition-specific CHI clauses, so no requirement entry is mandate-anchored (generic
     # authority only) any more. The Tier-2 mandate-anchor path itself stays covered by
     # test_mandate_anchor_tier_verified_via_axis_query below with a synthetic fixture.
+    #
+    # Discriminator is the FULL mandate-tier phrase, not just "generic authority only":
+    # the mixed-authority note (test above) also ends with "...generic authority only" --
+    # a bare substring check on that shorter phrase would wrongly count mixed-authority
+    # entries (e.g. obesity) as mandate-anchored here too. Only the mandate-anchored
+    # tier's note continues on to name the reason ("— no condition-specific clause...").
     report = run_verification()
     assert report.stats["mandate_anchored_entries"] == 0
     named = set()
     for note in report.notes:
         assert note.startswith("V3-INFO "), note
-        if "generic authority only" not in note:
-            continue  # a different V3-INFO fallback tier (title-reachable); see below
+        if "generic authority only — no condition-specific clause" not in note:
+            continue  # a different V3-INFO fallback tier (title-reachable/mixed-authority); see above
         condition = note[len("V3-INFO "):].split(":", 1)[0]
         named.add(condition)
     assert named == set()

@@ -73,6 +73,20 @@ still fires -- an explicit "will obtain"/"order"/"requested"/etc. window cue
 is a strong enough signal that a following order-object word does not undo
 it, whereas a bare "plan:" alone does not carry that same certainty.
 
+TREATMENT-OBJECT AFTER-words (injection, injections, replacement, supplement,
+supplements, supplementation, therapy, tablet, tablets, im, po, mcg, mg,
+dose, dosing) are a UNIVERSAL guard, applied on every path exactly like the
+RESULT-ONLY AFTER-words above (fix: "Plan: B12 injections monthly." and
+"Ordered B12 replacement for the patient." were false-firing -- a
+route/form/dose word immediately after the order term names an EXISTING
+TREATMENT the patient is already receiving, not a fresh order for the
+substance itself, the same way a result word names an existing result).
+Unlike the narrower ORDER-OBJECT guard above, this one is not scoped to the
+plan-line-only path: a strong window cue does not make "B12 injections" or
+"B12 replacement" mean anything other than an ongoing treatment, so "Will
+obtain vitamin B12 level." and "Plan: repeat B12 in 3 months." are unaffected
+(neither "level" nor "in 3 months" is a treatment-object word) and still fire.
+
 Two further matching-precision guards (apply to cue matches only):
   - a cue match immediately followed by "-" is rejected (hyphen counts as a
     word boundary for cues -- "check-up"/"order-set" must not satisfy a
@@ -126,6 +140,18 @@ _RESULT_WORD_AFTER_UNIVERSAL_PATTERNS = [term_pattern(word) for word in _RESULT_
 # -- scoped to the plan-line-only path only (see module docstring).
 _RESULT_WORDS_AFTER_ORDER_OBJECT = ("level", "levels", "value", "values", "reading", "readings")
 _RESULT_WORD_AFTER_ORDER_OBJECT_PATTERNS = [term_pattern(word) for word in _RESULT_WORDS_AFTER_ORDER_OBJECT]
+
+# TREATMENT-OBJECT: names an EXISTING TREATMENT the patient is already on ("B12
+# injections monthly", "B12 replacement") rather than a fresh order for the
+# substance -- universal, applied on every path (see module docstring).
+_TREATMENT_OBJECT_WORDS_AFTER_UNIVERSAL = (
+    "injection", "injections", "replacement", "supplement", "supplements",
+    "supplementation", "therapy", "tablet", "tablets", "im", "po", "mcg", "mg",
+    "dose", "dosing",
+)
+_TREATMENT_OBJECT_WORD_AFTER_UNIVERSAL_PATTERNS = [
+    term_pattern(word) for word in _TREATMENT_OBJECT_WORDS_AFTER_UNIVERSAL
+]
 
 # "plan:" is intentionally NOT matched via the +/-60 window: it must appear on
 # the same line as the order-term match (see module docstring).
@@ -191,6 +217,17 @@ def _looks_like_result(note_text: str, start: int, end: int) -> bool:
             or _result_word_follows_universal(note_text, end))
 
 
+def _looks_like_existing_treatment(note_text: str, end: int) -> bool:
+    """Universal guard, checked for every candidate match regardless of which
+    cue will justify it -- same mechanism as _result_word_follows_universal
+    (see the TREATMENT-OBJECT AFTER-words paragraph in the module docstring):
+    a route/form/dose word immediately after the order-term match names an
+    EXISTING TREATMENT ("B12 injections monthly", "B12 replacement") rather
+    than a fresh order for the substance itself."""
+    after = note_text[end : end + _RESULT_WORD_AFTER_WINDOW_CHARS]
+    return any(pattern.search(after) for pattern in _TREATMENT_OBJECT_WORD_AFTER_UNIVERSAL_PATTERNS)
+
+
 def _line_has_order_verb(line: str) -> bool:
     return any(_hyphen_safe_search(term_pattern(verb), line) for verb in _PLAN_LINE_ORDER_VERBS)
 
@@ -237,6 +274,8 @@ def find_necessity_gaps(note_text: str, rules: list[NecessityRule]) -> list[Nece
                 if is_negated(note_text, match.start()):
                     continue
                 if _looks_like_result(note_text, match.start(), match.end()):
+                    continue
+                if _looks_like_existing_treatment(note_text, match.end()):
                     continue
                 reason = _cue_reason(note_text, rule, match.start(), match.end())
                 if reason is None:

@@ -36,8 +36,15 @@ elements:
   # Evidence terms colon-anchored (reviewer fix): bare "subjective"/"objective" are common
   # English words; anchored with ":" like the SOAP heading style itself, consistent with the
   # existing "assessment:"/"plan:" terms.
+  # Wave 3 fix: added the single-letter "S:"/"O:"/"A:"/"P:" forms -- the SOAP heading style
+  # is very commonly abbreviated to just the letter in real notes, and doctype.py's own
+  # SOAP-shape detector uses exactly this pattern. The word-boundary lookbehind in
+  # gapcheck.term_pattern prevents a false match against an unrelated word ending in one of
+  # these letters immediately before the colon (e.g. "Labs:" does NOT match "s:" -- the
+  # character before "s" is "b", not a boundary).
   - name: soap_structure
-    evidence_terms: ["subjective:", "objective:", "assessment:", "plan:"]
+    evidence_terms: ["subjective:", "objective:", "assessment:", "plan:",
+                     "s:", "o:", "a:", "p:"]
     level: recommended
     recommendation: >-
       The progress note does not follow the SOAP structure. Please document Subjective impressions,
