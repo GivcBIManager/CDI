@@ -53,7 +53,7 @@ def test_mixed_authority_entries_are_named_in_notes() -> None:
 def test_stats_report_per_source_counts() -> None:
     report = run_verification()
     assert report.stats["sources"] == 11
-    assert report.stats["clauses_CHI-LRTI"] >= 5
+    assert report.stats["clauses_CHI-LRTI"] == 18
     assert report.stats["clauses_CHI-ANEMIA"] > 10
 
 

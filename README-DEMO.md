@@ -141,14 +141,15 @@ an explicit override always available.
 ### Honest limits
 - **Flowchart CPGs pending API credits.** Three CHI guidelines are
   flowchart-genre PDFs (Diabetes Mellitus, Urinary Tract Infection, Low Back
-  Pain MRI) — no linear prose to chunk and cite. (The Lower Respiratory Tract
+  Pain MRI) — no linear prose to chunk and cite. They need VLM (vision-model)
+  linearization before they can enter the KB as sources; that step needs API
+  credits for the vision calls and has not been run. Not a text-extraction
+  bug — these PDFs are diagrams, not paragraphs. (The Lower Respiratory Tract
   Infection protocol was previously assumed to be in this group; it extracts
-  as prose and is now source `CHI-LRTI` — its pages 3 and 6 are clean
-  paragraphs, while the dosing tables on pages 4–5 and 7 extract
-  garbled-but-verbatim and are never quoted.) They need VLM (vision-model) linearization before they can enter
-  the KB as sources; that step needs API credits for the vision calls and has
-  not been run. Not a text-extraction bug — these PDFs are diagrams, not
-  paragraphs.
+  as prose and is now source `CHI-LRTI` — page 3 is clean paragraphs, page 6
+  opens with clean HAP/VAP bullets before degrading into a dosing table, and
+  the dosing tables on pages 4–5 and 7 extract garbled-but-verbatim; only the
+  clean sentences are quoted.)
 - **Obesity's `type` axis is generic-authority only.** Obesity's `stage`
   (BMI) axis cites the CHI Bariatric guideline directly (`CHI-BARIATRIC/pg9`).
   Its `type` axis still cites only the generic specificity mandate
