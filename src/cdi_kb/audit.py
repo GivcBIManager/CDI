@@ -9,14 +9,17 @@ from cdi_kb.clauses import ClauseStore
 from cdi_kb.doc_gaps import find_element_gaps
 from cdi_kb.doctype import detect_doc_type
 from cdi_kb.findings import (
-    Finding, compose_element_finding, compose_finding, compose_inferred_finding, compose_necessity_finding,
+    Finding, compose_element_finding, compose_finding, compose_inferred_finding,
+    compose_necessity_finding, compose_provider_finding,
 )
 from cdi_kb.gapcheck import detect_conditions, find_gaps, rule_applies
 from cdi_kb.index import SearchIndex
 from cdi_kb.necessity import find_necessity_gaps
 from cdi_kb.requirements_model import (
-    DOC_TYPES, DiagnosisRequirement, DocType, load_doc_requirements, load_necessity_rules, load_requirements,
+    DOC_TYPES, DiagnosisRequirement, DocType, load_doc_requirements, load_necessity_rules,
+    load_provider_rules, load_requirements,
 )
+from cdi_kb.segments import UNATTRIBUTED, NoteSegment, role_at, segment_note
 
 if TYPE_CHECKING:  # annotation-only: keeps the offline path free of anthropic
     from cdi_kb.llm_infer import ValidatedObservation
@@ -25,6 +28,10 @@ if TYPE_CHECKING:  # annotation-only: keeps the offline path free of anthropic
 # observations. Tests supply a deterministic stage; production defaults to
 # llm_infer.run_llm_stage.
 LlmStage = Callable[[str, list[DiagnosisRequirement], SearchIndex], list["ValidatedObservation"]]
+
+# Roles whose documentation of a condition counts as the treating team's own.
+# UNATTRIBUTED is included deliberately -- see _unconfirmed_conditions.
+PHYSICIAN_EQUIVALENT = frozenset({"physician", UNATTRIBUTED})
 
 
 @dataclass
@@ -64,6 +71,41 @@ def _fully_negated_conditions(
     for mention in detect_conditions(note_text, requirements):
         mentions.setdefault(mention.condition, []).append(mention.negated)
     return {condition for condition, flags in mentions.items() if all(flags)}
+
+
+def _unconfirmed_conditions(
+    note_text: str,
+    requirements: list[DiagnosisRequirement],
+    segments: list[NoteSegment],
+) -> list[tuple[str, str]]:
+    """(condition, evidence) for conditions EVERY non-negated mention of which
+    falls inside a single non-physician, non-unattributed segment.
+
+    UNATTRIBUTED counts as possibly-physician on purpose: the note body is
+    usually the treating doctor's, but nothing in the text says so, so treating
+    it as physician-equivalent means a wrong guess suppresses a finding rather
+    than inventing one. A condition the doctor's own text names anywhere is
+    confirmed and raises nothing.
+
+    Returns one entry per condition, keyed to the role that recorded it, so the
+    caller can look up the provider rule for that role.
+    """
+    by_condition: dict[str, list[tuple[str, str]]] = {}
+    for mention in detect_conditions(note_text, requirements):
+        if mention.negated:
+            continue
+        by_condition.setdefault(mention.condition, []).append(
+            (role_at(segments, mention.start), mention.matched_text)
+        )
+    unconfirmed: list[tuple[str, str]] = []
+    for condition, seen in by_condition.items():
+        roles = {role for role, _ in seen}
+        if PHYSICIAN_EQUIVALENT & roles:
+            continue
+        if len(roles) != 1:
+            continue  # recorded by two different non-physician roles: no single rule governs
+        unconfirmed.append((condition, next(iter(roles))))
+    return unconfirmed
 
 
 def _validated_findings(
@@ -142,6 +184,7 @@ def run_audit(
     by_condition = {req.condition: req for req in requirements}
     doc_requirements = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)
     necessity_rules = load_necessity_rules(config.NECESSITY_DIR)
+    provider_rules = load_provider_rules(config.PROVIDER_RULES_DIR)
     store = ClauseStore(config.KB_DB)
     result = AuditResult(active_doc_type=resolved_doc_type)
     try:
@@ -149,6 +192,18 @@ def run_audit(
             finding = compose_finding(gap, by_condition[gap.condition], store)
             if finding is None:
                 result.dropped_citations.append(f"{gap.condition}|{gap.axis}")
+            else:
+                result.findings.append(finding)
+
+        segments = segment_note(note_text)
+        rules_by_role = {rule.role: rule for rule in provider_rules}
+        for condition, role in _unconfirmed_conditions(note_text, requirements, segments):
+            rule = rules_by_role.get(role)
+            if rule is None:
+                continue  # no authored (and citable) rule for this author role
+            finding = compose_provider_finding(condition, f"documented in the {role} note", rule, store)
+            if finding is None:
+                result.dropped_citations.append(f"{condition}|provider_confirmation")
             else:
                 result.findings.append(finding)
 

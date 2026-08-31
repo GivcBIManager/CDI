@@ -108,7 +108,7 @@ Latest run:
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    264 passed, 2 deselected in 51.92s
+    284 passed, 2 deselected in 61.03s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -118,7 +118,7 @@ works and takes precedence) and the account has credits:
     /c/python/python -m pytest -m live -v
     tests/test_llm_infer.py::test_live_stage_infers_respiratory_failure_and_validates_it_against_the_kb PASSED
     tests/test_llm_infer.py::test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates PASSED
-    2 passed, 264 deselected
+    2 passed, 284 deselected
 
 ## The `--llm` stage: the KB is the validation authority
 `--llm` is a two-pass, retrieval-backed pipeline, not a one-shot classifier.
@@ -192,12 +192,52 @@ That last line is the rule working, not failing: `acute-kidney-injury.yaml`'s ow
 post-renal classification text. The validation pass reached the same conclusion
 from the documents, independently of the comment.
 
+## Author attribution: who wrote the diagnosis
+`segments.py` splits a note into role-tagged spans — `physician`, `nursing`,
+`allied_health`, `unattributed` — because a ward note is not one document by one
+author. A segment opens on a heading that names an author role ("Dietitian note
+(08-27):") and closes at the next author heading **or** at the next structural
+heading of the note's own body ("ASSESSMENT / PLAN:"), which returns the note to
+its own writer.
+
+That second boundary is not cosmetic. Without it a trailing plan after an inline
+consult inherits the consultant's role, and a diagnosis the treating doctor *did*
+record raises a false finding — on the commonest note shape there is.
+
+Text before any author heading is `unattributed`, never `physician`. The body
+usually is the doctor's, but nothing in the text says so, and the check below
+treats unattributed as possibly-physician — so a wrong guess suppresses a finding
+rather than inventing one.
+
+This powers a fourth finding type, `provider_confirmation`. Its authority
+(`CDI-2021/allied-health/p2`, p.130) is a conditional, and the check tests
+exactly its condition:
+
+> Allied Health professionals whose documentation supports the classification of
+> specific clinical diagnoses are considered 'clinicians' … **as long as they add
+> further specificity to an already documented condition that was originally
+> recorded by the treating doctor.**
+
+So when every mention of a condition falls inside an allied-health segment, that
+precondition fails:
+
+    [recommended] malnutrition — not confirmed by the treating doctor
+                  (documented in the allied_health note)
+      source: CDI-2021/allied-health/p2 (p.130)
+      source: CDI-2021/allied-health-request-and-allied-health-note/p13 (p.74)
+
+Authored at `recommended`, not `required`: a single-note audit cannot rule out
+that the doctor recorded the condition elsewhere in the chart — the same
+reasoning that keeps the pediatric urine-culture necessity rule at
+`recommended`.
+
 ## What this demo proves / does not prove
 Proves: a 3-layer KB (booklet + 6 CHI condition-specific guidelines + 4 CHI
 necessity-criteria docs, 11 sources / 2,746 clauses) with citation-verified
-findings across three finding types — diagnosis-specificity gaps (20
-conditions), doc-type completeness gaps (5 doc types, 19 elements), and
-order-necessity mismatches (4 rules); every finding traceable to verbatim
+findings across four finding types — diagnosis-specificity gaps (20
+conditions), doc-type completeness gaps (5 doc types, 19 elements),
+order-necessity mismatches (4 rules), and provider-confirmation gaps
+(allied-health-only diagnoses, via author-role segmentation); every finding traceable to verbatim
 source text; deterministic core; retrieval-backed LLM inference (live-verified,
 see above) in which the KB is the validation authority — every inferred finding
 is checked against retrieved clause text through the same citation firewall, and
@@ -293,6 +333,19 @@ an explicit override always available.
   ordinary English words, and widening it would trade a false positive for
   silent suppression of real gaps. Closing this needs note structure, not more
   terms.
+- **No nursing provider-confirmation rule.** The booklet defines allied health
+  (`CDI-2021/allied-health-request-and-allied-health-note/p1`, p.74) as
+  dietetics, physiotherapy, occupational therapy, speech therapy, podiatry,
+  social work, pastoral care, orthotics and pharmacy — nursing is not among
+  them, and no clause in this KB makes physician confirmation of a
+  nursing-recorded diagnosis a documentation requirement. A nursing-only Stage 3
+  pressure injury therefore raises nothing. Authoring the rule anyway would mean
+  citing authority the documents do not carry; the gap is pinned instead by
+  `test_nursing_only_condition_raises_no_confirmation_finding`.
+- **Segmentation is heading-based.** A note that resumes the doctor's voice with
+  no heading at all, or under a structural heading not in `_BODY_HEADINGS`,
+  carries the previous author's role forward. Closing that needs real authorship
+  metadata from the EMR, not more heading patterns.
 - **The LLM can add findings but cannot retract deterministic ones.** It now
   judges axes for conditions the note names (see below), so it closes the string
   scanner's false *negatives* — but a deterministic false positive still stands

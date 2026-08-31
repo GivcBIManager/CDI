@@ -18,7 +18,7 @@ from cdi_kb.config import QUOTE_MATCH_THRESHOLD
 from cdi_kb.gapcheck import Gap
 from cdi_kb.necessity import NecessityGap
 from cdi_kb.normalize import find_quote
-from cdi_kb.requirements_model import Citation, DiagnosisRequirement, Element
+from cdi_kb.requirements_model import Citation, DiagnosisRequirement, Element, ProviderRule
 
 if TYPE_CHECKING:  # annotation-only: keeps the offline path free of llm_infer/anthropic
     from cdi_kb.llm_infer import KbSupport, NoteObservation
@@ -129,6 +129,30 @@ def _recommendation_for(requirement: DiagnosisRequirement, axis: str) -> str:
         if rule.axis == axis and rule.recommendation:
             return rule.recommendation
     return requirement.recommendation
+
+
+def compose_provider_finding(
+    condition: str,
+    evidence_excerpt: str,
+    rule: "ProviderRule",
+    store: ClauseStore,
+) -> Finding | None:
+    """A diagnosis recorded only by an author role whose documentation is not
+    sufficient on its own. Routes through the same citation firewall as every
+    other finding type -- no verified citation, no finding."""
+    verified = _verified_citations(rule.citations, store)
+    if not verified:
+        return None
+    return Finding(
+        finding_type="provider_confirmation",
+        severity="required" if rule.level == "required" else "recommended",
+        condition=condition,
+        axis="provider_confirmation",
+        evidence_excerpt=evidence_excerpt,
+        recommendation=rule.recommendation,
+        citations=tuple(verified),
+        dedupe_key=f"{condition}|provider_confirmation",
+    )
 
 
 def compose_element_finding(doc_type: str, element: Element, store: ClauseStore) -> Finding | None:

@@ -1,0 +1,47 @@
+# Provider-confirmation rule: a diagnosis recorded ONLY inside an allied-health
+# segment of the note.
+#
+# RULE A(i) — the governing clause is a conditional, and this check tests exactly
+# its condition. CDI-2021/allied-health/p2 (p.130) says allied-health
+# documentation is treated as clinician documentation "as long as they add
+# further specificity to an already documented condition that was originally
+# recorded by the treating doctor". When nothing outside the allied-health
+# segment names the condition, that precondition is not met.
+#
+# LEVEL — authored at "recommended", not "required", deliberately. The check can
+# only see this note; the treating doctor may have recorded the condition
+# elsewhere in the chart (an earlier progress note, the admission note), which no
+# single-note audit can rule out. Same reasoning as the pediatric urine-culture
+# necessity rule, which is "recommended" because its population/setting scope
+# cannot be verified from note text alone.
+#
+# NURSING — deliberately absent. The booklet's own definition of allied health
+# (CDI-2021/allied-health-request-and-allied-health-note/p1, p.74) lists
+# dietetics, physiotherapy, occupational therapy, speech therapy, podiatry,
+# social work, pastoral care, orthotics and pharmacy; nursing is not among them,
+# and no clause in this KB makes physician confirmation of a nursing-recorded
+# diagnosis a documentation requirement. Authoring a nursing rule would mean
+# citing authority the documents do not carry. See
+# tests/test_provider_confirmation.py::test_nursing_only_condition_raises_no_
+# confirmation_finding, which pins that gap.
+role: allied_health
+level: recommended
+recommendation: >-
+  This condition is documented only in the allied health note. Allied health
+  documentation supports classification when it adds specificity to a condition
+  the treating doctor has already recorded. Please document the condition in the
+  medical record if the treating team agrees with the assessment.
+citations:
+  - clause_id: "CDI-2021/allied-health/p2"
+    quote: >-
+      Allied Health professionals whose documentation supports the classification of specific
+      clinical diagnoses are considered ‘clinicians’ as long as they remain pertinent to their area
+      of expertise, and as long as they add further specificity to an already documented condition
+      that was originally recorded by the treating doctor.
+  # Secondary: an explicit "must" that allied health input be carried onto the
+  # medical officer's own document. Scoped to discharge by its own wording, so it
+  # supports rather than anchors this doc-type-independent check.
+  - clause_id: "CDI-2021/allied-health-request-and-allied-health-note/p13"
+    quote: >-
+      The allied health input must be captured on the overarching discharge summary written by the
+      medical officer at discharge from the inpatient setting.
