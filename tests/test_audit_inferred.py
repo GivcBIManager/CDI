@@ -1,15 +1,22 @@
-"""Regression tests for cdi_kb.audit._inferred_findings: implicit conditions
-from the LLM stage must be audited against the ORIGINAL note text, never a
-synthetic marker, so they cannot self-satisfy axes or be falsely negated by
-find_gaps's negation window -- and duplicate/already-named conditions must
-not produce duplicate findings.
+"""Regression tests for cdi_kb.audit._validated_findings: KB-validated
+observations from the LLM stage must be grounded in the ORIGINAL note, must not
+duplicate or contradict deterministic findings, and must respect the same
+doc-type scoping deterministic gaps do.
+
+History: this module previously tested `_inferred_findings`, which re-derived
+axes with gapcheck.scan_axes (a whole-note string scan). That mechanism is gone
+-- the model's own axis judgment is now authoritative, because scan_axes marked
+axes satisfied from text belonging to unrelated problems. The assertions that
+survived the rewrite are the ones about grounding, dedupe, negation and
+doc-type scoping; they are behaviour, not mechanism.
 """
 
 import pytest
 
 from cdi_kb import config
-from cdi_kb.audit import AuditResult, _inferred_findings, _named_conditions
+from cdi_kb.audit import _fully_negated_conditions, _validated_findings
 from cdi_kb.clauses import ClauseStore
+from cdi_kb.llm_infer import NoteObservation, ValidatedObservation
 from cdi_kb.requirements_model import AxisRule, Citation, DiagnosisRequirement, load_requirements
 
 
@@ -24,99 +31,140 @@ def by_condition_and_store():
         store.close()
 
 
-def test_synthetic_marker_no_longer_self_satisfies_onset_axis(by_condition_and_store) -> None:
-    # Old (defective) design appended "[assessment: acute respiratory failure]" to the
-    # note, and the word "acute" in that marker satisfied the onset axis's own
-    # evidence_terms (["acute", "acute on chronic", "chronic"]) -- suppressing the
-    # exact gap the LLM stage exists to raise. The new design scans the ORIGINAL
-    # note only, so the onset gap must still fire.
+def _observed(condition: str, axis: str, note_quote: str, supports=()) -> ValidatedObservation:
+    return ValidatedObservation(
+        observation=NoteObservation(
+            condition=condition, axis=axis, issue=f"{axis} not documented", note_quote=note_quote
+        ),
+        supports=list(supports),
+    )
+
+
+def test_inferred_finding_evidence_is_verbatim_note_text(by_condition_and_store) -> None:
+    # The evidence a reviewer sees must be text they can find in the note. The
+    # old design put a truncated model-authored string here; the new one carries
+    # the quote that already cleared the note-side firewall.
     by_condition, store = by_condition_and_store
     note = "Sats 82% on air, placed on BiPAP overnight."
-    findings, dropped = _inferred_findings(
-        [("acute respiratory failure", "on BiPAP, pO2 54")],
-        note, by_condition, store, set(),
+    findings = _validated_findings(
+        [_observed("acute respiratory failure", "onset", "placed on BiPAP overnight")],
+        note, by_condition, store, set(), set(),
     )
-    keys = {f.dedupe_key for f in findings} | set(dropped)
-    assert "acute respiratory failure|onset" in keys
-
-    onset_findings = [f for f in findings if f.dedupe_key == "acute respiratory failure|onset"]
-    assert onset_findings, "onset gap must be a real (citation-verified) finding, not just dropped"
-    assert "BiPAP" in onset_findings[0].evidence_excerpt
+    assert [f.dedupe_key for f in findings] == ["acute respiratory failure|onset"]
+    assert findings[0].evidence_excerpt in note
 
 
-def test_trailing_negation_cue_does_not_suppress_inferred_gap(by_condition_and_store) -> None:
-    # Old design ran find_gaps on the synthetic note, whose appended marker sat right
-    # after "...ruled out." -- within the 40-char pre-mention negation window -- and
-    # was falsely negated. The new design never runs find_gaps (or its negation
-    # check) against inferred conditions, so a pre-mention negation cue elsewhere in
-    # the note must not suppress the gap.
+def test_observation_quoting_text_absent_from_the_note_is_rejected_at_the_audit_layer(
+    by_condition_and_store,
+) -> None:
+    # Defense in depth: the note-side firewall is re-applied here, so it holds
+    # for any injected stage, not just the production one.
+    by_condition, store = by_condition_and_store
+    note = "Sats 82% on air, placed on BiPAP overnight."
+    findings = _validated_findings(
+        [_observed("acute respiratory failure", "onset", "intubated for hypercapnia")],
+        note, by_condition, store, set(), set(),
+    )
+    assert findings == []
+
+
+def test_trailing_negation_cue_does_not_suppress_an_inferred_gap(by_condition_and_store) -> None:
+    # A negation cue elsewhere in the note (for a different, ruled-out problem)
+    # must not suppress a gap for a condition that is not itself negated.
     by_condition, store = by_condition_and_store
     note = "Sats 82% on air, placed on BiPAP overnight. Bacterial infection ruled out."
-    findings, dropped = _inferred_findings(
-        [("acute respiratory failure", "on BiPAP, pO2 54")],
-        note, by_condition, store, set(),
+    findings = _validated_findings(
+        [_observed("acute respiratory failure", "onset", "placed on BiPAP overnight"),
+         _observed("acute respiratory failure", "type", "Sats 82% on air")],
+        note, by_condition, store, set(), set(),
     )
-    keys = {f.dedupe_key for f in findings} | set(dropped)
-    assert "acute respiratory failure|onset" in keys
-    assert "acute respiratory failure|type" in keys
+    keys = {f.dedupe_key for f in findings}
+    assert keys == {"acute respiratory failure|onset", "acute respiratory failure|type"}
 
 
-def test_duplicate_implicit_conditions_yield_no_duplicate_findings(by_condition_and_store) -> None:
+def test_duplicate_observations_yield_no_duplicate_findings(by_condition_and_store) -> None:
     by_condition, store = by_condition_and_store
     note = "Patient febrile, tachycardic, unwell."
-    findings, _dropped = _inferred_findings(
-        [("sepsis", "evidence one"), ("sepsis", "evidence two")],
-        note, by_condition, store, set(),
+    findings = _validated_findings(
+        [_observed("sepsis", "agent", "Patient febrile, tachycardic"),
+         _observed("sepsis", "agent", "tachycardic, unwell")],
+        note, by_condition, store, set(), set(),
     )
     keys = [f.dedupe_key for f in findings]
     assert len(keys) == len(set(keys)), f"duplicate dedupe_keys produced: {keys}"
 
 
-def test_already_named_condition_is_skipped(by_condition_and_store) -> None:
+def test_explicitly_negated_condition_is_skipped(by_condition_and_store) -> None:
+    # Step 2 narrowed this guard: it used to skip every condition the note NAMED,
+    # which locked the model out of exactly the axes the string scanner gets wrong.
+    # Now only a condition whose every mention is negated is suppressed -- because
+    # observations carry no negation flag for compose_inferred_finding to honour.
     by_condition, store = by_condition_and_store
     note = "Patient febrile, tachycardic, unwell."
-    findings, dropped = _inferred_findings(
-        [("sepsis", "evidence one")],
-        note, by_condition, store, {"sepsis"},
+    findings = _validated_findings(
+        [_observed("sepsis", "agent", "Patient febrile, tachycardic")],
+        note, by_condition, store, {"sepsis"}, set(),
     )
     assert findings == []
-    assert dropped == []
 
 
-def test_named_conditions_includes_named_but_negated_condition() -> None:
-    # A NAMED-BUT-NEGATED condition ("No sepsis.") is absent from findings/dropped
-    # (nothing was raised for it), so a set derived only from those keys would miss
-    # it. _named_conditions must re-detect mentions structurally, so it still shows
-    # up here -- otherwise, if the LLM returned this condition as an implicit anyway,
-    # _inferred_findings (which hardcodes negated=False by design) would emit a
-    # clinically false finding for a condition the note explicitly rules out.
+def test_named_but_affirmed_condition_is_no_longer_skipped(by_condition_and_store) -> None:
+    by_condition, store = by_condition_and_store
+    note = "A: Sepsis, source urinary. Blood cultures growing E. coli."
+    findings = _validated_findings(
+        [_observed("sepsis", "agent", "Blood cultures growing E. coli")],
+        note, by_condition, store, set(), set(),
+    )
+    assert [f.dedupe_key for f in findings] == ["sepsis|agent"]
+
+
+def test_key_already_emitted_deterministically_is_skipped(by_condition_and_store) -> None:
+    by_condition, store = by_condition_and_store
+    note = "A: Sepsis, source urinary. Blood cultures growing E. coli."
+    findings = _validated_findings(
+        [_observed("sepsis", "agent", "Blood cultures growing E. coli")],
+        note, by_condition, store, set(), {"sepsis|agent"},
+    )
+    assert findings == []
+
+
+def test_fully_negated_conditions_includes_a_ruled_out_condition() -> None:
+    # A ruled-out condition raises no finding, so a set derived from finding keys
+    # would miss it. _fully_negated_conditions re-detects mentions structurally,
+    # so it still shows up -- otherwise, if the LLM returned this condition,
+    # _validated_findings would emit a clinically false finding for a condition
+    # the note explicitly rules out.
     requirements = load_requirements(config.REQUIREMENTS_DIR)
-    note = "No evidence of sepsis. Afebrile."
-    named = _named_conditions(note, requirements, AuditResult())
-    assert "sepsis" in named
+    negated = _fully_negated_conditions("No evidence of sepsis. Afebrile.", requirements)
+    assert "sepsis" in negated
 
 
-def test_inferred_findings_skips_condition_from_named_conditions_guard(by_condition_and_store) -> None:
-    # End-to-end through the guard's own home: _named_conditions' output feeds
-    # directly into _inferred_findings' skip set.
+def test_fully_negated_conditions_excludes_a_condition_affirmed_anywhere() -> None:
+    requirements = load_requirements(config.REQUIREMENTS_DIR)
+    note = ("Day 1: no evidence of sepsis, cultures pending and patient afebrile throughout.\n"
+            "Day 3: patient deteriorated overnight and is now in septic shock.\n")
+    assert "sepsis" not in _fully_negated_conditions(note, requirements)
+
+
+def test_validated_findings_skips_condition_from_the_negation_guard(by_condition_and_store) -> None:
+    # End-to-end through the guard's own home: _fully_negated_conditions' output
+    # feeds directly into _validated_findings' skip set.
     by_condition, store = by_condition_and_store
     requirements = list(by_condition.values())
     note = "No evidence of sepsis. Afebrile."
-    already_named = _named_conditions(note, requirements, AuditResult())
-    findings, dropped = _inferred_findings(
-        [("sepsis", "evidence one")],
-        note, by_condition, store, already_named,
+    negated = _fully_negated_conditions(note, requirements)
+    findings = _validated_findings(
+        [_observed("sepsis", "agent", "No evidence of sepsis")],
+        note, by_condition, store, negated, set(),
     )
     assert findings == []
-    assert dropped == []
 
 
-def test_inferred_findings_respects_applies_to_doc_type_scoping(by_condition_and_store) -> None:
-    # Regression: an axis rule scoped to a specific doc_type (applies_to) must be
-    # filtered out of LLM-inferred findings exactly as it is for deterministic
-    # find_gaps -- otherwise a doc-type-scoped rule would still fire (as a finding
-    # or a dropped citation) for a note of the wrong doc type via the LLM path,
-    # even though find_gaps itself would correctly skip it.
+def test_validated_findings_respect_applies_to_doc_type_scoping(by_condition_and_store) -> None:
+    # An axis rule scoped to a specific doc_type (applies_to) must be filtered out
+    # of LLM-derived findings exactly as it is for deterministic find_gaps --
+    # otherwise a doc-type-scoped rule would still fire via the LLM path for a
+    # note of the wrong doc type.
     by_condition, store = by_condition_and_store
     scoped_req = DiagnosisRequirement(
         condition="chronic kidney disease",
@@ -128,15 +176,15 @@ def test_inferred_findings_respects_applies_to_doc_type_scoping(by_condition_and
     )
     scoped_by_condition = {**by_condition, "chronic kidney disease": scoped_req}
     note = "Renal impairment noted, stage not documented."
-    implicits = [("chronic kidney disease", "renal impairment evidence")]
+    observed = [_observed("chronic kidney disease", "stage", "Renal impairment noted")]
 
-    findings, dropped = _inferred_findings(
-        implicits, note, scoped_by_condition, store, set(), doc_type="progress_note",
+    findings = _validated_findings(
+        observed, note, scoped_by_condition, store, set(), set(), doc_type="progress_note",
     )
-    assert "chronic kidney disease|stage" not in ({f.dedupe_key for f in findings} | set(dropped))
+    assert "chronic kidney disease|stage" not in {f.dedupe_key for f in findings}
 
     for doc_type in ("discharge_summary", "any"):
-        findings, dropped = _inferred_findings(
-            implicits, note, scoped_by_condition, store, set(), doc_type=doc_type,
+        findings = _validated_findings(
+            observed, note, scoped_by_condition, store, set(), set(), doc_type=doc_type,
         )
-        assert "chronic kidney disease|stage" in ({f.dedupe_key for f in findings} | set(dropped))
+        assert "chronic kidney disease|stage" in {f.dedupe_key for f in findings}

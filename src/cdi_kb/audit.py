@@ -1,17 +1,30 @@
 """Audit orchestration: note text -> gaps -> citation-verified findings."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from cdi_kb import config
 from cdi_kb.clauses import ClauseStore
 from cdi_kb.doc_gaps import find_element_gaps
 from cdi_kb.doctype import detect_doc_type
-from cdi_kb.findings import Finding, compose_element_finding, compose_finding, compose_necessity_finding
-from cdi_kb.gapcheck import ConditionMention, Gap, detect_conditions, find_gaps, rule_applies, scan_axes
+from cdi_kb.findings import (
+    Finding, compose_element_finding, compose_finding, compose_inferred_finding, compose_necessity_finding,
+)
+from cdi_kb.gapcheck import detect_conditions, find_gaps, rule_applies
+from cdi_kb.index import SearchIndex
 from cdi_kb.necessity import find_necessity_gaps
 from cdi_kb.requirements_model import (
     DOC_TYPES, DiagnosisRequirement, DocType, load_doc_requirements, load_necessity_rules, load_requirements,
 )
+
+if TYPE_CHECKING:  # annotation-only: keeps the offline path free of anthropic
+    from cdi_kb.llm_infer import ValidatedObservation
+
+# Injection seam for the LLM stage: (note_text, requirements, index) -> validated
+# observations. Tests supply a deterministic stage; production defaults to
+# llm_infer.run_llm_stage.
+LlmStage = Callable[[str, list[DiagnosisRequirement], SearchIndex], list["ValidatedObservation"]]
 
 
 @dataclass
@@ -19,58 +32,96 @@ class AuditResult:
     findings: list[Finding] = field(default_factory=list)
     dropped_citations: list[str] = field(default_factory=list)
     active_doc_type: str = "any"
+    # Set when the optional LLM stage failed. The deterministic findings are
+    # still returned: an inference failure must never discard work already in
+    # hand, and must never take the audit down (it did, on 6 of 9 runs against
+    # a long real note, before this was wrapped).
+    llm_error: str | None = None
 
 
-def _named_conditions(
+def _fully_negated_conditions(
     note_text: str,
     requirements: list[DiagnosisRequirement],
-    result: AuditResult,
 ) -> set[str]:
-    """Conditions already named in the note or already surfaced as findings/dropped
-    citations. Structural (re-detects mentions in note_text), not just derived from
-    findings/dropped keys, so a NAMED-BUT-NEGATED condition (e.g. "No sepsis.") is
-    still excluded from LLM-inferred implicits -- which hardcode negated=False by
-    design and would otherwise emit a clinically false finding for it."""
-    return ({m.condition for m in detect_conditions(note_text, requirements)} |
-            {f.dedupe_key.split("|")[0] for f in result.findings} |
-            {d.split("|")[0] for d in result.dropped_citations})
+    """Conditions EVERY mention of which is negated (e.g. a note whose only
+    reference is "No evidence of sepsis").
+
+    This replaces the former blanket already-named gate. That gate excluded the
+    LLM from every condition the note mentioned at all, which is where the string
+    scanner's worst misses live: gapcheck.scan_axes searches the whole note, so an
+    organism named in a culture result marks a named condition's `agent` axis
+    satisfied even though the note never draws the link the booklet asks for. Only
+    the model can see that, and it was forbidden from looking.
+
+    What the gate genuinely protected is narrower and kept here: observations carry
+    no negation flag (compose_inferred_finding has nothing to set one from), so a
+    condition the note explicitly rules out must be filtered by the audit rather
+    than trusted to the model. "Every mention negated", not "any mention negated" --
+    "No sepsis on admission. Day 3: now in septic shock" is ordinary progress-note
+    narrative, and suppressing it would lose a real finding.
+    """
+    mentions: dict[str, list[bool]] = {}
+    for mention in detect_conditions(note_text, requirements):
+        mentions.setdefault(mention.condition, []).append(mention.negated)
+    return {condition for condition, flags in mentions.items() if all(flags)}
 
 
-def _inferred_findings(
-    implicits: list[tuple[str, str]],
+def _validated_findings(
+    validated: list["ValidatedObservation"],
     note_text: str,
     by_condition: dict[str, DiagnosisRequirement],
     store: ClauseStore,
-    already_named: set[str],
+    negated_conditions: set[str],
+    existing_keys: set[str],
     doc_type: str = "any",
-) -> tuple[list[Finding], list[str]]:
-    """(condition, evidence) pairs from inference -> findings via the same firewall.
-    Axis evidence is scanned against the ORIGINAL note only; detection is the
-    inference itself, so find_gaps (and its negation window) is bypassed. Axes
-    are filtered by rule_applies the same way find_gaps filters them, so a
-    rule scoped to a different doc type is not raised here either."""
+) -> list[Finding]:
+    """KB-validated observations -> findings.
+
+    The axis decision is the MODEL's, not scan_axes': the deterministic scanner
+    searches the whole note, so a term belonging to a different problem silently
+    satisfies an axis it has nothing to do with (an organism named in a culture
+    result marked sepsis's `agent` axis satisfied, suppressing the query). The
+    model judges the axis against the statement that actually concerns the
+    condition, which is the whole point of paying for this stage.
+
+    keep_grounded is re-applied here, not just inside the stage, so the note-side
+    firewall holds for ANY injected stage -- it cannot be bypassed by swapping
+    the inference implementation.
+    """
+    from cdi_kb.llm_infer import keep_grounded
+
     findings: list[Finding] = []
-    dropped: list[str] = []
-    processed: set[str] = set(already_named)
-    for condition, evidence in implicits:
-        if condition in processed or condition not in by_condition:
+    seen: set[str] = set()
+    grounded = {
+        (o.condition, o.axis, o.note_quote)
+        for o in keep_grounded([v.observation for v in validated], note_text, by_condition)
+    }
+    seen |= set(existing_keys)
+    for entry in validated:
+        observation = entry.observation
+        if observation.condition in negated_conditions:
             continue
-        processed.add(condition)
-        req = by_condition[condition]
-        present = scan_axes(note_text, req)
-        mention = ConditionMention(condition=condition, matched_text=evidence[:120], start=0, end=0, negated=False)
-        for rule in req.axes:
-            if rule.axis in present or not rule_applies(rule, doc_type):
-                continue
-            finding = compose_finding(Gap(condition=condition, axis=rule.axis, level=rule.level, mention=mention), req, store)
-            if finding is None:
-                dropped.append(f"{condition}|{rule.axis}")
-            else:
-                findings.append(finding)
-    return findings, dropped
+        if (observation.condition, observation.axis, observation.note_quote) not in grounded:
+            continue
+        requirement = by_condition[observation.condition]
+        rule = next((r for r in requirement.axes if r.axis == observation.axis), None)
+        if rule is None or not rule_applies(rule, doc_type):
+            continue
+        key = f"{observation.condition}|{observation.axis}"
+        if key in seen:
+            continue
+        seen.add(key)
+        findings.append(compose_inferred_finding(observation, requirement, entry.supports, store))
+    return findings
 
 
-def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool = False) -> AuditResult:
+def run_audit(
+    note_text: str,
+    *,
+    doc_type: DocType | None = None,
+    use_llm: bool = False,
+    llm_stage: "LlmStage | None" = None,
+) -> AuditResult:
     # Defense in depth: doc_type must be a concrete DOC_TYPES value or None
     # (auto-detect), even for callers that bypass the FastAPI/CLI validated
     # entry points (e.g. reflected-XSS-style arbitrary strings). "any" is the
@@ -118,16 +169,27 @@ def run_audit(note_text: str, *, doc_type: DocType | None = None, use_llm: bool 
                     result.findings.append(finding)
 
         if use_llm:
-            # inline import: keeps offline path free of the anthropic dependency
-            from cdi_kb.llm_infer import infer_implicit_conditions
-            already_named = _named_conditions(note_text, requirements, result)
-            implicits = infer_implicit_conditions(note_text, tuple(by_condition))
-            new_findings, new_dropped = _inferred_findings(
-                [(f.condition, f.evidence) for f in implicits],
-                note_text, by_condition, store, already_named, doc_type=resolved_doc_type,
-            )
-            result.findings.extend(new_findings)
-            result.dropped_citations.extend(new_dropped)
+            negated = _fully_negated_conditions(note_text, requirements)
+            # Only keys the deterministic pass actually EMITTED. A dropped
+            # citation raised nothing, so the LLM path re-reaching that axis by
+            # retrieval is new authority, not a duplicate.
+            existing_keys = {f.dedupe_key for f in result.findings}
+            index = SearchIndex(config.KB_DB)
+            try:
+                stage = llm_stage
+                if stage is None:
+                    # inline import: keeps the offline path free of the anthropic dependency
+                    from cdi_kb.llm_infer import run_llm_stage
+                    stage = run_llm_stage
+                result.findings.extend(_validated_findings(
+                    stage(note_text, requirements, index),
+                    note_text, by_condition, store, negated, existing_keys,
+                    doc_type=resolved_doc_type,
+                ))
+            except Exception as error:  # noqa: BLE001 - the stage must never take the audit down
+                result.llm_error = f"{type(error).__name__}: {error}"
+            finally:
+                index.close()
     finally:
         store.close()
     return result

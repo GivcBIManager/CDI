@@ -6,7 +6,12 @@ axes:
     evidence_terms: [stage 1, stage 2, stage 3, stage 4, unstageable]
   - axis: site
     level: required
-    evidence_terms: [sacrum, heel, buttock, hip, ankle]
+    # Nursing documentation names sites adjectivally ("Sacral wound"), which the noun-only
+    # list missed -- a Stage 3 sacral injury still reported "missing site". Adjectival forms
+    # and the remaining common pressure points added alongside the original nouns.
+    evidence_terms: [sacrum, sacral, heel, heels, buttock, buttocks, hip, ankle,
+                     ischium, ischial, trochanter, trochanteric, occiput, occipital,
+                     malleolus, scapula, coccyx, coccygeal]
   # RULE A(i): restored to required — correctness/p3 (already cited below for stage/site) explicitly
   # states the skin assessment form must note "its presence on admission", a condition-specific
   # governing instruction for the onset axis, not a glossary sentence. Previously mis-downgraded to

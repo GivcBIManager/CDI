@@ -5,7 +5,21 @@ elements:
   # (thin) section. All three elements below are downgraded to recommended on that basis; searched
   # "progress note", "SOAP" -- no stronger condition-specific mandate clause found.
   - name: presenting_complaint_management
-    evidence_terms: ["presenting complaint", "co-morbidities", "comorbidities"]
+    # Wave 4 fix: the original three terms are the BOOKLET's vocabulary, not a clinical
+    # note's -- a note with a twelve-item assessment/plan documenting management of every
+    # active problem still reported this element missing, because it never used the phrase
+    # "presenting complaint". The cited clause is about "the actions taken by the clinician
+    # to manage" those problems, so a documented Plan section now satisfies it.
+    # Treatment verbs ("continue", "titrated", "weaned") were considered and REJECTED: they
+    # are ordinary English words, and ALLOWED_SINGLE_WORD_TERMS' stated convention admits
+    # only clinical acronyms/shorthand, never ordinary words. Widening the guard to fit them
+    # would trade a false positive for silent suppression of real gaps.
+    # RESIDUAL: a note that documents management purely in narrative, with no Plan heading
+    # and none of the phrases below ("Continued meropenem, held antihypertensives"), still
+    # reports this element missing. Closing that needs structure, not more terms.
+    evidence_terms: ["presenting complaint", "co-morbidities", "comorbidities",
+                     "management plan", "treatment plan", "plan of care", "care plan",
+                     "actions taken", "plan:"]
     level: recommended
     recommendation: >-
       The progress note does not document the actions taken to manage the presenting complaint,

@@ -1,5 +1,14 @@
 condition: acute respiratory failure
-synonyms: [respiratory failure, ARF]
+synonyms: [respiratory failure]
+# "ARF" was a plain synonym here and nowhere else, so "ARF - creatinine trending up"
+# produced a respiratory finding and no renal one. Now cue-gated on the mirror image of
+# acute-kidney-injury.yaml's renal cue list.
+ambiguous_synonyms:
+  - term: ARF
+    requires_nearby: [pO2, pCO2, oxygen, hypoxia, hypoxic, hypoxaemia, hypoxemia,
+                      hypercapnia, hypercapnic, ventilation, ventilated, BiPAP, CPAP,
+                      intubated, SpO2, ABG, blood gas, respiratory, sats, saturations]
+
 axes:
   - axis: onset
     level: required

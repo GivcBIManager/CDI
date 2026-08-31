@@ -35,6 +35,22 @@ class AxisRule(BaseModel):
     level: Literal["required", "recommended"]
     evidence_terms: list[str] = Field(min_length=1)
     applies_to: list[DocType] = ["any"]
+    # Optional per-axis query text. Without it a multi-axis condition prints the
+    # same condition-level `recommendation` for every axis, so a "missing site"
+    # finding could tell the clinician to document the causative organism the
+    # note already documents. Falls back to DiagnosisRequirement.recommendation.
+    recommendation: str | None = None
+
+
+class AmbiguousSynonym(BaseModel):
+    """A term that legitimately names more than one condition (e.g. "ARF" is
+    both acute renal failure and acute respiratory failure). It is only claimed
+    for this condition when one of `requires_nearby` appears near the mention;
+    with no cue either way, no condition claims it. Assigning an ambiguous
+    abbreviation to the wrong organ system sends the clinician a query about a
+    condition the patient may not have, which is worse than raising nothing."""
+    term: str
+    requires_nearby: list[str] = Field(min_length=1)
 
 
 class DiagnosisRequirement(BaseModel):
@@ -43,6 +59,7 @@ class DiagnosisRequirement(BaseModel):
     axes: list[AxisRule] = Field(min_length=1)
     recommendation: str
     citations: list[Citation] = Field(min_length=1)
+    ambiguous_synonyms: list[AmbiguousSynonym] = []
 
 
 def load_requirements(directory: Path) -> list[DiagnosisRequirement]:

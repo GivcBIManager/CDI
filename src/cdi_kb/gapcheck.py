@@ -16,6 +16,11 @@ from cdi_kb.requirements_model import AxisRule, DiagnosisRequirement
 _NEGATION_CUES = ("no ", "not ", "denies", "denied", "without", "negative for",
                   "ruled out", "no evidence of", "resolved")
 _NEGATION_WINDOW_CHARS = 40
+# Window searched either side of an ambiguous abbreviation for a cue that pins
+# down which condition it names. Sized to a clinical problem-list entry: wide
+# enough to reach the rest of the line and the one after it, narrow enough not
+# to reach an unrelated problem further down the plan.
+_AMBIGUOUS_CUE_WINDOW_CHARS = 200
 
 
 def _whitespace_flexible_pattern(term: str) -> str:
@@ -70,15 +75,28 @@ def is_negated(note_text: str, start: int) -> bool:
     return _is_negated(note_text, start)
 
 
+def _cue_nearby(note_text: str, start: int, end: int, cues: list[str]) -> bool:
+    """Whether any disambiguating cue appears within the window around a mention.
+    Symmetric (the cue can precede or follow the abbreviation) because clinical
+    problem lines put it either way: "ARF - creatinine trending up" vs
+    "blood gas shows a low pO2 ... the team documents ARF"."""
+    window = note_text[max(0, start - _AMBIGUOUS_CUE_WINDOW_CHARS) : end + _AMBIGUOUS_CUE_WINDOW_CHARS]
+    return any(term_pattern(cue).search(window) for cue in cues)
+
+
 def detect_conditions(note_text: str, requirements: list[DiagnosisRequirement]) -> list[ConditionMention]:
     mentions: list[ConditionMention] = []
     for req in requirements:
-        terms = sorted({req.condition, *req.synonyms}, key=len, reverse=True)
+        ambiguous = {entry.term: entry.requires_nearby for entry in req.ambiguous_synonyms}
+        terms = sorted({req.condition, *req.synonyms, *ambiguous}, key=len, reverse=True)
         claimed: list[tuple[int, int]] = []
         for term in terms:
+            cues = ambiguous.get(term)
             for match in term_pattern(term).finditer(note_text):
                 if any(match.start() < end and match.end() > start for start, end in claimed):
                     continue  # longer term already claimed this span
+                if cues is not None and not _cue_nearby(note_text, match.start(), match.end(), cues):
+                    continue  # ambiguous term with nothing to disambiguate it -- claim nothing
                 claimed.append((match.start(), match.end()))
                 mentions.append(ConditionMention(
                     condition=req.condition, matched_text=match.group(0),

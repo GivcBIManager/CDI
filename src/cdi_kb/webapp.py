@@ -49,7 +49,8 @@ def api_audit(request: AuditRequest) -> dict:
     result = run_audit(request.note_text, doc_type=request.doc_type, use_llm=request.use_llm)
     return {"findings": [dataclasses.asdict(f) for f in result.findings],
             "dropped_citations": result.dropped_citations,
-            "active_doc_type": result.active_doc_type}
+            "active_doc_type": result.active_doc_type,
+            "llm_error": result.llm_error}
 
 
 @app.get("/api/search")
@@ -71,6 +72,7 @@ _PAGE_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8"><title>CDI 
  select{font-size:1rem;padding:.2rem}
  .finding{border-left:4px solid #b91c1c;background:#fef2f2;margin:.6rem 0;padding:.6rem .8rem;border-radius:4px}
  .finding.recommended{border-color:#b45309;background:#fffbeb}
+ .unref{color:#6b7280;font-style:italic;margin-top:.3rem}
  .cite{color:#555;font-size:.85rem;margin-top:.3rem}
  button{padding:.5rem 1.2rem;font-size:1rem;margin-top:.5rem}
  #doctype-result{font-weight:600;margin:.8rem 0 0}
@@ -105,8 +107,18 @@ async function audit(){
     div.className = 'finding '+f.severity;
     div.innerHTML = '<strong>'+esc(f.condition)+'</strong> — missing <em>'+esc(f.axis)+'</em> ('+esc(f.severity)+')'
       +'<div>'+esc(f.recommendation)+'</div>'
+      // A finding the documents did not support is labelled, never left looking
+      // like a cited one. kb_status is server-side text, still escaped.
+      +(f.kb_status === 'supported' ? ''
+        : '<div class="unref">'+esc(f.kb_status)+' — evidence: "'+esc(f.evidence_excerpt)+'"</div>')
       +f.citations.map(c=>'<div class="cite">source: '+esc(c.clause_id)+' (p.'+esc(c.page)+') — "'+esc(c.quote)+'"</div>').join('');
     out.appendChild(div);
+  }
+  if(d.llm_error){
+    const warn = document.createElement('p');
+    warn.className = 'unref';
+    warn.textContent = 'LLM stage unavailable ('+d.llm_error+') — deterministic findings only';
+    out.appendChild(warn);
   }
 }
 </script></body></html>"""
