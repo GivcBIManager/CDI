@@ -52,6 +52,26 @@ in the `POST /api/audit` body (omitted/`null` for Auto). The response echoes
 `active_doc_type`, and the results panel shows **"Detected/selected type: X"**
 above the finding count.
 
+Findings render as a **severity × finding-type matrix** — two columns
+(Required, Recommended) by one row per finding type present:
+
+                                  Required   Recommended
+    Diagnosis specificity                2             2
+    Document completeness                0             1
+    Provider confirmation                0             1
+    Conflicting documentation            0             1
+    Documentation integrity              0             1
+
+The grouping is computed server-side (`webapp.build_matrix`, exposed as
+`matrix` in the `/api/audit` response) so it is unit-tested rather than left to
+untested browser JS. Rows follow a fixed display order rather than the order
+`run_audit` appended them: deterministic, citation-anchored findings read
+first, and the inferred ones — which are the ones that can carry
+`no reference in the KB` — read last, so a reviewer works down from the most
+defensible. Only finding types actually present get a row; an empty row is a
+row a reviewer reads past to learn nothing. Below 52rem the grid collapses to a
+single column with each cell labelled by severity.
+
 ## CLI audit
     /c/python/python -m cdi_kb.cli audit <note_file> [--doc-type auto|discharge_summary|admission_note|progress_note|emergency_note|diagnosis_list] [--llm] [--json]
 
@@ -135,7 +155,7 @@ pair; the 15 new ones do not yet.
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    319 passed, 2 deselected in 68.63s
+    329 passed, 2 deselected in 62.96s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -145,7 +165,7 @@ works and takes precedence) and the account has credits:
     /c/python/python -m pytest -m live -v
     tests/test_llm_infer.py::test_live_stage_infers_respiratory_failure_and_validates_it_against_the_kb PASSED
     tests/test_llm_infer.py::test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates PASSED
-    2 passed, 319 deselected
+    2 passed, 329 deselected
 
 ## The `--llm` stage: the KB is the validation authority
 `--llm` is a two-pass, retrieval-backed pipeline, not a one-shot classifier.
