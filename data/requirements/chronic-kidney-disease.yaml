@@ -17,7 +17,7 @@ recommendation: >-
 # explicit, condition-specific mandate ("the stage or eGFR should be recorded") that outranks the
 # generic example for the "stage"-focused retrieval query; re-anchored to that clause as primary,
 # with p3 kept as a secondary supporting citation (still the specific worked example for CKD staging).
-# CHI secondary: CHI-CKD (KDIGO 2013 CKD guideline) Section 1.2 "STAGING OF CKD" (CHI-CKD/pg18/p2)
+# CHI secondary: CHI-CKD (KDIGO 2013 CKD guideline) Section 1.2 "STAGING OF CKD" (CHI-CKD/pg18/p3)
 # is a condition-specific governing clause too — it explicitly recommends classifying CKD by cause,
 # GFR category, and albuminuria category — added as a secondary citation.
 citations:
@@ -30,7 +30,10 @@ citations:
       A disease may be described as 1st, 2nd, 3rd or 4th degree; or Stage 1
       through to 5. For example, a second degree burn or chronic kidney
       failure stage 4.
-  - clause_id: "CHI-CKD/pg18/p2"
+  # Re-anchored after the step-4 extraction fix: de-fusing this source re-paragraphs
+  # page 18, moving the CGA recommendation from p2 to p3. The quote is unchanged --
+  # it already matched verbatim, only its clause ordinal moved.
+  - clause_id: "CHI-CKD/pg18/p3"
     quote: >-
       We recommend that CKD is classified based on cause, GFR category, and albuminuria category
       (CGA). (1B)

@@ -40,6 +40,21 @@ if TYPE_CHECKING:
 # widening stops buying recall and only costs input tokens.
 CANDIDATE_LIMIT = 16
 
+# No single source may fill more than this many candidate slots.
+#
+# De-fusing the journal-typeset CHI guidelines made 1,582 clauses of dense
+# guideline prose genuinely searchable for the first time -- previously their
+# fused text matched no query term, so they never competed for a slot. A single
+# global top-N then let the wordiest source take everything: CHI-CKD filled the
+# whole candidate set for "acute kidney injury onset", pushing out the booklet's
+# own Renal Failure/Impairment clause, and reach fell 31/37 -> 29/37. Measured at
+# caps of 3 / 4 / 6: 26, 28 and 31 of 37 axes respectively.
+PER_SOURCE_LIMIT = 6
+
+# Ranked hits fetched before capping. Must be deep enough that a source's own
+# best clauses survive the cap even when another source dominates the head.
+_OVERFETCH_FACTOR = 25
+
 # Pass B is one API call per observation. Once the LLM was allowed to judge
 # conditions the note NAMES (not only ones it never mentions), a real progress
 # note went from 3 observations to 10 -- ten sequential round trips, minutes of
@@ -105,6 +120,7 @@ def retrieve_candidates(
     observation: NoteObservation,
     requirement: DiagnosisRequirement,
     limit: int = CANDIDATE_LIMIT,
+    per_source: int = PER_SOURCE_LIMIT,
 ) -> list[str]:
     """The candidate clause set the model is allowed to validate against --
     drawn from the KB by lexical retrieval, never proposed by the model.
@@ -120,9 +136,19 @@ def retrieve_candidates(
     hits = index.search(
         f"{observation.condition} {observation.axis}",
         expansions=list(requirement.synonyms),
-        limit=limit,
+        limit=limit * _OVERFETCH_FACTOR,
     )
-    return [hit.clause_id for hit in hits]
+    kept: list[str] = []
+    taken: dict[str, int] = {}
+    for hit in hits:
+        source = hit.clause_id.split("/")[0]
+        if taken.get(source, 0) >= per_source:
+            continue
+        taken[source] = taken.get(source, 0) + 1
+        kept.append(hit.clause_id)
+        if len(kept) >= limit:
+            break
+    return kept
 
 
 def keep_candidate_supports(supports: list[KbSupport], candidate_ids: list[str]) -> list[KbSupport]:
