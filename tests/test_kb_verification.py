@@ -2,6 +2,7 @@
 
 import json
 
+from cdi_kb.extract import cache_path
 from cdi_kb import config
 from cdi_kb.clauses import Clause, ClauseStore
 from cdi_kb.index import SearchIndex
@@ -53,7 +54,10 @@ def test_mixed_authority_entries_are_named_in_notes() -> None:
 def test_stats_report_per_source_counts() -> None:
     report = run_verification()
     assert report.stats["sources"] == 11
-    assert report.stats["clauses_CHI-LRTI"] == 18
+    # 18 -> 19 after step 4: the page-furniture filter changes where segment
+    # boundaries fall, so this source re-paragraphs by one clause. Extraction
+    # itself is byte-identical for CHI-LRTI (it had no fused words).
+    assert report.stats["clauses_CHI-LRTI"] == 19
     assert report.stats["clauses_CHI-ANEMIA"] > 10
 
 
@@ -121,7 +125,7 @@ def test_mandate_anchor_tier_verified_via_axis_query(tmp_path, monkeypatch) -> N
 
     raw_text_dir = tmp_path / "raw_text"
     raw_text_dir.mkdir()
-    (raw_text_dir / "fake-booklet.json").write_text(
+    cache_path(tmp_path / "fake-booklet.pdf", raw_text_dir).write_text(
         json.dumps([{"page_number": 62, "text": mandate_clause.text}]), encoding="utf-8"
     )
 
@@ -182,7 +186,7 @@ def _write_fake_source(tmp_path, monkeypatch, clause: Clause) -> None:
 
     raw_text_dir = tmp_path / "raw_text"
     raw_text_dir.mkdir()
-    (raw_text_dir / "fake-booklet.json").write_text(
+    cache_path(tmp_path / "fake-booklet.pdf", raw_text_dir).write_text(
         json.dumps([{"page_number": clause.page, "text": clause.text}]), encoding="utf-8"
     )
 

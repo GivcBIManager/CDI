@@ -34,10 +34,18 @@ recommendation: >-
 # genuine mandate; the booklet's Documenting for Specificity mandate clause (p8) is kept as a
 # secondary citation precisely because CHI-HF itself carries no explicit documentation imperative.
 citations:
+  # Re-anchored after the step-4 extraction fix. pdfplumber's default x_tolerance
+  # fused this page's words; the de-fused text re-paragraphs, so the clause is now
+  # pg14/p2 and the quote is readable prose rather than
+  # "TheclassificationforbaselineandsubsequentLVEFisshown". Same sentence, same
+  # figure caption, same governance caveat above -- and CHI-HF/pg13/p1 is STILL
+  # two-column-interleaved after the fix (column bleed is a layout problem, not a
+  # character-spacing one), so this caption remains the best quotable clause.
   - clause_id: "CHI-HF/pg14/p3"
-    quote: |-
-      TheclassificationforbaselineandsubsequentLVEFisshown.PatientswithHFrEFwho
-      improvetheirLVEFto>40%areconsideredtohaveHFimpEFandshouldcontinueHFrEFtreatment.
+    quote: >-
+      The classification for baseline and subsequent LVEF is shown. Patients with HFrEF who
+      improve their LVEF to >40% are considered to have HFimpEF and should continue HFrEF
+      treatment.
   - clause_id: "CDI-2021/documenting-for-specificity/p8"
     quote: >-
       When documenting any condition, use as many of these descriptors as clinically relevant to

@@ -59,7 +59,7 @@ recommendation: >-
 # Citation order: the booklet Respiratory Conditions clauses stay primary -- they are the CDI
 # documentation authority and carry explicit "should note" / "should state" imperatives. The
 # three CHI-LRTI clauses are condition-specific CHI secondaries (same pattern as CKD's
-# CHI-CKD/pg18/p2), each trimmed to its governing sentence: pg3/p1 = the population clause
+# CHI-CKD/pg18/p3), each trimmed to its governing sentence: pg3/p1 = the population clause
 # that classifies the condition by onset setting; pg6/p1 = the culture-result imperative
 # (agent); pg4/p1 = the PSI severity definition (type; disclosed above as definitional, not an
 # imperative). Quotes copied verbatim from `cli quote`. pg3/p1's stored section_title is a pg2

@@ -34,7 +34,7 @@ Latest run (all 11 INFO lines):
     INFO  V3-INFO stroke: cited section reachable by title query only (index diluted by multi-source content)
     INFO  V3-INFO surgical wound infection: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO doc:diagnosis_list: cited section reachable by title query only (index diluted by multi-source content)
-    stats: {'clauses': 2746, 'requirements': 20, 'citations_checked': 68, 'mandate_anchored_entries': 0, 'title_reachable_entries': 5, 'mixed_authority_entries': 6, 'doc_type_rules': 19, 'necessity_rules': 4, 'sources': 11, 'clauses_CDI-2021': 768, 'clauses_CHI-HF': 721, 'clauses_CHI-CKD': 591, 'clauses_CHI-ANEMIA': 110, 'clauses_CHI-STROKE': 443, 'clauses_CHI-BARIATRIC': 54, 'clauses_CHI-LRTI': 18, 'clauses_CHI-NEC-HBA1C': 9, 'clauses_CHI-NEC-FBG': 8, 'clauses_CHI-NEC-UCULT': 15, 'clauses_CHI-NEC-B12': 9}
+    stats: {'clauses': 3017, 'requirements': 20, 'citations_checked': 68, 'mandate_anchored_entries': 0, 'title_reachable_entries': 5, 'mixed_authority_entries': 6, 'doc_type_rules': 19, 'necessity_rules': 4, 'sources': 11, 'clauses_CDI-2021': 768, 'clauses_CHI-HF': 948, 'clauses_CHI-CKD': 634, 'clauses_CHI-ANEMIA': 110, 'clauses_CHI-STROKE': 443, 'clauses_CHI-BARIATRIC': 54, 'clauses_CHI-LRTI': 19, 'clauses_CHI-NEC-HBA1C': 9, 'clauses_CHI-NEC-FBG': 8, 'clauses_CHI-NEC-UCULT': 15, 'clauses_CHI-NEC-B12': 9}
     VERIFICATION PASSED
 
 (On a cp1252 Windows console the em dash in the INFO lines above can render
@@ -108,7 +108,7 @@ Latest run:
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    284 passed, 2 deselected in 61.03s
+    304 passed, 2 deselected in 66.40s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -118,7 +118,7 @@ works and takes precedence) and the account has credits:
     /c/python/python -m pytest -m live -v
     tests/test_llm_infer.py::test_live_stage_infers_respiratory_failure_and_validates_it_against_the_kb PASSED
     tests/test_llm_infer.py::test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates PASSED
-    2 passed, 284 deselected
+    2 passed, 304 deselected
 
 ## The `--llm` stage: the KB is the validation authority
 `--llm` is a two-pass, retrieval-backed pipeline, not a one-shot classifier.
@@ -231,9 +231,47 @@ that the doctor recorded the condition elsewhere in the chart — the same
 reasoning that keeps the pediatric urine-culture necessity rule at
 `recommended`.
 
+## PDF extraction quality
+`extract.py` sets `x_tolerance_ratio=0.15`. pdfplumber's default of 3 points is
+too coarse for the two journal-typeset CHI guidelines, which extracted with words
+fused into single tokens — `TheclassificationforbaselineandsubsequentLVEFisshown`
+— that FTS then indexed as ONE term matching no query word. **48% of the KB's
+clauses were affected** (CHI-HF 95.8%, CHI-CKD 81.2%).
+
+    fused runs, full document      before    after
+    CHI-HF                           5143       10
+    CHI-CKD                          3209      238
+
+CHI-CKD's residue is not fusion a tolerance can fix: those runs are rotated table
+headers in KDIGO's landscape tables, emitted character-by-character in reverse
+reading order — `deyassaerewydutSDRDMmorfselpmaS` is *"Samples from MDRD Study
+were reassayed"* backwards. Table furniture; no requirement axis cites it.
+
+The nine already-clean sources are unaffected: seven byte-identical, and the two
+that differ do so on one page each — CDI-2021 p.15 gains a *missing* space
+(`capability -need to` → `capability - need to`), and CHI-STROKE p.19 is a
+rotated figure label unreadable under either setting. The page cache is keyed on
+a fingerprint of the extraction settings, so changing them can never serve stale
+text out of gitignored `var/`.
+
+**Page furniture** is filtered out of heading detection, because `section_title`
+is weighted 5× in the index and furniture-titled clauses were outranking real
+governing clauses. Two signals together: *position* (only a page's first and last
+two non-empty lines qualify, so a genuine repeated heading like "References" is
+safe) and *shape* (digit runs collapse to `#`, because a footer's page number
+changes every page and exact-line counting never sees the repetition). Measured
+edge-line frequencies leave a wide margin — furniture runs 45–100% of pages, the
+highest real heading is "References" at 8.6% — so the threshold sits at 10%.
+
+**Per-source candidate quotas** (`PER_SOURCE_LIMIT = 6`) became necessary
+*because* of the fix. De-fusing made 1,582 clauses of dense guideline prose
+genuinely searchable for the first time; a single global top-N then let the
+wordiest source take every slot, and reach fell 31/37 → 29/37 before the quota
+restored it. Measured at caps of 3 / 4 / 6: 26, 28 and 31 of 37 axes.
+
 ## What this demo proves / does not prove
 Proves: a 3-layer KB (booklet + 6 CHI condition-specific guidelines + 4 CHI
-necessity-criteria docs, 11 sources / 2,746 clauses) with citation-verified
+necessity-criteria docs, 11 sources / 3,017 clauses) with citation-verified
 findings across four finding types — diagnosis-specificity gaps (20
 conditions), doc-type completeness gaps (5 doc types, 19 elements),
 order-necessity mismatches (4 rules), and provider-confirmation gaps
@@ -292,18 +330,24 @@ an explicit override always available.
   condition-specific one (`mixed_authority_entries`, visible as V3-INFO
   above); acute kidney injury, chronic kidney disease, and surgical wound
   infection share the same pattern.
-- **Retrieval reaches 31 of 37 requirement axes.** Measured and pinned by
-  `test_retrieval_reach_across_every_requirement_axis`: for 31 axes the
-  candidate set can surface at least one clause that requirement itself names
-  as governing. The six it cannot — `heart failure|type`, `heart failure|onset`,
-  `obesity|type`, `obesity|stage`, `stroke|type`, `stroke|onset` — are the
-  `mixed_authority_entries` above, and their CHI clauses extract as
-  space-stripped runs (`TheclassificationforbaselineandsubsequentLVEFisshown`)
-  that tokenize as a single term matching no condition or axis word. For those
-  axes the `--llm` path will report `no reference in the KB`. That is a
-  chunking problem in the CHI PDFs, not a retrieval-tuning one: widening the
-  candidate window plateaus (29/37 at limit 8, 31/37 from 16 onward, no further
-  gain out to 40), which is why `CANDIDATE_LIMIT` is 16.
+- **Retrieval reaches 31 of 37 requirement axes**, pinned by
+  `test_retrieval_reach_across_every_requirement_axis`. The six it cannot reach
+  are `heart failure|type/onset`, `obesity|type/stage` and `stroke|type/onset` —
+  the `mixed_authority_entries` above. For those axes the `--llm` path reports
+  `no reference in the KB`.
+
+  **Correction.** An earlier version of this file blamed those six on
+  space-stripped CHI extraction. Step 4 fixed the extraction and measured the
+  result: reach did not move. The actual cause is that those axes rest on
+  generic mandate clauses — `CDI-2021/documenting-for-specificity/p8` reads
+  *"When documenting any condition, use as many of these descriptors as
+  clinically relevant…"* and contains neither a condition name nor an axis word,
+  so a lexical `condition + axis` query returns it at **rank None**, not merely
+  low. No tolerance setting, candidate window or ranking tweak reaches a clause
+  that shares no term with the query. Closing it needs either condition-specific
+  clauses to re-anchor those requirements on (the repo already searched and
+  recorded RULE B where none existed) or a dense/embedding retriever, which the
+  proposal puts out of scope.
 - **The validation verdict is model-judged, so it is not bit-stable.** Across
   repeated `--llm` runs on the same note, an observation whose only governing
   clause is a weak or generic one can come back `supported` on one run and

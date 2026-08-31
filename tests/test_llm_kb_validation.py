@@ -355,6 +355,34 @@ def test_retrieval_can_reach_the_clause_the_kb_itself_calls_governing(kb, by_con
     assert "CDI-2021/renal-failure-impairment/p1" in candidates
 
 
+def test_no_single_source_monopolises_the_candidate_set(kb, by_condition) -> None:
+    """De-fusing the journal-typeset CHI guidelines (step 4) made 1,582 clauses of
+    dense guideline prose genuinely searchable for the first time -- previously
+    their fused text matched no query term, so they never competed. A single
+    global top-N then let one verbose source fill the whole candidate set:
+    CHI-CKD took every slot for "acute kidney injury onset", pushing the booklet's
+    own Renal Failure/Impairment clause out, and reach fell 31/37 -> 29/37.
+
+    A per-source cap keeps the candidate set representative of the corpus rather
+    than of whichever source happens to be wordiest about the query terms.
+    """
+    from cdi_kb.llm_infer import PER_SOURCE_LIMIT, NoteObservation, retrieve_candidates
+
+    _store, index = kb
+    candidates = retrieve_candidates(
+        index,
+        NoteObservation(condition="acute kidney injury", axis="onset",
+                        issue="", note_quote="x"),
+        by_condition["acute kidney injury"],
+    )
+    per_source: dict[str, int] = {}
+    for clause_id in candidates:
+        source = clause_id.split("/")[0]
+        per_source[source] = per_source.get(source, 0) + 1
+    assert max(per_source.values()) <= PER_SOURCE_LIMIT, per_source
+    assert len(per_source) > 1, f"candidate set came from one source only: {per_source}"
+
+
 def test_retrieval_reach_across_every_requirement_axis(kb, by_condition) -> None:
     """Executable disclosure of how much of the KB's own authority the candidate
     set can actually reach.
