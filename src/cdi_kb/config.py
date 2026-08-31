@@ -35,6 +35,7 @@ KB_DB = VAR_DIR / "kb.sqlite"
 REQUIREMENTS_DIR = REPO_ROOT / "data" / "requirements"
 DOC_REQUIREMENTS_DIR = REPO_ROOT / "data" / "doc_requirements"
 NECESSITY_DIR = REPO_ROOT / "data" / "necessity"
+PROVIDER_RULES_DIR = REPO_ROOT / "data" / "provider_rules"
 EVAL_DIR = REPO_ROOT / "data" / "eval"
 
 ANTHROPIC_MODEL = "claude-sonnet-5"

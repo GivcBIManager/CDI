@@ -86,6 +86,32 @@ class DocTypeRequirement(BaseModel):
     elements: list[Element] = Field(min_length=1)
 
 
+class ProviderRule(BaseModel):
+    """Who must have recorded a diagnosis for it to count as documented.
+
+    `role` names the author role whose documentation is NOT sufficient on its
+    own; a condition every mention of which falls inside a segment of that role
+    raises a provider-confirmation finding.
+    """
+    role: str
+    level: Literal["required", "recommended"]
+    recommendation: str
+    citations: list[Citation] = Field(min_length=1)
+
+
+def load_provider_rules(directory: Path) -> list[ProviderRule]:
+    rules: list[ProviderRule] = []
+    if not directory.exists():
+        return rules
+    for path in sorted(directory.glob("*.yaml")):
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        try:
+            rules.append(ProviderRule.model_validate(raw))
+        except ValidationError as error:
+            raise ValueError(f"invalid provider rule file {path.name}: {error}") from error
+    return rules
+
+
 def load_doc_requirements(directory: Path) -> dict[str, DocTypeRequirement]:
     entries: dict[str, DocTypeRequirement] = {}
     for path in sorted(directory.glob("*.yaml")):

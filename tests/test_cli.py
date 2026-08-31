@@ -115,3 +115,24 @@ def test_audit_command_reports_an_llm_stage_failure_without_failing_the_audit(tm
     out = capsys.readouterr().out
     assert "chronic kidney disease" in out
     assert "llm stage unavailable" in out
+
+
+def test_format_finding_does_not_say_missing_for_a_provider_confirmation_finding() -> None:
+    # "malnutrition — missing provider_confirmation" reads as a missing axis.
+    # The finding is that a diagnosis lacks the treating doctor's confirmation.
+    from cdi_kb.cli import format_finding
+    from cdi_kb.findings import Finding, VerifiedCitation
+
+    finding = Finding(
+        finding_type="provider_confirmation", severity="recommended",
+        condition="malnutrition", axis="provider_confirmation",
+        evidence_excerpt="documented in the allied_health note",
+        recommendation="Please document the condition in the medical record.",
+        citations=(VerifiedCitation(clause_id="CDI-2021/allied-health/p2",
+                                    section_title="Allied Health", page=130, quote="q"),),
+        dedupe_key="malnutrition|provider_confirmation",
+    )
+    headline = format_finding(finding).splitlines()[0]
+    assert "missing" not in headline
+    assert "malnutrition" in headline
+    assert "documented in the allied_health note" in format_finding(finding)

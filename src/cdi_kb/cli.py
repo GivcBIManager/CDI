@@ -65,8 +65,14 @@ def format_finding(finding: Finding) -> str:
     source line, so "no reference in the KB" can never be mistaken for a cited
     finding -- and is never silently indistinguishable from one.
     """
-    lines = [f"[{finding.severity}] {finding.condition} — missing {finding.axis}",
-             f"  {finding.recommendation}"]
+    if finding.finding_type == "provider_confirmation":
+        # Not a missing axis: the diagnosis exists, it just isn't the treating
+        # doctor's. "missing provider_confirmation" reads as the wrong problem.
+        headline = (f"[{finding.severity}] {finding.condition} — not confirmed by the treating "
+                    f"doctor ({finding.evidence_excerpt})")
+    else:
+        headline = f"[{finding.severity}] {finding.condition} — missing {finding.axis}"
+    lines = [headline, f"  {finding.recommendation}"]
     if finding.kb_status != KB_SUPPORTED:
         lines.append(f"  {finding.kb_status} — evidence: \"{finding.evidence_excerpt[:90]}\"")
     for cite in finding.citations:
