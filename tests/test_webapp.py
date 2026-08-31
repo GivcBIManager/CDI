@@ -86,3 +86,33 @@ def test_index_page_escapes_server_supplied_fields_before_innerhtml() -> None:
     for field in ("d.active_doc_type", "f.condition", "f.axis", "f.severity",
                   "f.recommendation", "c.clause_id", "c.page", "c.quote"):
         assert f"esc({field})" in text, f"{field} is interpolated without esc()"
+
+
+def test_audit_api_exposes_kb_status_on_every_finding() -> None:
+    from fastapi.testclient import TestClient
+
+    from cdi_kb.webapp import app
+
+    client = TestClient(app)
+    payload = client.post("/api/audit", json={"note_text": "Known CKD, on regular follow-up."}).json()
+    assert payload["findings"]
+    assert all("kb_status" in finding for finding in payload["findings"])
+
+
+def test_audit_api_exposes_llm_error_field() -> None:
+    from fastapi.testclient import TestClient
+
+    from cdi_kb.webapp import app
+
+    client = TestClient(app)
+    payload = client.post("/api/audit", json={"note_text": "Known CKD."}).json()
+    assert "llm_error" in payload
+
+
+def test_page_renders_the_no_reference_marker() -> None:
+    # The browser view must distinguish a KB-supported finding from one the
+    # documents do not cover -- otherwise "no reference in the KB" is invisible
+    # to the only audience that matters.
+    from cdi_kb.webapp import _PAGE
+
+    assert "kb_status" in _PAGE

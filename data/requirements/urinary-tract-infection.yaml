@@ -18,6 +18,13 @@ axes:
   - axis: site
     level: recommended
     evidence_terms: [cystitis, pyelonephritis, lower, upper]
+    # Axis-level query text: the condition-level `recommendation` below is about the AGENT,
+    # so a "missing site" finding used to tell the clinician to document an organism the
+    # note already documented. This axis asks the question it actually raises.
+    recommendation: >-
+      Urinary tract infection is documented without specifying the site. Please document
+      whether this is an upper (pyelonephritis) or lower (cystitis) urinary tract
+      infection, if known.
 recommendation: >-
   Urinary tract infection is documented without the causative organism. Please document the
   infective agent, if known.

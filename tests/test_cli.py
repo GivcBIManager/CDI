@@ -68,3 +68,50 @@ def test_audit_command_doc_type_flag_rejects_invalid_choice(tmp_path, capsys) ->
     except SystemExit:
         raised = True
     assert raised
+
+
+def test_format_finding_marks_an_unsupported_finding_as_no_reference_in_the_kb() -> None:
+    # The KB is the validation authority: a finding the documents do not support
+    # must say so on its own line, never look like an ordinary cited finding.
+    from cdi_kb.cli import format_finding
+    from cdi_kb.findings import NO_KB_REFERENCE, Finding
+
+    finding = Finding(
+        finding_type="inferred_gap", severity="required", condition="sepsis", axis="agent",
+        evidence_excerpt="Blood culture: E. coli", recommendation="Document the infective agent.",
+        citations=(), dedupe_key="sepsis|agent", kb_status=NO_KB_REFERENCE,
+    )
+    rendered = format_finding(finding)
+    assert NO_KB_REFERENCE in rendered
+    assert "source:" not in rendered
+
+
+def test_format_finding_prints_sources_for_a_supported_finding() -> None:
+    from cdi_kb.cli import format_finding
+    from cdi_kb.findings import Finding, VerifiedCitation
+
+    finding = Finding(
+        finding_type="specificity_gap", severity="required", condition="sepsis", axis="agent",
+        evidence_excerpt="sepsis", recommendation="Document the infective agent.",
+        citations=(VerifiedCitation(clause_id="CDI-2021/sepsis/p1", section_title="Sepsis",
+                                    page=118, quote="The infective agent should be documented"),),
+        dedupe_key="sepsis|agent",
+    )
+    rendered = format_finding(finding)
+    assert "source: CDI-2021/sepsis/p1 (p.118)" in rendered
+    assert "no reference in the KB" not in rendered
+
+
+def test_audit_command_reports_an_llm_stage_failure_without_failing_the_audit(tmp_path, capsys) -> None:
+    from cdi_kb import cli
+
+    note = tmp_path / "note.txt"
+    note.write_text("Known CKD, on regular follow-up.", encoding="utf-8")
+
+    def exploding_stage(_note_text, _requirements, _index):
+        raise RuntimeError("inference unavailable")
+
+    assert cli.main(["audit", str(note), "--llm"], llm_stage=exploding_stage) == 0
+    out = capsys.readouterr().out
+    assert "chronic kidney disease" in out
+    assert "llm stage unavailable" in out

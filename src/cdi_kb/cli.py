@@ -11,6 +11,7 @@ from cdi_kb.audit import run_audit
 from cdi_kb.chi_chunker import chunk_chi
 from cdi_kb.clauses import Clause, ClauseStore, chunk_booklet
 from cdi_kb.extract import extract_pages
+from cdi_kb.findings import KB_SUPPORTED, Finding
 from cdi_kb.index import SearchIndex
 from cdi_kb.normalize import normalize
 from cdi_kb.requirements_model import DOC_TYPES
@@ -57,7 +58,23 @@ def _cmd_quote(search_text: str) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def format_finding(finding: Finding) -> str:
+    """Render one finding for the terminal.
+
+    A finding the documents did not support prints its kb_status instead of a
+    source line, so "no reference in the KB" can never be mistaken for a cited
+    finding -- and is never silently indistinguishable from one.
+    """
+    lines = [f"[{finding.severity}] {finding.condition} — missing {finding.axis}",
+             f"  {finding.recommendation}"]
+    if finding.kb_status != KB_SUPPORTED:
+        lines.append(f"  {finding.kb_status} — evidence: \"{finding.evidence_excerpt[:90]}\"")
+    for cite in finding.citations:
+        lines.append(f"  source: {cite.clause_id} (p.{cite.page}) — \"{cite.quote[:90]}...\"")
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None, *, llm_stage=None) -> int:
     parser = argparse.ArgumentParser(prog="cdi_kb")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("build-kb", help="extract, chunk, store, and index the corpus")
@@ -92,17 +109,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if report.passed else 1
     if args.command == "audit":
         doc_type = None if args.doc_type == "auto" else args.doc_type
-        result = run_audit(args.note_file.read_text(encoding="utf-8"), doc_type=doc_type, use_llm=args.llm)
+        result = run_audit(
+            args.note_file.read_text(encoding="utf-8"),
+            doc_type=doc_type, use_llm=args.llm, llm_stage=llm_stage,
+        )
         if args.as_json:
             print(json.dumps(dataclasses.asdict(result), indent=2))
         else:
             print(f"doc type: {result.active_doc_type}")
             for finding in result.findings:
-                print(f"[{finding.severity}] {finding.condition} — missing {finding.axis}")
-                print(f"  {finding.recommendation}")
-                for cite in finding.citations:
-                    print(f"  source: {cite.clause_id} (p.{cite.page}) — \"{cite.quote[:90]}...\"")
+                print(format_finding(finding))
             print(f"{len(result.findings)} finding(s)")
+            if result.llm_error is not None:
+                print(f"llm stage unavailable ({result.llm_error}) — deterministic findings only")
         return 0
     if args.command == "demo":
         import uvicorn  # inline import: server dependency only needed for demo command

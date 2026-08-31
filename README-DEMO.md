@@ -108,7 +108,7 @@ Latest run:
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    209 passed, 1 deselected in 44.46s
+    252 passed, 2 deselected in 63.86s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -116,16 +116,62 @@ automatically, an exported environment variable or `ant auth login` also
 works and takes precedence) and the account has credits:
 
     /c/python/python -m pytest -m live -v
-    tests/test_llm_infer.py::test_live_inference_names_respiratory_failure PASSED
-    1 passed, 209 deselected
+    tests/test_llm_infer.py::test_live_stage_infers_respiratory_failure_and_validates_it_against_the_kb PASSED
+    tests/test_llm_infer.py::test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates PASSED
+    2 passed, 252 deselected
 
-End-to-end confirmation of implicit-condition inference:
+## The `--llm` stage: the KB is the validation authority
+`--llm` is a two-pass, retrieval-backed pipeline, not a one-shot classifier.
+The rule it implements: the model first infers, understands and analyzes the
+note; every observation is then **validated against the provided documents**
+before it may be reported; and if nothing in the documentation relates to it,
+the finding is still reported, marked **`no reference in the KB`**.
 
-    /c/python/python -m cdi_kb.cli audit data/eval/notes/chronic-kidney-disease-gap.txt --llm
-returns the deterministic CKD findings plus an inferred `heart failure` finding
-(oxygen/diuretic treatment implies HF without the word ever appearing in the
-note), each still routed through the same citation firewall as every other
-finding.
+    Pass A  analyze     note + condition/axis catalogue -> observations
+                        (no KB text is sent; this pass is pure clinical reading)
+    ------  note-side firewall: the observation's evidence must be VERBATIM note
+            text (normalize.find_quote, threshold 0.95) or it is discarded
+    ------  retrieve     SearchIndex BM25 -> CANDIDATE_LIMIT clauses, from a query
+                         built ONLY from KB-side vocabulary (condition, axis,
+                         synonyms) so the candidate set never depends on the
+                         model's phrasing
+    Pass B  validate     retrieved clause TEXT -> which clauses actually govern
+                         this observation, quoted verbatim
+    ------  KB-side firewall: clause_id must be in the retrieved candidate set,
+            must exist in the store, and its quote must match the clause verbatim
+            (findings._verified_citations — the same single audited path every
+            other finding type uses)
+
+Nothing survives that the documents did not support, and nothing is dropped for
+lacking support — it is labelled. There is deliberately **no fallback** to the
+requirement YAML's own pre-authored citations: those were never validated
+against this particular observation, and using them would defeat the rule.
+
+The axis decision is the model's, not `gapcheck.scan_axes`'. That matters: the
+deterministic scanner searches the whole note, so an organism named in a culture
+result marked sepsis's `agent` axis satisfied and suppressed the single highest
+-value query in the note. The model judges the axis against the statement that
+actually concerns the condition.
+
+An inference failure can no longer take an audit down. The stage is wrapped;
+`AuditResult.llm_error` carries the reason and the deterministic findings are
+still returned (CLI prints `llm stage unavailable (...) — deterministic findings
+only`; the web UI shows the same line).
+
+Example on a 5-day internal-medicine progress note that names none of them:
+
+    [required]    sepsis — missing agent          supported (CDI-2021/sepsis/p1)
+    [required]    acute kidney injury — missing onset
+                                                  supported (CDI-2021/renal-failure-impairment/p1)
+    [required]    diabetes mellitus — missing type
+                                                  supported (CDI-2021/cataracts/p1)
+    [recommended] acute kidney injury — missing type
+                                                  no reference in the KB
+
+That last line is the rule working, not failing: `acute-kidney-injury.yaml`'s own
+`# DEVIATION` comment records that the booklet carries no pre-renal/intrinsic/
+post-renal classification text. The validation pass reached the same conclusion
+from the documents, independently of the comment.
 
 ## What this demo proves / does not prove
 Proves: a 3-layer KB (booklet + 6 CHI condition-specific guidelines + 4 CHI
@@ -133,8 +179,11 @@ necessity-criteria docs, 11 sources / 2,746 clauses) with citation-verified
 findings across three finding types — diagnosis-specificity gaps (20
 conditions), doc-type completeness gaps (5 doc types, 19 elements), and
 order-necessity mismatches (4 rules); every finding traceable to verbatim
-source text; deterministic core; LLM inference (now live-verified, see above)
-contained behind the same citation firewall. Doc-type auto-detection lets the
+source text; deterministic core; retrieval-backed LLM inference (live-verified,
+see above) in which the KB is the validation authority — every inferred finding
+is checked against retrieved clause text through the same citation firewall, and
+one the documents do not support is reported as `no reference in the KB` rather
+than dropped or given borrowed authority. Doc-type auto-detection lets the
 CLI/web UI pick the right completeness rules from the note's own shape, with
 an explicit override always available.
 
@@ -184,6 +233,53 @@ an explicit override always available.
   condition-specific one (`mixed_authority_entries`, visible as V3-INFO
   above); acute kidney injury, chronic kidney disease, and surgical wound
   infection share the same pattern.
+- **Retrieval reaches 31 of 37 requirement axes.** Measured and pinned by
+  `test_retrieval_reach_across_every_requirement_axis`: for 31 axes the
+  candidate set can surface at least one clause that requirement itself names
+  as governing. The six it cannot — `heart failure|type`, `heart failure|onset`,
+  `obesity|type`, `obesity|stage`, `stroke|type`, `stroke|onset` — are the
+  `mixed_authority_entries` above, and their CHI clauses extract as
+  space-stripped runs (`TheclassificationforbaselineandsubsequentLVEFisshown`)
+  that tokenize as a single term matching no condition or axis word. For those
+  axes the `--llm` path will report `no reference in the KB`. That is a
+  chunking problem in the CHI PDFs, not a retrieval-tuning one: widening the
+  candidate window plateaus (29/37 at limit 8, 31/37 from 16 onward, no further
+  gain out to 40), which is why `CANDIDATE_LIMIT` is 16.
+- **The validation verdict is model-judged, so it is not bit-stable.** Across
+  repeated `--llm` runs on the same note, an observation whose only governing
+  clause is a weak or generic one can come back `supported` on one run and
+  `no reference in the KB` on the next (observed on `acute kidney injury|onset`,
+  whose sole authority is the acuity sentence in `renal-failure-impairment/p1`).
+  The firewalls are deterministic; the judgment in front of them is not. Where
+  the authority is unambiguous the verdict is stable across runs.
+- **The LLM stage adds findings; it does not correct deterministic ones.**
+  Four deterministic defects found by auditing a real progress note have been
+  fixed at the source instead (see `tests/test_deterministic_fixes.py`):
+  the `ARF` abbreviation collision, now cue-disambiguated
+  (`requirements_model.AmbiguousSynonym` — `ARF` is claimed by acute kidney
+  injury or acute respiratory failure only when a renal or respiratory cue sits
+  within 200 characters, and by neither when nothing disambiguates it);
+  `pressure injury|site` firing on "Sacral" against a `sacrum`-only term list;
+  the condition-level `recommendation` printing *agent* advice under a
+  `missing site` heading (axes may now carry their own `recommendation`); and
+  `presenting_complaint_management` matching only booklet vocabulary, so a
+  twelve-item assessment/plan still read as missing. On that note the
+  deterministic pass went from 7 findings (two false positives, one condition
+  mis-assigned, one misleading query text) to 5, all defensible.
+- **`presenting_complaint_management` still needs a Plan heading.** A note
+  documenting management purely in narrative ("Continued meropenem, held
+  antihypertensives") with no `Plan:` heading and none of the element's phrases
+  still reports it missing. Treatment verbs were considered and rejected:
+  `ALLOWED_SINGLE_WORD_TERMS`' convention admits clinical acronyms only, never
+  ordinary English words, and widening it would trade a false positive for
+  silent suppression of real gaps. Closing this needs note structure, not more
+  terms.
+- **The already-named gate still applies to inference.** An observation whose
+  condition is already mentioned anywhere in the note (including negated, e.g.
+  "No sepsis") is skipped, so the LLM cannot contribute axis judgments for
+  conditions the string matcher already detected — which is where several of
+  those deterministic false positives live. Lifting the gate needs the negation
+  protection in `_named_conditions` reworked first.
 
 Does not include (per proposal): dense/hybrid retrieval + reranking, the
 browser extension, de-identification, Arabic notes.

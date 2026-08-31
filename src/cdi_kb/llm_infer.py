@@ -6,15 +6,117 @@ requirement model + clause store, so this stage cannot fabricate authority.
 """
 
 import ssl
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-import anthropic
-from anthropic import DefaultHttpxClient
 from pydantic import BaseModel
 
-from cdi_kb.config import ANTHROPIC_MODEL
+from cdi_kb import config
+from cdi_kb.clauses import Clause, ClauseStore
+from cdi_kb.config import ANTHROPIC_MODEL, QUOTE_MATCH_THRESHOLD
+from cdi_kb.index import SearchIndex
+from cdi_kb.normalize import find_quote
+from cdi_kb.requirements_model import DiagnosisRequirement
+
+if TYPE_CHECKING:
+    import anthropic
+
+# How many clauses the retrieval pass puts in front of the model per observation.
+# The model may only cite from this set, so it bounds both cost and authority.
+# Measured against every requirement axis (see test_retrieval_reach_across_every
+# _requirement_axis): 29/37 axes can reach their own governing clause at 8,
+# 31/37 from 16 onward, and no further gain out to 40 -- so 16 is the point where
+# widening stops buying recall and only costs input tokens.
+CANDIDATE_LIMIT = 16
 
 
-def _make_client() -> anthropic.Anthropic:
+@dataclass(frozen=True)
+class NoteObservation:
+    """One documentation gap the model observed after reading the note.
+
+    `note_quote` must be verbatim note text -- it is the note-side firewall's
+    input, and an observation whose evidence is not actually in the note is
+    discarded before it can ever reach the KB validation pass.
+    """
+    condition: str
+    axis: str
+    issue: str
+    note_quote: str
+
+
+@dataclass(frozen=True)
+class KbSupport:
+    """A clause the model selected, from the retrieved candidates, as the
+    documentation that governs an observation. Verified before it becomes a
+    citation -- see findings.compose_inferred_finding."""
+    clause_id: str
+    quote: str
+
+
+@dataclass(frozen=True)
+class ValidatedObservation:
+    """An observation that cleared the note-side firewall, paired with whatever
+    KB support survived the candidate-set gate. An empty `supports` is a real
+    result, not a failure: it means the documents carry nothing on this point,
+    and the finding is reported as "no reference in the KB"."""
+    observation: NoteObservation
+    supports: list[KbSupport]
+
+
+def keep_grounded(
+    observations: list[NoteObservation],
+    note_text: str,
+    by_condition: dict[str, DiagnosisRequirement],
+) -> list[NoteObservation]:
+    """Note-side firewall: an observation survives only if its condition and
+    axis exist in the requirement model AND its quote is verbatim note text."""
+    kept: list[NoteObservation] = []
+    for observation in observations:
+        requirement = by_condition.get(observation.condition)
+        if requirement is None:
+            continue
+        if observation.axis not in {rule.axis for rule in requirement.axes}:
+            continue
+        if not find_quote(observation.note_quote, note_text, QUOTE_MATCH_THRESHOLD).found:
+            continue
+        kept.append(observation)
+    return kept
+
+
+def retrieve_candidates(
+    index: SearchIndex,
+    observation: NoteObservation,
+    requirement: DiagnosisRequirement,
+    limit: int = CANDIDATE_LIMIT,
+) -> list[str]:
+    """The candidate clause set the model is allowed to validate against --
+    drawn from the KB by lexical retrieval, never proposed by the model.
+
+    The query is built ONLY from KB-side vocabulary (condition, axis, synonyms).
+    The model's own `issue` sentence is deliberately excluded: index._fts_query
+    OR-joins every term over 2 characters, so a free-text sentence dilutes the
+    query enough to push the governing clause out of the top-N and pull unrelated
+    sections in -- making the candidate set, and therefore whether an observation
+    is "supported" or "no reference in the KB", depend on the model's phrasing
+    rather than on the documents.
+    """
+    hits = index.search(
+        f"{observation.condition} {observation.axis}",
+        expansions=list(requirement.synonyms),
+        limit=limit,
+    )
+    return [hit.clause_id for hit in hits]
+
+
+def keep_candidate_supports(supports: list[KbSupport], candidate_ids: list[str]) -> list[KbSupport]:
+    """KB-side firewall, first gate: the model may only cite clause_ids that
+    retrieval actually put in front of it. A clause_id it invented, or recalled
+    from training, is discarded here before quote verification even runs."""
+    allowed = set(candidate_ids)
+    return [support for support in supports if support.clause_id in allowed]
+
+
+def _make_client() -> "anthropic.Anthropic":
     """Client with an explicitly built default SSL context.
 
     This machine's Python carries a pip_system_certs bootstrap that patches ssl
@@ -23,43 +125,162 @@ def _make_client() -> anthropic.Anthropic:
     SSLContext.verify_mode. Passing an explicit context sidesteps httpx2's own
     truststore path. Portable: on unpatched machines this is simply the
     standard default context.
+
+    The anthropic import is function-local so importing this module stays free
+    of the SDK: findings.py and the offline test suite reach the firewall
+    helpers above without pulling in a network dependency.
     """
+    import anthropic
+    from anthropic import DefaultHttpxClient
+
     return anthropic.Anthropic(http_client=DefaultHttpxClient(verify=ssl.create_default_context()))
 
 
-class ImplicitFinding(BaseModel):
+class _ObservationOut(BaseModel):
     condition: str
-    evidence: str
+    axis: str
+    issue: str
+    note_quote: str
 
 
-class ImplicitFindings(BaseModel):
-    findings: list[ImplicitFinding]
+class _Analysis(BaseModel):
+    observations: list[_ObservationOut]
 
 
-_SYSTEM = (
-    "You are a clinical documentation integrity checker. Given a clinical note, "
-    "identify conditions from the ALLOWED LIST ONLY that are clinically evident "
-    "(e.g. being treated) but never named in the note. Return the exact condition "
-    "string from the list and the note evidence. If none, return an empty list. "
-    "Never return a condition that is already explicitly named in the note."
+class _SupportOut(BaseModel):
+    clause_id: str
+    quote: str
+
+
+class _Validation(BaseModel):
+    supports: list[_SupportOut]
+
+
+_ANALYZE_SYSTEM = (
+    "You are a clinical documentation integrity (CDI) specialist reviewing a clinical note. "
+    "Read the note and identify documentation gaps.\n"
+    "Rules:\n"
+    "1. `condition` MUST be copied exactly from the ALLOWED CONDITIONS catalogue.\n"
+    "2. `axis` MUST be one of the axes listed for that condition in the catalogue.\n"
+    "3. Report an axis as a gap when the condition is clinically evident in this patient "
+    "(whether or not the note names it) AND that axis is not documented FOR THAT CONDITION. "
+    "A matching word elsewhere in the note, belonging to a different problem, does NOT satisfy "
+    "the axis -- judge the axis against the statement that actually concerns this condition.\n"
+    "4. Do NOT report an axis that is genuinely documented for the condition.\n"
+    "5. `note_quote` MUST be copied character-for-character from the note as the evidence for "
+    "your observation. Never paraphrase, summarize, or invent it. An observation whose quote is "
+    "not verbatim note text is discarded.\n"
+    "6. `issue` is one sentence naming the specific gap.\n"
+    "Return an empty list if the note has no gaps."
+)
+
+_VALIDATE_SYSTEM = (
+    "You are validating one CDI observation against the governing documentation. You are given "
+    "CANDIDATE CLAUSES retrieved from the knowledge base -- these are the ONLY documents you may "
+    "cite.\n"
+    "Rules:\n"
+    "1. Return only clauses that genuinely govern or support this observation -- i.e. the clause "
+    "actually instructs what must be documented for this condition/axis.\n"
+    "2. `clause_id` MUST be copied exactly from the candidate list. Never return a clause_id that "
+    "is not in the list, and never recall one from memory.\n"
+    "3. `quote` MUST be copied character-for-character from that candidate's text. Never "
+    "paraphrase. A quote that is not verbatim is discarded.\n"
+    "4. If NONE of the candidates relate to this observation, return an empty list. Do not stretch "
+    "a loosely-related clause into support -- an empty list is the correct, expected answer when "
+    "the documentation is silent, and is reported to the user as \"no reference in the KB\"."
 )
 
 
-def filter_to_known(findings: list[ImplicitFinding], known: tuple[str, ...]) -> list[ImplicitFinding]:
-    allowed = set(known)
-    return [f for f in findings if f.condition in allowed]
+def _condition_catalogue(requirements: list[DiagnosisRequirement]) -> str:
+    return "\n".join(
+        f"- {req.condition} (also: {', '.join(req.synonyms)}) | axes: "
+        + ", ".join(f"{rule.axis} [{rule.level}]" for rule in req.axes)
+        for req in requirements
+    )
 
 
-def infer_implicit_conditions(note_text: str, known_conditions: tuple[str, ...]) -> list[ImplicitFinding]:
+def analyze_note(note_text: str, requirements: list[DiagnosisRequirement]) -> list[NoteObservation]:
+    """Pass A: the model reads and analyzes the note. No KB text is sent here --
+    this pass is pure clinical reading; validation against the documents is
+    Pass B's job, per the KB-is-the-authority rule."""
     client = _make_client()
     response = client.messages.parse(
         model=ANTHROPIC_MODEL,
-        max_tokens=2000,
-        system=_SYSTEM,
+        max_tokens=16000,
+        system=_ANALYZE_SYSTEM,
         messages=[{
             "role": "user",
-            "content": f"ALLOWED LIST: {list(known_conditions)}\n\nNOTE:\n{note_text}",
+            "content": f"ALLOWED CONDITIONS:\n{_condition_catalogue(requirements)}\n\nNOTE:\n{note_text}",
         }],
-        output_format=ImplicitFindings,
+        output_format=_Analysis,
     )
-    return filter_to_known(response.parsed_output.findings, known_conditions)
+    parsed = response.parsed_output
+    if parsed is None:  # truncated / unparseable structured output
+        raise ValueError(f"analysis pass returned no parsable output (stop_reason={response.stop_reason})")
+    return [
+        NoteObservation(condition=o.condition, axis=o.axis, issue=o.issue, note_quote=o.note_quote)
+        for o in parsed.observations
+    ]
+
+
+def validate_against_kb(
+    observation: NoteObservation,
+    candidates: list[Clause],
+) -> list[KbSupport]:
+    """Pass B: the model reads the RETRIEVED clause text and decides whether the
+    documentation actually governs this observation. Returning [] is a valid,
+    expected outcome -- it becomes "no reference in the KB"."""
+    if not candidates:
+        return []
+    client = _make_client()
+    rendered = "\n\n".join(
+        f"[{c.clause_id}] (page {c.page}, section: {c.section_title})\n{c.text}" for c in candidates
+    )
+    response = client.messages.parse(
+        model=ANTHROPIC_MODEL,
+        max_tokens=8000,
+        system=_VALIDATE_SYSTEM,
+        messages=[{
+            "role": "user",
+            "content": (
+                f"OBSERVATION\ncondition: {observation.condition}\naxis: {observation.axis}\n"
+                f"issue: {observation.issue}\nnote evidence: {observation.note_quote}\n\n"
+                f"CANDIDATE CLAUSES:\n{rendered}"
+            ),
+        }],
+        output_format=_Validation,
+    )
+    parsed = response.parsed_output
+    if parsed is None:
+        raise ValueError(f"validation pass returned no parsable output (stop_reason={response.stop_reason})")
+    return [KbSupport(clause_id=s.clause_id, quote=s.quote) for s in parsed.supports]
+
+
+def run_llm_stage(
+    note_text: str,
+    requirements: list[DiagnosisRequirement],
+    index: SearchIndex,
+) -> list[ValidatedObservation]:
+    """Analyze -> ground in the note -> retrieve -> validate against the KB.
+
+    The KB is the validation authority: nothing the model observed is reported
+    with authority it did not earn against retrieved clause text. Observations
+    the documents do not cover still come back (with empty supports) so the
+    audit can report them as "no reference in the KB".
+    """
+    by_condition = {req.condition: req for req in requirements}
+    grounded = keep_grounded(analyze_note(note_text, requirements), note_text, by_condition)
+    store = ClauseStore(config.KB_DB)
+    try:
+        validated: list[ValidatedObservation] = []
+        for observation in grounded:
+            requirement = by_condition[observation.condition]
+            candidate_ids = retrieve_candidates(index, observation, requirement)
+            clauses = [c for c in (store.get(cid) for cid in candidate_ids) if c is not None]
+            supports = keep_candidate_supports(
+                validate_against_kb(observation, clauses), [c.clause_id for c in clauses]
+            )
+            validated.append(ValidatedObservation(observation=observation, supports=supports))
+        return validated
+    finally:
+        store.close()

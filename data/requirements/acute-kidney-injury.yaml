@@ -1,5 +1,14 @@
 condition: acute kidney injury
 synonyms: [AKI, acute renal failure]
+# "ARF" names BOTH acute renal failure and acute respiratory failure. Claimed here only
+# when a renal cue sits near the mention; acute-respiratory-failure.yaml claims it on the
+# mirror-image cue list. With no cue either way neither condition claims it -- see
+# requirements_model.AmbiguousSynonym.
+ambiguous_synonyms:
+  - term: ARF
+    requires_nearby: [creatinine, renal, kidney, eGFR, dialysis, urea, BUN,
+                      nephrotoxic, nephrotoxics, oliguria, anuria, nephrology]
+
 axes:
   - axis: onset
     level: required

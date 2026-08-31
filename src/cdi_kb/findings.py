@@ -1,7 +1,17 @@
 """Finding composition with the runtime citation firewall (proposal 2.2):
-a Finding without at least one verified citation is never created."""
+a Finding without at least one verified citation is never created.
+
+The one deliberate exception is the LLM-inference path (compose_inferred_finding).
+There, the KB is the validation authority: the model's observation is checked
+against retrieved clause text, and if no clause survives verification the finding
+is still reported -- explicitly marked NO_KB_REFERENCE, with zero citations.
+Reporting "no reference in the KB" is the honest answer; silently dropping the
+observation, or falling back to a pre-authored citation the documents did not
+actually support, are both worse.
+"""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from cdi_kb.clauses import ClauseStore
 from cdi_kb.config import QUOTE_MATCH_THRESHOLD
@@ -9,6 +19,12 @@ from cdi_kb.gapcheck import Gap
 from cdi_kb.necessity import NecessityGap
 from cdi_kb.normalize import find_quote
 from cdi_kb.requirements_model import Citation, DiagnosisRequirement, Element
+
+if TYPE_CHECKING:  # annotation-only: keeps the offline path free of llm_infer/anthropic
+    from cdi_kb.llm_infer import KbSupport, NoteObservation
+
+KB_SUPPORTED = "supported"
+NO_KB_REFERENCE = "no reference in the KB"
 
 
 @dataclass(frozen=True)
@@ -29,6 +45,7 @@ class Finding:
     recommendation: str
     citations: tuple[VerifiedCitation, ...]
     dedupe_key: str
+    kb_status: str = KB_SUPPORTED
 
 
 def _verified_citations(citations: list[Citation], store: ClauseStore) -> list[VerifiedCitation]:
@@ -58,10 +75,60 @@ def compose_finding(gap: Gap, requirement: DiagnosisRequirement, store: ClauseSt
         condition=gap.condition,
         axis=gap.axis,
         evidence_excerpt=gap.mention.matched_text,
-        recommendation=requirement.recommendation,
+        recommendation=_recommendation_for(requirement, gap.axis),
         citations=tuple(verified),
         dedupe_key=f"{gap.condition}|{gap.axis}",
     )
+
+
+def compose_inferred_finding(
+    observation: "NoteObservation",
+    requirement: DiagnosisRequirement,
+    supports: list["KbSupport"],
+    store: ClauseStore,
+) -> Finding:
+    """Compose an LLM-inferred finding after KB validation.
+
+    `supports` are the clause references the model selected from the RETRIEVED
+    candidate set (already filtered by llm_infer.keep_candidate_supports); they
+    are re-verified here through the same single audited firewall every other
+    composer uses. Unlike the deterministic composers this never returns None:
+    an observation the documents do not support is reported as NO_KB_REFERENCE
+    rather than disappearing. No fallback to the requirement's own pre-authored
+    citations -- those were not validated against this observation.
+    """
+    verified = _verified_citations(
+        [Citation(clause_id=s.clause_id, quote=s.quote) for s in supports], store
+    )
+    return Finding(
+        finding_type="inferred_gap",
+        severity=_axis_level(requirement, observation.axis),
+        condition=observation.condition,
+        axis=observation.axis,
+        evidence_excerpt=observation.note_quote,
+        recommendation=_recommendation_for(requirement, observation.axis),
+        citations=tuple(verified),
+        dedupe_key=f"{observation.condition}|{observation.axis}",
+        kb_status=KB_SUPPORTED if verified else NO_KB_REFERENCE,
+    )
+
+
+def _axis_level(requirement: DiagnosisRequirement, axis: str) -> str:
+    for rule in requirement.axes:
+        if rule.axis == axis:
+            return "required" if rule.level == "required" else "recommended"
+    return "recommended"
+
+
+def _recommendation_for(requirement: DiagnosisRequirement, axis: str) -> str:
+    """Axis-level query text when the requirement authors one, else the
+    condition-level text. Without this a multi-axis condition prints the same
+    sentence for every axis -- so a UTI "missing site" finding asked the
+    clinician to document the causative organism the note already named."""
+    for rule in requirement.axes:
+        if rule.axis == axis and rule.recommendation:
+            return rule.recommendation
+    return requirement.recommendation
 
 
 def compose_element_finding(doc_type: str, element: Element, store: ClauseStore) -> Finding | None:
