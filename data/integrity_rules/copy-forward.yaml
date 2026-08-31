@@ -1,0 +1,29 @@
+# Documentation-integrity rule: the note declares that content was carried
+# forward from an earlier note.
+#
+# RULE A(i) — the cited clause is an explicit recommendation about this exact
+# practice, and its own wording ("It is recommended that...") sets the level.
+#
+# DETECTION LIMIT, deliberate: this fires only on a note's own DECLARATION of
+# copy-forward. Undisclosed cloning cannot be detected from a single note — it
+# needs the previous note to diff against, which a single-note audit never has.
+# So this is a floor, not a detector: every note it flags really is cloned, and
+# the ones it misses are the ones that did not say so.
+kind: copy_forward
+level: recommended
+cue_terms: ["carried forward", "carry forward", "copied forward", "copy forward",
+            "copied from", "copy and paste", "copy/paste", "cut and paste",
+            "auto-populated", "autopopulated", "autotext", "auto-text",
+            "cloned", "unchanged from previous note", "as per previous note"]
+recommendation: >-
+  This note declares that content was carried forward from an earlier note. Carried-forward
+  documentation loses the granularity and evolution of the record, and it may no longer reflect the
+  patient's current state. Please confirm the carried-forward content still applies, and re-document
+  any section that has changed.
+citations:
+  - clause_id: "CDI-2021/theory-of-clinical-documentation-applied-to-emrs/p4"
+    quote: >-
+      The risk is that large tracts of documentation are copied and re-copied from one note to
+      another, reducing the granularity and evolution of the clinical documentation across the
+      record. It is recommended that clinicians are judicious in their use of copy and paste, and
+      only use autotext functions in accordance with agreed practice for their unit.

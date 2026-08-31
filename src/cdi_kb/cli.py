@@ -65,11 +65,19 @@ def format_finding(finding: Finding) -> str:
     source line, so "no reference in the KB" can never be mistaken for a cited
     finding -- and is never silently indistinguishable from one.
     """
+    # Only a specificity/completeness gap is literally something MISSING. The
+    # integrity findings describe a different problem, and reading them as a missing
+    # axis sends the clinician looking for the wrong thing.
     if finding.finding_type == "provider_confirmation":
-        # Not a missing axis: the diagnosis exists, it just isn't the treating
-        # doctor's. "missing provider_confirmation" reads as the wrong problem.
         headline = (f"[{finding.severity}] {finding.condition} — not confirmed by the treating "
                     f"doctor ({finding.evidence_excerpt})")
+    elif finding.finding_type == "copy_forward":
+        headline = (f"[{finding.severity}] this note declares content carried forward "
+                    f"from an earlier note")
+    elif finding.finding_type == "conflicting_documentation":
+        axis = finding.axis.removeprefix("conflicting_")
+        headline = (f"[{finding.severity}] {finding.condition} — conflicting {axis} documented "
+                    f"({finding.evidence_excerpt})")
     else:
         headline = f"[{finding.severity}] {finding.condition} — missing {finding.axis}"
     lines = [headline, f"  {finding.recommendation}"]

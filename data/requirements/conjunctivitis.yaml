@@ -1,0 +1,25 @@
+# RULE A(i): the Conjunctivitis chapter names the acuity, type and agent axes in its own prose.
+condition: conjunctivitis
+synonyms: [pink eye]
+axes:
+  - axis: onset
+    level: required
+    evidence_terms: ["acute", "chronic"]
+  - axis: type
+    level: required
+    evidence_terms: ["infectious", "allergic", "non-infectious", "noninfectious", "chemical", "toxic", "foreign body"]
+  - axis: agent
+    level: recommended
+    evidence_terms: ["viral", "bacterial", "adenovirus", "due to"]
+recommendation: >-
+  Conjunctivitis is documented without the acuity or type. Please document whether it is acute or
+  chronic, the type (infectious, allergic, chemical or toxic), and the infectious agent, if known.
+citations:
+  - clause_id: "CDI-2021/conjunctivitis/p2"
+    quote: >-
+      Documentation should clearly indicate acuity as acute or chronic, and the type of
+      conjunctivitis, such as infectious, and whether it is viral or bacterial, or non- infectious, if
+      it is considered allergic or due to a foreign body, chemical or toxic reaction.
+  - clause_id: "CDI-2021/conjunctivitis/p3"
+    quote: >-
+      The infectious agent when known should also be recorded by the clinician

@@ -18,7 +18,9 @@ from cdi_kb.config import QUOTE_MATCH_THRESHOLD
 from cdi_kb.gapcheck import Gap
 from cdi_kb.necessity import NecessityGap
 from cdi_kb.normalize import find_quote
-from cdi_kb.requirements_model import Citation, DiagnosisRequirement, Element, ProviderRule
+from cdi_kb.requirements_model import (
+    Citation, DiagnosisRequirement, Element, IntegrityRule, ProviderRule,
+)
 
 if TYPE_CHECKING:  # annotation-only: keeps the offline path free of llm_infer/anthropic
     from cdi_kb.llm_infer import KbSupport, NoteObservation
@@ -152,6 +154,31 @@ def compose_provider_finding(
         recommendation=rule.recommendation,
         citations=tuple(verified),
         dedupe_key=f"{condition}|provider_confirmation",
+    )
+
+
+def compose_integrity_finding(
+    rule: "IntegrityRule",
+    condition: str,
+    axis: str,
+    evidence_excerpt: str,
+    store: ClauseStore,
+) -> Finding | None:
+    """A note-level or cross-statement integrity finding (copy-forward, conflicting
+    documentation). Same citation firewall as every other composer: no verified
+    citation, no finding."""
+    verified = _verified_citations(rule.citations, store)
+    if not verified:
+        return None
+    return Finding(
+        finding_type=rule.kind,
+        severity="required" if rule.level == "required" else "recommended",
+        condition=condition,
+        axis=axis,
+        evidence_excerpt=evidence_excerpt,
+        recommendation=rule.recommendation,
+        citations=tuple(verified),
+        dedupe_key=f"{condition}|{axis}",
     )
 
 

@@ -1,0 +1,21 @@
+# RULE A(i): the Intussusception chapter names the aetiology axis and the recurring/congenital axis.
+condition: intussusception
+synonyms: [ileocolic intussusception]
+axes:
+  - axis: agent
+    level: required
+    evidence_terms: ["due to", "secondary to", "crohn", "adhesions", "scar tissue", "bowel obstruction", "obesity", "family history"]
+  - axis: onset
+    level: recommended
+    evidence_terms: ["recurring", "recurrent", "congenital", "new"]
+recommendation: >-
+  Intussusception is documented without the aetiology. Please document the underlying cause (e.g.
+  due to bowel obstruction, adhesions or an underlying medical condition) and whether it is
+  recurring or congenital, if known.
+citations:
+  - clause_id: "CDI-2021/intussusception/p1"
+    quote: >-
+      When a patient is diagnosed with intussusception, complete documentation includes information
+      relating to the presenting symptoms and aetiology. Documentation should mention whether there is
+      a strong family history, or if it is recurring or congenital, or the result of bowel obstruction
+      or obesity.

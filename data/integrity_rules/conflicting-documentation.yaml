@@ -1,0 +1,37 @@
+# Documentation-integrity rule: two different labels for the same condition axis,
+# written by two different authors in the same note.
+#
+# RULE B — GENERIC AUTHORITY, DISCLOSED. There is no conflicting-documentation
+# mandate in this corpus: grepping all 3,017 clauses for "conflicting" and
+# "contradict" returns zero hits in CDI-2021. The closest governing statement is
+# the Correctness chapter's "Correct documentation is unambiguous", supported by
+# two chapters that instruct the CDI professional to clarify with the clinician
+# where documentation is deficient. That is a general principle, not a rule about
+# contradiction, so this entry is authored at "recommended" and its
+# generic-authority basis is recorded here rather than stretched into a mandate.
+#
+# SCOPE — opt-in per axis (AxisRule.conflict_check), not applied to every axis.
+# Most axis term lists are not mutually exclusive: "acute respiratory failure|
+# onset" lists acute / chronic / acute on chronic, a note can legitimately carry
+# two of them, and "acute" appears in ordinary prose like "no acute infiltrate".
+# Firing there would be noise. Only axes whose terms are genuinely alternative
+# diagnostic labels opt in.
+#
+# The two labels must come from DIFFERENT author segments. Both from one author
+# is a differential diagnosis ("NSTEMI versus demand ischemia, awaiting serial
+# troponins"), which is good documentation, not a contradiction.
+kind: conflicting_documentation
+level: recommended
+recommendation: >-
+  Two different labels for this condition appear in the note, written by different authors. Coded
+  data can carry only one, and the two may classify differently. Please document which diagnosis the
+  treating team is managing, or document the relationship between them.
+citations:
+  - clause_id: "CDI-2021/correctness/p2"
+    quote: >-
+      Correct documentation is unambiguous and conveys information regarding the patient, their
+      treatment, response to treatment and care planning that reduces avoidable risk.
+  - clause_id: "CDI-2021/surgery/p4"
+    quote: >-
+      A CDI professional should always review the Anaesthetic documentation and clarify with the
+      clinician if there are any deficiencies in documentation

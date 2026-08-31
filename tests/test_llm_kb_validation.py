@@ -423,8 +423,16 @@ def test_retrieval_reach_across_every_requirement_axis(kb, by_condition) -> None
         "heart failure|type", "heart failure|onset",
         "obesity|type", "obesity|stage",
         "stroke|type", "stroke|onset",
+        # Same root cause, found when the requirement set grew to 35: the Corneal
+        # Ulcers mandate sentence lives in a CONTINUATION paragraph that never names
+        # the condition ("Documentation should include details of cause, including
+        # type of trauma or type of chemical..."). A lexical condition+axis query
+        # cannot reach a clause that contains neither term. Re-anchoring to p1, which
+        # does name the condition, would mean citing a clause that carries no
+        # documentation mandate -- the worse trade.
+        "corneal ulcer|agent", "corneal ulcer|stage",
     }
-    assert total - len(unreachable) >= 31
+    assert total - len(unreachable) >= 57
 
 
 # --------------------------------------------------------------------------

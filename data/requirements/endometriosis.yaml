@@ -1,0 +1,15 @@
+# RULE A(i): the Endometriosis chapter names the site axis as best-practice documentation.
+condition: endometriosis
+synonyms: [endometriotic]
+axes:
+  - axis: site
+    level: required
+    evidence_terms: ["ovary", "ovarian", "uterine", "peritoneal", "bowel", "bladder", "rectovaginal", "pelvic"]
+recommendation: >-
+  Endometriosis is documented without the specific site. Please document the specific site of the
+  endometriosis, if known.
+citations:
+  - clause_id: "CDI-2021/endometriosis/p1"
+    quote: >-
+      Best practice documentation related to endometriosis should ensure information clearly documents
+      the specific site, as this is important for quality data capture.

@@ -1,0 +1,87 @@
+================================================================
+PROGRESS NOTE — INTERNAL MEDICINE
+================================================================
+Patient:        TEST, PATIENT B (SYNTHETIC)
+MRN:            TST-0009143
+Encounter:      IP-2026-004872
+Admit Date:     2026-08-24
+Note Date/Time: 2026-08-28 07:40
+Hospital Day:   5
+Attending:      Dr. A. Rahman (Internal Medicine)
+Service:        General Medicine / Ward 4B
+================================================================
+
+SUBJECTIVE:
+72 y/o male admitted 4 days ago with fever, dysuria and confusion.
+Examined at the bedside this morning. Drowsy but rousable and
+cooperative with examination. Emotional state settled, no agitation
+overnight; physical appearance improved since yesterday. Poor oral
+intake, ate <25% of meals per nursing.
+
+OBJECTIVE:
+Vitals (24h):
+  Temp     38.9 C (max), 38.1 C current
+  HR       118 bpm
+  BP       92/54 mmHg (MAP 67)
+  RR       26/min
+  SpO2     89% on room air -> 94% on 4 L/min nasal cannula
+  Weight   48.2 kg (admission 49.0 kg; 3 months ago 55 kg per family)
+
+Labs (2026-08-28):
+  WBC       18.4 x10^9/L (neut 88%)
+  Hgb       7.8 g/dL (admission 10.9 g/dL)
+  Creatinine 2.4 mg/dL (baseline 1.3 mg/dL, admission 1.9)
+  eGFR      26 mL/min/1.73m2
+  Lactate   3.2 mmol/L
+  HbA1c     11.2%
+  Troponin I 0.42 -> 0.51 ng/mL
+
+Micro:
+  Blood culture x2 (08-25): E. coli, ESBL positive
+  Urine culture (08-24): E. coli >100,000 CFU/mL
+
+Imaging/Studies:
+  Echo (08-26): LVEF 30%, global hypokinesis, moderate MR.
+
+Physical Exam (examined today):
+  General: Ill-appearing, cachectic elderly male.
+  CVS: Tachycardic, regular. JVP elevated.
+  Resp: Bibasilar crackles. On 4 L NC.
+  Neuro: Drowsy, oriented to person only. No focal deficit.
+  Skin: Sacral pressure injury reviewed by me today.
+
+Nursing documentation (08-26, 08-27, 08-28):
+  Sacral wound assessed — full thickness, stage 3 pressure injury,
+  4 x 3 cm, present on admission per admission skin assessment.
+
+Dietitian note (08-27):
+  Assessment: severe protein-calorie malnutrition.
+
+MEDICATIONS (active):
+  Meropenem 1g IV q8h
+  Furosemide 40 mg IV BID
+  Insulin glargine 22 units SC daily
+
+ASSESSMENT / PLAN:
+1. Severe sepsis due to ESBL E. coli, urinary source — acute
+   pyelonephritis (upper urinary tract infection due to E. coli).
+   Continue meropenem.
+2. Acute kidney injury, pre-renal, on chronic kidney disease stage 3
+   — hold nephrotoxics, gentle fluids.
+3. Acute on chronic systolic heart failure (HFrEF, LVEF 30%) —
+   continue diuresis.
+4. Acute blood loss anaemia — Hgb 7.8, transfused 2 units. Monitor.
+5. Type 2 diabetes mellitus, poorly controlled — continue insulin.
+6. NSTEMI — cardiology reviewed, medical management, no cath.
+7. Delirium, hospital acquired, due to sepsis — improving.
+8. Acute hypoxic (type 1) respiratory failure — continue O2, wean
+   as tolerated.
+9. Severe protein-calorie malnutrition — I agree with the dietitian
+   assessment. High-protein supplements commenced.
+10. Stage 3 sacral pressure injury, present on admission — dressings
+    continued, pressure-relieving mattress in place.
+
+Disposition: Continue inpatient management.
+
+Electronically signed: Dr. A. Rahman, 2026-08-28 07:40
+================================================================

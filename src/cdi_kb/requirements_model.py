@@ -40,6 +40,12 @@ class AxisRule(BaseModel):
     # finding could tell the clinician to document the causative organism the
     # note already documents. Falls back to DiagnosisRequirement.recommendation.
     recommendation: str | None = None
+    # Opt-in: whether two different evidence terms for this axis, written by two
+    # different authors, should be reported as conflicting documentation. Off by
+    # default because most axis term lists are not mutually exclusive -- an onset
+    # axis lists acute / chronic / acute on chronic, and "acute" appears in ordinary
+    # prose like "no acute infiltrate".
+    conflict_check: bool = False
 
 
 class AmbiguousSynonym(BaseModel):
@@ -109,6 +115,32 @@ def load_provider_rules(directory: Path) -> list[ProviderRule]:
             rules.append(ProviderRule.model_validate(raw))
         except ValidationError as error:
             raise ValueError(f"invalid provider rule file {path.name}: {error}") from error
+    return rules
+
+
+class IntegrityRule(BaseModel):
+    """A documentation-integrity rule that is not about one diagnosis: it is about
+    the note itself (copy-forward) or about two statements contradicting each other.
+
+    `cue_terms` is used only by cue-detected kinds (copy_forward); structurally
+    detected kinds (conflicting_documentation) leave it empty."""
+    kind: Literal["copy_forward", "conflicting_documentation"]
+    level: Literal["required", "recommended"]
+    cue_terms: list[str] = []
+    recommendation: str
+    citations: list[Citation] = Field(min_length=1)
+
+
+def load_integrity_rules(directory: Path) -> list[IntegrityRule]:
+    rules: list[IntegrityRule] = []
+    if not directory.exists():
+        return rules
+    for path in sorted(directory.glob("*.yaml")):
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        try:
+            rules.append(IntegrityRule.model_validate(raw))
+        except ValidationError as error:
+            raise ValueError(f"invalid integrity rule file {path.name}: {error}") from error
     return rules
 
 

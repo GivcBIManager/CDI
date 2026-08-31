@@ -1,0 +1,16 @@
+# RULE A(i): the chapter states the agent axis and explicitly permits a suspected agent.
+condition: bronchiolitis
+synonyms: [pertussis, whooping cough]
+axes:
+  - axis: agent
+    level: required
+    evidence_terms: ["rsv", "respiratory syncytial virus", "viral", "due to", "suspected"]
+recommendation: >-
+  Bronchiolitis is documented without the causative agent. Please document the causative agent,
+  including a suspected agent (e.g. bronchiolitis suspected to be due to RSV), if known.
+citations:
+  - clause_id: "CDI-2021/bronchiolitis-and-pertussis-whooping-cough/p1"
+    quote: >-
+      Documentation should therefore clearly indicate the causative agent when known. Remember that
+      such documentation indicating a suspicion or likelihood of a causative agent can also be
+      classified. For example, bronchiolitis, suspected to be due to RSV.

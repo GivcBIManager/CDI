@@ -184,7 +184,8 @@ def test_header_phrase_mid_sentence_is_not_a_header_match() -> None:
 # necessity-b12-*) are intentionally typed/necessity fixtures -- see
 # test_eval_suite._TYPED_NOTE_PREFIXES. Excluded here by filename prefix so
 # this guard keeps covering exactly the original 40 free-prose notes.
-_TYPED_NOTE_PREFIXES = ("discharge-summary-", "diagnosis-list-", "necessity-hba1c-", "necessity-b12-")
+_TYPED_NOTE_PREFIXES = ("discharge-summary-", "diagnosis-list-", "necessity-hba1c-",
+                        "necessity-b12-", "multicondition-")
 
 
 def test_all_eval_notes_detect_as_any() -> None:

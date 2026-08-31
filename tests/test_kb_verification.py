@@ -17,7 +17,9 @@ def test_kb_verification_all_checks_pass() -> None:
 def test_stats_are_reported() -> None:
     report = run_verification()
     assert report.stats["clauses"] > 200
-    assert report.stats["requirements"] == 20
+    # 20 -> 35: the booklet was surveyed for every section carrying a
+    # condition-specific documentation mandate that names a specificity axis.
+    assert report.stats["requirements"] == 35
     assert report.stats["citations_checked"] >= 20
 
 
@@ -31,7 +33,9 @@ def test_doc_type_and_necessity_stats_are_reported() -> None:
     report = run_verification()
     assert report.stats["doc_type_rules"] == 19
     assert report.stats["necessity_rules"] == 4
-    assert report.stats["citations_checked"] == 40 + 20 + 8
+    # 40 -> 58 diagnosis citations: the 15 conditions added from the booklet survey
+    # carry 18 citations between them (several cite two clauses).
+    assert report.stats["citations_checked"] == 58 + 20 + 8
 
 
 def test_mixed_authority_entries_are_named_in_notes() -> None:
