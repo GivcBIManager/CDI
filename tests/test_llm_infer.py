@@ -85,3 +85,58 @@ def test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates() -> N
     finally:
         index.close()
         store.close()
+
+
+def test_client_is_reused_across_calls() -> None:
+    # _make_client built a fresh Anthropic client -- and a fresh SSL context --
+    # for every single API call, so a note producing ten observations paid the
+    # setup cost eleven times and reused no connection.
+    from cdi_kb.llm_infer import _make_client
+
+    assert _make_client() is _make_client()
+
+
+def test_validate_all_returns_one_result_per_item_in_input_order() -> None:
+    # Results are zipped back onto their observations by position, so an
+    # out-of-order result would attach one observation's KB support to another.
+    from cdi_kb.llm_infer import KbSupport, NoteObservation, validate_all
+
+    def fake_validator(observation, _candidates):
+        return [KbSupport(clause_id=f"X/{observation.axis}/p1", quote="q")]
+
+    items = [
+        (NoteObservation(condition="sepsis", axis=axis, issue="i", note_quote="q"), [])
+        for axis in ("agent", "type")
+    ]
+    results = validate_all(items, validator=fake_validator, max_workers=4)
+    assert [r[0].clause_id for r in results] == ["X/agent/p1", "X/type/p1"]
+
+
+def test_validate_all_runs_items_concurrently() -> None:
+    import time
+
+    from cdi_kb.llm_infer import NoteObservation, validate_all
+
+    def slow_validator(_observation, _candidates):
+        time.sleep(0.2)
+        return []
+
+    items = [
+        (NoteObservation(condition="sepsis", axis="agent", issue="i", note_quote=str(n)), [])
+        for n in range(5)
+    ]
+    started = time.monotonic()
+    results = validate_all(items, validator=slow_validator, max_workers=5)
+    elapsed = time.monotonic() - started
+
+    assert len(results) == 5
+    assert elapsed < 0.6, f"ran sequentially: {elapsed:.2f}s for 5 x 0.2s items"
+
+
+def test_validate_all_on_empty_input_makes_no_calls() -> None:
+    from cdi_kb.llm_infer import validate_all
+
+    def exploding_validator(_observation, _candidates):
+        raise AssertionError("must not be called")
+
+    assert validate_all([], validator=exploding_validator) == []

@@ -14,7 +14,7 @@ doc-type scoping; they are behaviour, not mechanism.
 import pytest
 
 from cdi_kb import config
-from cdi_kb.audit import AuditResult, _named_conditions, _validated_findings
+from cdi_kb.audit import _fully_negated_conditions, _validated_findings
 from cdi_kb.clauses import ClauseStore
 from cdi_kb.llm_infer import NoteObservation, ValidatedObservation
 from cdi_kb.requirements_model import AxisRule, Citation, DiagnosisRequirement, load_requirements
@@ -48,7 +48,7 @@ def test_inferred_finding_evidence_is_verbatim_note_text(by_condition_and_store)
     note = "Sats 82% on air, placed on BiPAP overnight."
     findings = _validated_findings(
         [_observed("acute respiratory failure", "onset", "placed on BiPAP overnight")],
-        note, by_condition, store, set(),
+        note, by_condition, store, set(), set(),
     )
     assert [f.dedupe_key for f in findings] == ["acute respiratory failure|onset"]
     assert findings[0].evidence_excerpt in note
@@ -63,7 +63,7 @@ def test_observation_quoting_text_absent_from_the_note_is_rejected_at_the_audit_
     note = "Sats 82% on air, placed on BiPAP overnight."
     findings = _validated_findings(
         [_observed("acute respiratory failure", "onset", "intubated for hypercapnia")],
-        note, by_condition, store, set(),
+        note, by_condition, store, set(), set(),
     )
     assert findings == []
 
@@ -76,7 +76,7 @@ def test_trailing_negation_cue_does_not_suppress_an_inferred_gap(by_condition_an
     findings = _validated_findings(
         [_observed("acute respiratory failure", "onset", "placed on BiPAP overnight"),
          _observed("acute respiratory failure", "type", "Sats 82% on air")],
-        note, by_condition, store, set(),
+        note, by_condition, store, set(), set(),
     )
     keys = {f.dedupe_key for f in findings}
     assert keys == {"acute respiratory failure|onset", "acute respiratory failure|type"}
@@ -88,45 +88,74 @@ def test_duplicate_observations_yield_no_duplicate_findings(by_condition_and_sto
     findings = _validated_findings(
         [_observed("sepsis", "agent", "Patient febrile, tachycardic"),
          _observed("sepsis", "agent", "tachycardic, unwell")],
-        note, by_condition, store, set(),
+        note, by_condition, store, set(), set(),
     )
     keys = [f.dedupe_key for f in findings]
     assert len(keys) == len(set(keys)), f"duplicate dedupe_keys produced: {keys}"
 
 
-def test_already_named_condition_is_skipped(by_condition_and_store) -> None:
+def test_explicitly_negated_condition_is_skipped(by_condition_and_store) -> None:
+    # Step 2 narrowed this guard: it used to skip every condition the note NAMED,
+    # which locked the model out of exactly the axes the string scanner gets wrong.
+    # Now only a condition whose every mention is negated is suppressed -- because
+    # observations carry no negation flag for compose_inferred_finding to honour.
     by_condition, store = by_condition_and_store
     note = "Patient febrile, tachycardic, unwell."
     findings = _validated_findings(
         [_observed("sepsis", "agent", "Patient febrile, tachycardic")],
-        note, by_condition, store, {"sepsis"},
+        note, by_condition, store, {"sepsis"}, set(),
     )
     assert findings == []
 
 
-def test_named_conditions_includes_named_but_negated_condition() -> None:
-    # A NAMED-BUT-NEGATED condition ("No sepsis.") is absent from findings/dropped
-    # (nothing was raised for it), so a set derived only from those keys would miss
-    # it. _named_conditions must re-detect mentions structurally, so it still shows
-    # up here -- otherwise, if the LLM returned this condition anyway,
+def test_named_but_affirmed_condition_is_no_longer_skipped(by_condition_and_store) -> None:
+    by_condition, store = by_condition_and_store
+    note = "A: Sepsis, source urinary. Blood cultures growing E. coli."
+    findings = _validated_findings(
+        [_observed("sepsis", "agent", "Blood cultures growing E. coli")],
+        note, by_condition, store, set(), set(),
+    )
+    assert [f.dedupe_key for f in findings] == ["sepsis|agent"]
+
+
+def test_key_already_emitted_deterministically_is_skipped(by_condition_and_store) -> None:
+    by_condition, store = by_condition_and_store
+    note = "A: Sepsis, source urinary. Blood cultures growing E. coli."
+    findings = _validated_findings(
+        [_observed("sepsis", "agent", "Blood cultures growing E. coli")],
+        note, by_condition, store, set(), {"sepsis|agent"},
+    )
+    assert findings == []
+
+
+def test_fully_negated_conditions_includes_a_ruled_out_condition() -> None:
+    # A ruled-out condition raises no finding, so a set derived from finding keys
+    # would miss it. _fully_negated_conditions re-detects mentions structurally,
+    # so it still shows up -- otherwise, if the LLM returned this condition,
     # _validated_findings would emit a clinically false finding for a condition
     # the note explicitly rules out.
     requirements = load_requirements(config.REQUIREMENTS_DIR)
-    note = "No evidence of sepsis. Afebrile."
-    named = _named_conditions(note, requirements, AuditResult())
-    assert "sepsis" in named
+    negated = _fully_negated_conditions("No evidence of sepsis. Afebrile.", requirements)
+    assert "sepsis" in negated
 
 
-def test_validated_findings_skips_condition_from_named_conditions_guard(by_condition_and_store) -> None:
-    # End-to-end through the guard's own home: _named_conditions' output feeds
-    # directly into _validated_findings' skip set.
+def test_fully_negated_conditions_excludes_a_condition_affirmed_anywhere() -> None:
+    requirements = load_requirements(config.REQUIREMENTS_DIR)
+    note = ("Day 1: no evidence of sepsis, cultures pending and patient afebrile throughout.\n"
+            "Day 3: patient deteriorated overnight and is now in septic shock.\n")
+    assert "sepsis" not in _fully_negated_conditions(note, requirements)
+
+
+def test_validated_findings_skips_condition_from_the_negation_guard(by_condition_and_store) -> None:
+    # End-to-end through the guard's own home: _fully_negated_conditions' output
+    # feeds directly into _validated_findings' skip set.
     by_condition, store = by_condition_and_store
     requirements = list(by_condition.values())
     note = "No evidence of sepsis. Afebrile."
-    already_named = _named_conditions(note, requirements, AuditResult())
+    negated = _fully_negated_conditions(note, requirements)
     findings = _validated_findings(
         [_observed("sepsis", "agent", "No evidence of sepsis")],
-        note, by_condition, store, already_named,
+        note, by_condition, store, negated, set(),
     )
     assert findings == []
 
@@ -150,12 +179,12 @@ def test_validated_findings_respect_applies_to_doc_type_scoping(by_condition_and
     observed = [_observed("chronic kidney disease", "stage", "Renal impairment noted")]
 
     findings = _validated_findings(
-        observed, note, scoped_by_condition, store, set(), doc_type="progress_note",
+        observed, note, scoped_by_condition, store, set(), set(), doc_type="progress_note",
     )
     assert "chronic kidney disease|stage" not in {f.dedupe_key for f in findings}
 
     for doc_type in ("discharge_summary", "any"):
         findings = _validated_findings(
-            observed, note, scoped_by_condition, store, set(), doc_type=doc_type,
+            observed, note, scoped_by_condition, store, set(), set(), doc_type=doc_type,
         )
         assert "chronic kidney disease|stage" in {f.dedupe_key for f in findings}

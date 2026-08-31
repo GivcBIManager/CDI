@@ -108,7 +108,7 @@ Latest run:
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    252 passed, 2 deselected in 63.86s
+    264 passed, 2 deselected in 51.92s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -118,7 +118,7 @@ works and takes precedence) and the account has credits:
     /c/python/python -m pytest -m live -v
     tests/test_llm_infer.py::test_live_stage_infers_respiratory_failure_and_validates_it_against_the_kb PASSED
     tests/test_llm_infer.py::test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates PASSED
-    2 passed, 252 deselected
+    2 passed, 264 deselected
 
 ## The `--llm` stage: the KB is the validation authority
 `--llm` is a two-pass, retrieval-backed pipeline, not a one-shot classifier.
@@ -152,6 +152,25 @@ deterministic scanner searches the whole note, so an organism named in a culture
 result marked sepsis's `agent` axis satisfied and suppressed the single highest
 -value query in the note. The model judges the axis against the statement that
 actually concerns the condition.
+
+It judges conditions the note **names**, too. An earlier design skipped any
+condition mentioned anywhere in the note, which locked the model out of exactly
+the axes the scanner gets wrong. That blanket gate is now two narrower ones:
+never contradict an explicit negation (`_fully_negated_conditions` — every
+mention negated, not any, so "no sepsis on admission ... now in septic shock"
+still raises), and never duplicate a `condition|axis` the deterministic pass
+already emitted. A *dropped* citation is not a duplicate: the deterministic pass
+raised nothing there, so the LLM re-reaching that axis by retrieval is new
+authority.
+
+Lifting the gate took a real progress note from 3 observations to 10, i.e. ten
+Pass B round trips. They are independent, so they run concurrently
+(`VALIDATION_CONCURRENCY`), and the client is a module singleton rather than
+rebuilt per call — that note went from timing out past ten minutes to 91
+seconds. A validator that raises fails the whole batch rather than being
+swallowed into an empty support list: an empty list means "the documents carry
+nothing on this point" and is shown to a clinician as such, so a transport
+failure must never be laundered into that claim.
 
 An inference failure can no longer take an audit down. The stage is wrapped;
 `AuditResult.llm_error` carries the reason and the deterministic findings are
@@ -274,12 +293,18 @@ an explicit override always available.
   ordinary English words, and widening it would trade a false positive for
   silent suppression of real gaps. Closing this needs note structure, not more
   terms.
-- **The already-named gate still applies to inference.** An observation whose
-  condition is already mentioned anywhere in the note (including negated, e.g.
-  "No sepsis") is skipped, so the LLM cannot contribute axis judgments for
-  conditions the string matcher already detected — which is where several of
-  those deterministic false positives live. Lifting the gate needs the negation
-  protection in `_named_conditions` reworked first.
+- **The LLM can add findings but cannot retract deterministic ones.** It now
+  judges axes for conditions the note names (see below), so it closes the string
+  scanner's false *negatives* — but a deterministic false positive still stands
+  even when the model would disagree. Suppression is a separate feature and
+  carries its own risk (a model retracting a true finding), so it was not built
+  here.
+- **Negation is still a fixed 40-character pre-mention window.** The
+  `_fully_negated_conditions` guard is only as good as `gapcheck._is_negated`
+  underneath it, so an affirmation packed within 40 characters of a negation
+  ("No sepsis on admission. Day 3: now in septic shock") reads as negated and
+  suppresses the finding. Ordinary note spacing clears it; dense shorthand may
+  not.
 
 Does not include (per proposal): dense/hybrid retrieval + reranking, the
 browser extension, de-identification, Arabic notes.

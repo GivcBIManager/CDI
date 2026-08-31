@@ -1,11 +1,22 @@
-"""Optional LLM stage: infer conditions that are treated but never named
-(e.g. oxygen support without 'respiratory failure' — proposal top-20 rows
-1, 7, 9, 12, 19). The model selects only from the known condition list;
-anything else is discarded. Citations still come exclusively from the
-requirement model + clause store, so this stage cannot fabricate authority.
+"""Optional LLM stage: two-pass, retrieval-backed inference in which the KB is
+the validation authority.
+
+Pass A reads the note and reports documentation gaps -- for conditions the note
+names as well as conditions it never names (oxygen support without the words
+"respiratory failure"). Pass B is shown the clause TEXT retrieved for each
+observation and decides which clauses actually govern it.
+
+Two firewalls, in order: an observation whose evidence is not verbatim note text
+is discarded (keep_grounded); a clause the model cites that retrieval did not put
+in front of it is discarded (keep_candidate_supports), and what survives is then
+re-verified verbatim against the store by findings._verified_citations. So this
+stage cannot fabricate authority -- and when the documents support nothing, the
+finding is reported as "no reference in the KB" rather than dropped or given
+borrowed authority.
 """
 
 import ssl
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -28,6 +39,12 @@ if TYPE_CHECKING:
 # 31/37 from 16 onward, and no further gain out to 40 -- so 16 is the point where
 # widening stops buying recall and only costs input tokens.
 CANDIDATE_LIMIT = 16
+
+# Pass B is one API call per observation. Once the LLM was allowed to judge
+# conditions the note NAMES (not only ones it never mentions), a real progress
+# note went from 3 observations to 10 -- ten sequential round trips, minutes of
+# wall clock. They are independent, so they run concurrently.
+VALIDATION_CONCURRENCY = 6
 
 
 @dataclass(frozen=True)
@@ -116,6 +133,9 @@ def keep_candidate_supports(supports: list[KbSupport], candidate_ids: list[str])
     return [support for support in supports if support.clause_id in allowed]
 
 
+_CLIENT: "anthropic.Anthropic | None" = None
+
+
 def _make_client() -> "anthropic.Anthropic":
     """Client with an explicitly built default SSL context.
 
@@ -128,12 +148,18 @@ def _make_client() -> "anthropic.Anthropic":
 
     The anthropic import is function-local so importing this module stays free
     of the SDK: findings.py and the offline test suite reach the firewall
-    helpers above without pulling in a network dependency.
+    helpers above without pulling in a network dependency. The client itself is
+    a module singleton: it was previously rebuilt (SSL context and all) for every
+    API call, so a note with ten observations paid the setup cost eleven times
+    and reused no connection.
     """
-    import anthropic
-    from anthropic import DefaultHttpxClient
+    global _CLIENT
+    if _CLIENT is None:
+        import anthropic
+        from anthropic import DefaultHttpxClient
 
-    return anthropic.Anthropic(http_client=DefaultHttpxClient(verify=ssl.create_default_context()))
+        _CLIENT = anthropic.Anthropic(http_client=DefaultHttpxClient(verify=ssl.create_default_context()))
+    return _CLIENT
 
 
 class _ObservationOut(BaseModel):
@@ -256,6 +282,32 @@ def validate_against_kb(
     return [KbSupport(clause_id=s.clause_id, quote=s.quote) for s in parsed.supports]
 
 
+def validate_all(
+    items: list[tuple[NoteObservation, list[Clause]]],
+    *,
+    validator=None,
+    max_workers: int = VALIDATION_CONCURRENCY,
+) -> list[list[KbSupport]]:
+    """Run Pass B for every (observation, candidates) pair concurrently, results
+    in INPUT ORDER -- they are zipped back onto their observations by position,
+    so an out-of-order result would attach one observation's authority to
+    another.
+
+    A validator that raises propagates and fails the whole stage rather than
+    being swallowed into an empty support list. That is deliberate: an empty
+    list means "the documents carry nothing on this point" and is reported to
+    the user as such, so turning a transport failure into one would put a false
+    statement about the KB in front of a clinician. Losing the batch to
+    AuditResult.llm_error, with the deterministic findings still returned, is
+    the honest failure.
+    """
+    validator = validator or validate_against_kb
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(items))) as pool:
+        return list(pool.map(lambda item: validator(*item), items))
+
+
 def run_llm_stage(
     note_text: str,
     requirements: list[DiagnosisRequirement],
@@ -272,15 +324,17 @@ def run_llm_stage(
     grounded = keep_grounded(analyze_note(note_text, requirements), note_text, by_condition)
     store = ClauseStore(config.KB_DB)
     try:
-        validated: list[ValidatedObservation] = []
+        items: list[tuple[NoteObservation, list[Clause]]] = []
         for observation in grounded:
-            requirement = by_condition[observation.condition]
-            candidate_ids = retrieve_candidates(index, observation, requirement)
+            candidate_ids = retrieve_candidates(index, observation, by_condition[observation.condition])
             clauses = [c for c in (store.get(cid) for cid in candidate_ids) if c is not None]
-            supports = keep_candidate_supports(
-                validate_against_kb(observation, clauses), [c.clause_id for c in clauses]
+            items.append((observation, clauses))
+        return [
+            ValidatedObservation(
+                observation=observation,
+                supports=keep_candidate_supports(supports, [c.clause_id for c in clauses]),
             )
-            validated.append(ValidatedObservation(observation=observation, supports=supports))
-        return validated
+            for (observation, clauses), supports in zip(items, validate_all(items), strict=True)
+        ]
     finally:
         store.close()

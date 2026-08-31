@@ -39,19 +39,31 @@ class AuditResult:
     llm_error: str | None = None
 
 
-def _named_conditions(
+def _fully_negated_conditions(
     note_text: str,
     requirements: list[DiagnosisRequirement],
-    result: AuditResult,
 ) -> set[str]:
-    """Conditions already named in the note or already surfaced as findings/dropped
-    citations. Structural (re-detects mentions in note_text), not just derived from
-    findings/dropped keys, so a NAMED-BUT-NEGATED condition (e.g. "No sepsis.") is
-    still excluded from LLM-inferred implicits -- which hardcode negated=False by
-    design and would otherwise emit a clinically false finding for it."""
-    return ({m.condition for m in detect_conditions(note_text, requirements)} |
-            {f.dedupe_key.split("|")[0] for f in result.findings} |
-            {d.split("|")[0] for d in result.dropped_citations})
+    """Conditions EVERY mention of which is negated (e.g. a note whose only
+    reference is "No evidence of sepsis").
+
+    This replaces the former blanket already-named gate. That gate excluded the
+    LLM from every condition the note mentioned at all, which is where the string
+    scanner's worst misses live: gapcheck.scan_axes searches the whole note, so an
+    organism named in a culture result marks a named condition's `agent` axis
+    satisfied even though the note never draws the link the booklet asks for. Only
+    the model can see that, and it was forbidden from looking.
+
+    What the gate genuinely protected is narrower and kept here: observations carry
+    no negation flag (compose_inferred_finding has nothing to set one from), so a
+    condition the note explicitly rules out must be filtered by the audit rather
+    than trusted to the model. "Every mention negated", not "any mention negated" --
+    "No sepsis on admission. Day 3: now in septic shock" is ordinary progress-note
+    narrative, and suppressing it would lose a real finding.
+    """
+    mentions: dict[str, list[bool]] = {}
+    for mention in detect_conditions(note_text, requirements):
+        mentions.setdefault(mention.condition, []).append(mention.negated)
+    return {condition for condition, flags in mentions.items() if all(flags)}
 
 
 def _validated_findings(
@@ -59,7 +71,8 @@ def _validated_findings(
     note_text: str,
     by_condition: dict[str, DiagnosisRequirement],
     store: ClauseStore,
-    already_named: set[str],
+    negated_conditions: set[str],
+    existing_keys: set[str],
     doc_type: str = "any",
 ) -> list[Finding]:
     """KB-validated observations -> findings.
@@ -83,9 +96,10 @@ def _validated_findings(
         (o.condition, o.axis, o.note_quote)
         for o in keep_grounded([v.observation for v in validated], note_text, by_condition)
     }
+    seen |= set(existing_keys)
     for entry in validated:
         observation = entry.observation
-        if observation.condition in already_named:
+        if observation.condition in negated_conditions:
             continue
         if (observation.condition, observation.axis, observation.note_quote) not in grounded:
             continue
@@ -155,7 +169,11 @@ def run_audit(
                     result.findings.append(finding)
 
         if use_llm:
-            already_named = _named_conditions(note_text, requirements, result)
+            negated = _fully_negated_conditions(note_text, requirements)
+            # Only keys the deterministic pass actually EMITTED. A dropped
+            # citation raised nothing, so the LLM path re-reaching that axis by
+            # retrieval is new authority, not a duplicate.
+            existing_keys = {f.dedupe_key for f in result.findings}
             index = SearchIndex(config.KB_DB)
             try:
                 stage = llm_stage
@@ -165,7 +183,8 @@ def run_audit(
                     stage = run_llm_stage
                 result.findings.extend(_validated_findings(
                     stage(note_text, requirements, index),
-                    note_text, by_condition, store, already_named, doc_type=resolved_doc_type,
+                    note_text, by_condition, store, negated, existing_keys,
+                    doc_type=resolved_doc_type,
                 ))
             except Exception as error:  # noqa: BLE001 - the stage must never take the audit down
                 result.llm_error = f"{type(error).__name__}: {error}"

@@ -397,3 +397,122 @@ def test_retrieval_reach_across_every_requirement_axis(kb, by_condition) -> None
         "stroke|type", "stroke|onset",
     }
     assert total - len(unreachable) >= 31
+
+
+# --------------------------------------------------------------------------
+# Step 2: the LLM may judge axes for conditions the note NAMES, not only
+# conditions it never mentions. The blanket already-named gate is replaced by
+# two narrower ones: never contradict an explicit negation, never duplicate a
+# key the deterministic pass already emitted.
+# --------------------------------------------------------------------------
+
+def test_observation_for_a_named_condition_is_reported() -> None:
+    # The whole point of lifting the gate. The note NAMES the UTI and names an
+    # organism, so gapcheck.scan_axes marks the `agent` axis satisfied from
+    # "E. coli" appearing anywhere -- even though the note never draws the link
+    # the booklet asks for. Only the model can see that, and until now it was
+    # forbidden from looking at named conditions at all.
+    from cdi_kb.audit import run_audit
+    from cdi_kb.llm_infer import NoteObservation, ValidatedObservation
+
+    note = ("Progress Note\nS: dysuria.\nO: urine culture grew E. coli.\n"
+            "A: UTI.\nP: antibiotics.")
+    observation = NoteObservation(
+        condition="urinary tract infection", axis="agent",
+        issue="an organism is documented but never linked to the UTI",
+        note_quote="urine culture grew E. coli",
+    )
+    result = run_audit(note, use_llm=True,
+                       llm_stage=_stage(ValidatedObservation(observation, [])))
+    assert "urinary tract infection|agent" in {f.dedupe_key for f in result.findings}
+
+
+def test_observation_for_an_explicitly_negated_condition_is_still_skipped() -> None:
+    # The gate this replaces existed for exactly this case: observations carry
+    # no negation flag, so a condition the note rules out must be filtered by
+    # the audit, not trusted to the model.
+    from cdi_kb.audit import run_audit
+    from cdi_kb.llm_infer import NoteObservation, ValidatedObservation
+
+    note = "No evidence of sepsis. Afebrile. Blood culture: no growth."
+    observation = NoteObservation(
+        condition="sepsis", axis="agent", issue="organism not documented",
+        note_quote="Blood culture: no growth",
+    )
+    result = run_audit(note, use_llm=True,
+                       llm_stage=_stage(ValidatedObservation(observation, [])))
+    assert "sepsis|agent" not in {f.dedupe_key for f in result.findings}
+
+
+def test_condition_negated_once_but_affirmed_elsewhere_is_not_skipped() -> None:
+    # "Ruled out on admission, present now" is ordinary progress-note narrative.
+    # Only a condition whose EVERY mention is negated may be suppressed.
+    from cdi_kb.audit import run_audit
+    from cdi_kb.llm_infer import NoteObservation, ValidatedObservation
+
+    # Spaced as a real note would be. gapcheck._is_negated uses a fixed 40-char
+    # PRE-mention window, so an affirmation packed within 40 characters of the
+    # negation ("No sepsis on admission. Day 3: now in septic shock") is itself
+    # read as negated -- a documented limitation of the negation heuristic, not
+    # of this gate. See README-DEMO.md honest limits.
+    note = ("Day 1: no evidence of sepsis, cultures pending and patient afebrile throughout.\n"
+            "Day 3: patient deteriorated overnight and is now in septic shock, "
+            "blood cultures growing E. coli.\n")
+    observation = NoteObservation(
+        condition="sepsis", axis="agent",
+        issue="the organism is never linked to the sepsis",
+        note_quote="blood cultures growing E. coli",
+    )
+    result = run_audit(note, use_llm=True,
+                       llm_stage=_stage(ValidatedObservation(observation, [])))
+    assert "sepsis|agent" in {f.dedupe_key for f in result.findings}
+
+
+def test_observation_matching_a_deterministic_finding_key_is_skipped() -> None:
+    from cdi_kb.audit import run_audit
+    from cdi_kb.llm_infer import NoteObservation, ValidatedObservation
+
+    note = "Progress Note\nS: tired.\nO: Hgb 7.8, transfused 2 units.\nA: Anemia.\nP: monitor."
+    deterministic = run_audit(note)
+    assert "anemia|type" in {f.dedupe_key for f in deterministic.findings}
+
+    observation = NoteObservation(
+        condition="anemia", axis="type", issue="type not documented",
+        note_quote="Hgb 7.8, transfused 2 units",
+    )
+    result = run_audit(note, use_llm=True,
+                       llm_stage=_stage(ValidatedObservation(observation, [])))
+    keys = [f.dedupe_key for f in result.findings]
+    assert keys.count("anemia|type") == 1
+
+
+def test_observation_may_reraise_an_axis_whose_deterministic_citation_was_dropped() -> None:
+    # A dropped citation means the deterministic pass raised nothing at all for
+    # that axis -- its hand-authored quote failed verification. The LLM path
+    # reaches its authority by retrieval instead, so it is not a duplicate and
+    # must not be suppressed.
+    from cdi_kb.audit import _validated_findings
+    from cdi_kb.clauses import ClauseStore
+    from cdi_kb.llm_infer import NoteObservation, ValidatedObservation
+    from cdi_kb.requirements_model import AxisRule, Citation, DiagnosisRequirement
+
+    broken = DiagnosisRequirement(
+        condition="sepsis", synonyms=["septicaemia"],
+        axes=[AxisRule(axis="agent", level="required", evidence_terms=["due to"])],
+        recommendation="r",
+        citations=[Citation(clause_id="CDI-2021/does-not-exist/p1", quote="q")],
+    )
+    note = "Septicaemia noted, patient febrile and hypotensive."
+    store = ClauseStore(config.KB_DB)
+    try:
+        findings = _validated_findings(
+            [ValidatedObservation(
+                NoteObservation(condition="sepsis", axis="agent",
+                                issue="organism not documented",
+                                note_quote="patient febrile and hypotensive"), [])],
+            note, {"sepsis": broken}, store,
+            negated_conditions=set(), existing_keys={"sepsis|onset"},
+        )
+    finally:
+        store.close()
+    assert [f.dedupe_key for f in findings] == ["sepsis|agent"]
