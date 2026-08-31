@@ -10,7 +10,8 @@ from cdi_kb.requirements_model import EXPECTED_CONDITIONS
 # are DESIGNED to raise completeness_gap / necessity_mismatch findings. The
 # corpus-level guards below (and test_doctype.test_all_eval_notes_detect_as_any)
 # exclude them by filename prefix, keeping the original-40 guard intact.
-_TYPED_NOTE_PREFIXES = ("discharge-summary-", "diagnosis-list-", "necessity-hba1c-", "necessity-b12-")
+_TYPED_NOTE_PREFIXES = ("discharge-summary-", "diagnosis-list-", "necessity-hba1c-",
+                        "necessity-b12-", "multicondition-")
 
 
 def _expected() -> dict:
@@ -23,7 +24,10 @@ def _is_typed_note(name: str) -> bool:
 
 def test_every_diagnosis_has_gap_and_control_note() -> None:
     names = {p.name for p in (config.EVAL_DIR / "notes").glob("*.txt")}
-    assert len(names) == 48
+    # 48 -> 50. The 20 original conditions have a gap/control pair each; the 15
+    # conditions added from the booklet survey do not yet, and the two
+    # multicondition notes are a dense ward-note pair rather than a condition pair.
+    assert len(names) == 50
     assert set(_expected()) == names
 
 

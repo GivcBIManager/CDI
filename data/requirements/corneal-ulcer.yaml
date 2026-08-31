@@ -1,0 +1,21 @@
+# RULE A(i): the Corneal Ulcers chapter names the cause axis and the severity axis.
+condition: corneal ulcer
+synonyms: [corneal ulceration, keratitis]
+axes:
+  - axis: agent
+    level: required
+    evidence_terms: ["trauma", "chemical", "contact lens", "bacterial", "viral", "fungal", "due to"]
+  - axis: stage
+    level: recommended
+    evidence_terms: ["blindness", "low vision", "severity", "degree"]
+recommendation: >-
+  Corneal ulcer is documented without the cause. Please document the cause (e.g. type of trauma or
+  chemical) and the severity, including any degree of visual loss, if known.
+citations:
+  - clause_id: "CDI-2021/corneal-ulcers/p2"
+    quote: >-
+      Documentation should include details of cause, including type of trauma or type of chemical,
+      including intentional or deliberate, and whether it involved contact with an object or a person,
+      where it happened and what the person was doing. The severity of the condition should be clearly
+      documented by indicating degree of blindness or co-current infection, if any, as well as
+      associated treatment.

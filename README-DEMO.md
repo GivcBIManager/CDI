@@ -103,12 +103,39 @@ Latest run:
       source: CHI-NEC-HBA1C/pg4/p2 (p.4) — "HbA1c testing is indicated in patients presenting with signs or symptoms of diabetes melli..."
     1 finding(s)
 
+## Condition coverage
+35 diagnosis requirements, up from 20. The booklet was surveyed section by
+section for documentation-instruction language ("should be documented", "must
+specify", "documentation should clearly indicate") that also names a specificity
+axis; 22 sections qualified, and the 15 that are diagnoses rather than
+procedures were authored:
+
+    asthma · appendicitis · cerebral palsy · conjunctivitis · croup
+    bronchiolitis · meningitis · macular degeneration · endometriosis
+    intraepithelial neoplasia · malignant neoplasm · corneal ulcer
+    osteoarthritis · intussusception · febrile convulsion
+
+Every quote was sliced programmatically out of the clause store rather than
+transcribed, so all 86 citations verified on the first run. Two of the new
+conditions use `ambiguous_synonyms`: "CP" is claimed for cerebral palsy only
+with a cerebral-palsy cue nearby (it is equally common shorthand for chest
+pain), and "OA" likewise for osteoarthritis.
+
+Sections that did NOT qualify are as informative: procedure sections
+(dacryocystorhinostomy, joint replacements, pterygium) instruct on operative
+detail rather than diagnosis specificity, and sections like Obstructive Sleep
+Apnea describe what a CDI specialist should look for without stating what the
+clinician must document.
+
+**Eval coverage lags:** the 20 original conditions each have a gap/control note
+pair; the 15 new ones do not yet.
+
 ## Test suites
     /c/python/python -m pytest            # offline suite (KB verification V1-V5, doc-type/necessity rules, 48-note eval)
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    304 passed, 2 deselected in 66.40s
+    319 passed, 2 deselected in 68.63s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -118,7 +145,7 @@ works and takes precedence) and the account has credits:
     /c/python/python -m pytest -m live -v
     tests/test_llm_infer.py::test_live_stage_infers_respiratory_failure_and_validates_it_against_the_kb PASSED
     tests/test_llm_infer.py::test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates PASSED
-    2 passed, 304 deselected
+    2 passed, 319 deselected
 
 ## The `--llm` stage: the KB is the validation authority
 `--llm` is a two-pass, retrieval-backed pipeline, not a one-shot classifier.
@@ -269,13 +296,45 @@ genuinely searchable for the first time; a single global top-N then let the
 wordiest source take every slot, and reach fell 31/37 → 29/37 before the quota
 restored it. Measured at caps of 3 / 4 / 6: 26, 28 and 31 of 37 axes.
 
+## Documentation-integrity findings
+Two finding types that no per-condition checklist can express, both from
+auditing a real ward note.
+
+**`copy_forward`** fires when a note declares its own cloning ("physical exam
+section carried forward from 2026-08-26"). Authority is an explicit
+recommendation — `CDI-2021/theory-of-clinical-documentation-applied-to-emrs/p4`
+(p.49), *"clinicians are judicious in their use of copy and paste"* — and its
+wording sets the level. **Detection limit, deliberate:** this fires only on a
+note's own declaration. Undisclosed cloning needs the previous note to diff
+against, which a single-note audit never has. Every note it flags really is
+cloned; the ones it misses are the ones that did not say so.
+
+**`conflicting_documentation`** fires when two different labels for the same
+condition axis are written by two *different authors* — a cardiology consult
+documenting NSTEMI while the attending's plan says "demand ischemia". Both
+labels from one author is a differential ("NSTEMI versus demand ischemia,
+awaiting serial troponins"), which is good documentation, so segment identity is
+what separates the two cases.
+
+It is **opt-in per axis** (`AxisRule.conflict_check`), not applied to every axis.
+Most axis term lists are not mutually exclusive — `acute respiratory
+failure|onset` lists acute / chronic / acute on chronic, a note can carry two of
+them, and "acute" appears in ordinary prose like "no acute infiltrate".
+
+RULE B, disclosed: grepping all 3,017 clauses for "conflicting" and "contradict"
+returns zero hits in CDI-2021. The closest governing statement is the
+Correctness chapter's *"Correct documentation is unambiguous"*, so this entry is
+authored at `recommended` on generic authority rather than stretched into a
+mandate it does not have.
+
 ## What this demo proves / does not prove
 Proves: a 3-layer KB (booklet + 6 CHI condition-specific guidelines + 4 CHI
 necessity-criteria docs, 11 sources / 3,017 clauses) with citation-verified
-findings across four finding types — diagnosis-specificity gaps (20
+findings across six finding types — diagnosis-specificity gaps (35
 conditions), doc-type completeness gaps (5 doc types, 19 elements),
-order-necessity mismatches (4 rules), and provider-confirmation gaps
-(allied-health-only diagnoses, via author-role segmentation); every finding traceable to verbatim
+order-necessity mismatches (4 rules), provider-confirmation gaps
+(allied-health-only diagnoses, via author-role segmentation), copy-forward, and
+conflicting documentation; every finding traceable to verbatim
 source text; deterministic core; retrieval-backed LLM inference (live-verified,
 see above) in which the KB is the validation authority — every inferred finding
 is checked against retrieved clause text through the same citation firewall, and
@@ -330,11 +389,13 @@ an explicit override always available.
   condition-specific one (`mixed_authority_entries`, visible as V3-INFO
   above); acute kidney injury, chronic kidney disease, and surgical wound
   infection share the same pattern.
-- **Retrieval reaches 31 of 37 requirement axes**, pinned by
+- **Retrieval reaches 57 of 65 requirement axes**, pinned by
   `test_retrieval_reach_across_every_requirement_axis`. The six it cannot reach
-  are `heart failure|type/onset`, `obesity|type/stage` and `stroke|type/onset` —
-  the `mixed_authority_entries` above. For those axes the `--llm` path reports
-  `no reference in the KB`.
+  are `heart failure|type/onset`, `obesity|type/stage`, `stroke|type/onset` and
+  `corneal ulcer|agent/stage`. For those axes the `--llm` path reports
+  `no reference in the KB`. Corneal ulcer joined the list when the requirement
+  set grew to 35, for the same reason: its mandate sentence sits in a
+  continuation paragraph that never names the condition.
 
   **Correction.** An earlier version of this file blamed those six on
   space-stripped CHI extraction. Step 4 fixed the extraction and measured the

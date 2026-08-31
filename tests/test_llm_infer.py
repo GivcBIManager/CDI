@@ -34,7 +34,8 @@ def test_validate_against_kb_makes_no_api_call_without_candidates() -> None:
     observation = NoteObservation(
         condition="sepsis", axis="agent", issue="organism not linked", note_quote="febrile",
     )
-    assert validate_against_kb(observation, []) == []
+    assert validate_against_kb("sepsis", [observation], []) == {}
+    assert validate_against_kb("sepsis", [], [None]) == {}
 
 
 @pytest.mark.live
@@ -101,15 +102,17 @@ def test_validate_all_returns_one_result_per_item_in_input_order() -> None:
     # out-of-order result would attach one observation's KB support to another.
     from cdi_kb.llm_infer import KbSupport, NoteObservation, validate_all
 
-    def fake_validator(observation, _candidates):
-        return [KbSupport(clause_id=f"X/{observation.axis}/p1", quote="q")]
+    def fake_validator(condition, observations, _candidates):
+        return {o.axis: [KbSupport(clause_id=f"X/{condition}/{o.axis}", quote="q")]
+                for o in observations}
 
     items = [
-        (NoteObservation(condition="sepsis", axis=axis, issue="i", note_quote="q"), [])
-        for axis in ("agent", "type")
+        (condition, [NoteObservation(condition=condition, axis="agent", issue="i", note_quote="q")], [])
+        for condition in ("sepsis", "anemia")
     ]
     results = validate_all(items, validator=fake_validator, max_workers=4)
-    assert [r[0].clause_id for r in results] == ["X/agent/p1", "X/type/p1"]
+    assert [list(r)[0] for r in results] == ["agent", "agent"]
+    assert [r["agent"][0].clause_id for r in results] == ["X/sepsis/agent", "X/anemia/agent"]
 
 
 def test_validate_all_runs_items_concurrently() -> None:
@@ -117,12 +120,13 @@ def test_validate_all_runs_items_concurrently() -> None:
 
     from cdi_kb.llm_infer import NoteObservation, validate_all
 
-    def slow_validator(_observation, _candidates):
+    def slow_validator(_condition, _observations, _candidates):
         time.sleep(0.2)
-        return []
+        return {}
 
     items = [
-        (NoteObservation(condition="sepsis", axis="agent", issue="i", note_quote=str(n)), [])
+        (f"condition-{n}",
+         [NoteObservation(condition="sepsis", axis="agent", issue="i", note_quote=str(n))], [])
         for n in range(5)
     ]
     started = time.monotonic()
@@ -136,7 +140,52 @@ def test_validate_all_runs_items_concurrently() -> None:
 def test_validate_all_on_empty_input_makes_no_calls() -> None:
     from cdi_kb.llm_infer import validate_all
 
-    def exploding_validator(_observation, _candidates):
+    def exploding_validator(_condition, _observations, _candidates):
         raise AssertionError("must not be called")
 
     assert validate_all([], validator=exploding_validator) == []
+
+
+def test_validation_batches_all_axes_of_one_condition_into_one_call() -> None:
+    """Pass B was one API call per OBSERVATION. A condition with three gap axes
+    therefore paid three round trips over three overlapping candidate sets --
+    and after the gate was lifted a real note produced ten observations across
+    seven conditions. Candidates are retrieved per (condition, axis), but the
+    clause sets for one condition overlap heavily, so one call per CONDITION
+    sends less text and asks fewer questions."""
+    from cdi_kb.llm_infer import NoteObservation, group_for_validation
+
+    observations = [
+        NoteObservation(condition="sepsis", axis="agent", issue="i", note_quote="q"),
+        NoteObservation(condition="sepsis", axis="type", issue="i", note_quote="q"),
+        NoteObservation(condition="anemia", axis="type", issue="i", note_quote="q"),
+    ]
+    groups = group_for_validation(observations)
+    assert [c for c, _ in groups] == ["sepsis", "anemia"]
+    assert [[o.axis for o in obs] for _, obs in groups] == [["agent", "type"], ["type"]]
+
+
+def test_grouping_preserves_first_seen_condition_order() -> None:
+    from cdi_kb.llm_infer import NoteObservation, group_for_validation
+
+    observations = [
+        NoteObservation(condition="anemia", axis="type", issue="i", note_quote="q"),
+        NoteObservation(condition="sepsis", axis="agent", issue="i", note_quote="q"),
+        NoteObservation(condition="anemia", axis="onset", issue="i", note_quote="q"),
+    ]
+    assert [c for c, _ in group_for_validation(observations)] == ["anemia", "sepsis"]
+
+
+def test_clause_blocks_are_cached_for_reuse_across_calls() -> None:
+    """The candidate clause text is the bulk of every Pass B prompt and is stable
+    across notes, so it is sent with a cache_control breakpoint. Without it the
+    same guideline paragraphs are re-billed at full input price on every call."""
+    from cdi_kb.clauses import Clause
+    from cdi_kb.llm_infer import build_validation_content
+
+    clauses = [Clause(clause_id="X/p1", section_title="S", page=1, text="body text")]
+    blocks = build_validation_content(clauses, "OBSERVATIONS\ncondition: sepsis")
+    cached = [b for b in blocks if b.get("cache_control")]
+    assert cached, blocks
+    assert "body text" in cached[0]["text"]
+    assert not blocks[-1].get("cache_control"), "the per-note part must not be cached"

@@ -1,0 +1,110 @@
+================================================================
+PROGRESS NOTE — INTERNAL MEDICINE
+================================================================
+Patient:        TEST, PATIENT A (SYNTHETIC)
+MRN:            TST-0009142
+Encounter:      IP-2026-004871
+Admit Date:     2026-08-24
+Note Date/Time: 2026-08-28 07:40
+Hospital Day:   5
+Attending:      Dr. A. Rahman (Internal Medicine)
+Service:        General Medicine / Ward 4B
+================================================================
+
+SUBJECTIVE:
+72 y/o male admitted 4 days ago with fever, dysuria and confusion.
+Family reports he has been "not himself" for 3 days prior to
+admission. Still drowsy this morning but arousable. Poor oral
+intake, ate <25% of meals per nursing. No chest pain reported
+today. Denies SOB, though remains on supplemental O2.
+
+OBJECTIVE:
+Vitals (24h):
+  Temp     38.9 C (max), 38.1 C current
+  HR       118 bpm
+  BP       92/54 mmHg (MAP 67)
+  RR       26/min
+  SpO2     89% on room air -> 94% on 4 L/min nasal cannula
+  Weight   48.2 kg (admission 49.0 kg; 3 months ago 55 kg per family)
+  Ht       172 cm
+
+Labs (2026-08-28):
+  WBC       18.4 x10^9/L (neut 88%)
+  Hgb       7.8 g/dL (admission 10.9 g/dL)
+  Platelets 118 x10^9/L
+  Na        131 mmol/L
+  K         5.2 mmol/L
+  Creatinine 2.4 mg/dL (baseline 1.3 mg/dL, admission 1.9)
+  eGFR      26 mL/min/1.73m2
+  BUN       48 mg/dL
+  Albumin   2.1 g/dL
+  Lactate   3.2 mmol/L
+  Troponin I 0.42 -> 0.51 ng/mL
+  HbA1c     11.2%
+  Glucose   288 mg/dL
+  Procalcitonin 4.8 ng/mL
+
+Micro:
+  Blood culture x2 (08-25): E. coli, ESBL positive
+  Urine culture (08-24): E. coli >100,000 CFU/mL
+
+Imaging/Studies:
+  CXR (08-24): no acute infiltrate, mild pulmonary vascular
+    congestion.
+  Echo (08-26): LVEF 30%, global hypokinesis, moderate MR.
+
+Physical Exam:
+  General: Ill-appearing, cachectic-appearing elderly male.
+  CVS: Tachycardic, regular, no murmur appreciated. JVP elevated.
+  Resp: Bibasilar crackles. On 4 L NC.
+  Abd: Soft, non-tender.
+  Neuro: Drowsy, oriented to person only. No focal deficit.
+  Skin: (exam deferred)
+
+Nursing documentation (08-26, 08-27, 08-28):
+  Sacral wound assessed — full thickness, Stage 3 pressure injury,
+  4 x 3 cm, present on admission per admission skin assessment.
+  Braden score 12.
+
+Dietitian note (08-27):
+  Assessment: Severe protein-calorie malnutrition. Criteria met —
+  >12% unintentional weight loss over 3 months, BMI 16.3,
+  intake <50% x 5 days, moderate temporal and interosseous
+  muscle wasting, mild fat loss. Recommend high-protein ONS
+  and consider enteral support.
+
+Cardiology consult note (08-27):
+  Impression: NSTEMI in setting of acute illness. Continue
+  medical management, no cath at this time.
+
+MEDICATIONS (active):
+  Meropenem 1g IV q8h
+  Furosemide 40 mg IV BID
+  Insulin glargine 22 units SC daily + correction scale
+  Pantoprazole 40 mg IV daily
+  PRBC 2 units transfused 08-27
+
+ASSESSMENT / PLAN:
+1. UTI — on meropenem, cultures growing E. coli. Continue abx,
+   afebrile goal. Blood cultures also positive.
+2. ARF — creatinine trending up. Hold nephrotoxics, gentle fluids.
+   Renal to see.
+3. CHF — LVEF 30% on echo. Continue diuresis.
+4. Anemia — Hgb 7.8, transfused 2 units yesterday. Monitor.
+5. Diabetes — poorly controlled, on insulin. Continue sliding
+   scale.
+6. Hypertension — currently soft BP, antihypertensives held.
+7. CKD — known, followed by nephrology as outpatient.
+8. Troponin elevation — likely demand ischemia. Cardiology
+   following.
+9. Altered mental status — likely multifactorial, improving.
+10. Hypoxia — continue O2, wean as tolerated.
+11. Nutrition — dietitian following.
+12. Thrombocytopenia — monitor.
+
+Disposition: Continue inpatient management. Anticipate 3-4 more
+days.
+
+Electronically signed: Dr. A. Rahman, 2026-08-28 07:40
+Note: physical exam section carried forward from 2026-08-26 note.
+================================================================

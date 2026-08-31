@@ -1,0 +1,20 @@
+# RULE A(i): the Macular Degeneration chapter names both the type axis and the degree-of-visual-loss axis.
+condition: macular degeneration
+synonyms: [AMD, ARMD]
+axes:
+  - axis: type
+    level: required
+    evidence_terms: ["congenital", "hereditary", "drug induced", "drug-induced", "wet", "dry"]
+  - axis: stage
+    level: recommended
+    evidence_terms: ["blindness", "low vision", "visual loss"]
+recommendation: >-
+  Macular degeneration is documented without the type. Please document the type (congenital,
+  hereditary or drug induced) and the degree of visual loss, if known.
+citations:
+  - clause_id: "CDI-2021/macular-degeneration/p1"
+    quote: >-
+      Macular degeneration documentation should include the type, including whether it is congenital,
+      hereditary or drug induced. Any complications such as macular scarring should also be clearly
+      documented. CDI professionals should also ensure documentation captures the degree of visual
+      loss, such as blindness or low vision, in one or both eyes.

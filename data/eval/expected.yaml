@@ -117,3 +117,19 @@ necessity-b12-gap.txt:
   must_find: ["necessity|vitamin-b12"]
 necessity-b12-control.txt:
   must_not_find: ["necessity|vitamin-b12"]
+
+# A dense, multi-condition ward progress note -- the shape that found four
+# deterministic defects the 48 single-condition notes all missed. must_not_find
+# pins those four fixes: "ARF" here means acute RENAL failure (it was claimed by
+# acute respiratory failure), the pressure injury site is written "Sacral" (the
+# term list had only "sacrum"), and the twelve-item plan documents management
+# (the element matched only booklet vocabulary).
+multicondition-progress-gap.txt:
+  must_find: ["urinary tract infection|site", "acute kidney injury|type", "heart failure|type", "anemia|type", "malnutrition|provider_confirmation", "myocardial ischemia|conflicting_type", "note|copy_forward", "progress_note|wellbeing_observations"]
+  must_not_find: ["acute respiratory failure|type", "acute respiratory failure|onset",
+                  "pressure injury|site", "progress_note|presenting_complaint_management"]
+# The same patient documented well: every axis specified, the physician confirms
+# the dietitian's malnutrition, one consistent ischemia label, nothing carried
+# forward. Raises zero findings.
+multicondition-progress-control.txt:
+  must_not_find: ["urinary tract infection|site", "acute kidney injury|type", "heart failure|type", "anemia|type", "malnutrition|provider_confirmation", "myocardial ischemia|conflicting_type", "note|copy_forward", "progress_note|wellbeing_observations"]

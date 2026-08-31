@@ -1,0 +1,28 @@
+# RULE A(i): two chapters state the site/behaviour/morphology axes; neoplasms/p1 carries an explicit 'must be documented'.
+condition: malignant neoplasm
+synonyms: [carcinoma, malignancy, metastatic cancer]
+axes:
+  - axis: site
+    level: required
+    evidence_terms: ["primary site", "metastatic", "metastases", "secondary site", "laterality"]
+  - axis: type
+    level: required
+    evidence_terms: ["in-situ", "in situ", "local invasion", "morphology", "adenocarcinoma", "squamous cell", "mucinous", "histology"]
+  - axis: stage
+    level: recommended
+    evidence_terms: ["stage 1", "stage 2", "stage 3", "stage 4", "stage i", "stage ii", "stage iii", "stage iv"]
+recommendation: >-
+  A malignant neoplasm is documented without the primary site, behaviour or morphology. Please
+  document the primary site, behaviour (in-situ, local invasion or spreading), morphology and
+  stage, if known.
+citations:
+  - clause_id: "CDI-2021/malignant-conditions/p2"
+    quote: >-
+      Complete documentation of cancers includes the primary site and its behaviour (for example in-
+      situ, local invasion or spreading), and the stage according to cancer type. Metastatic or
+      secondary sites may be regional or distant to the primary site. For all sites, documentation of
+      the morphology is essential for accurate code assignment and mandatory cancer reporting.
+  - clause_id: "CDI-2021/neoplasms/p1"
+    quote: >-
+      When cancer has been identified and confirmed histologically, full details of type, location and
+      morphology must be documented within the record.

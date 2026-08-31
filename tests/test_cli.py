@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from cdi_kb.cli import main
 
 
@@ -136,3 +138,29 @@ def test_format_finding_does_not_say_missing_for_a_provider_confirmation_finding
     assert "missing" not in headline
     assert "malnutrition" in headline
     assert "documented in the allied_health note" in format_finding(finding)
+
+
+@pytest.mark.parametrize(
+    ("finding_type", "condition", "axis", "expected"),
+    [("copy_forward", "note", "copy_forward", "content carried forward"),
+     ("conflicting_documentation", "myocardial ischemia", "conflicting_type",
+      "conflicting type documented")],
+)
+def test_format_finding_headline_reads_as_the_actual_problem(
+    finding_type, condition, axis, expected,
+) -> None:
+    # "note — missing copy_forward" and "myocardial ischemia — missing
+    # conflicting_type" both describe the wrong problem. Nothing is missing.
+    from cdi_kb.cli import format_finding
+    from cdi_kb.findings import Finding, VerifiedCitation
+
+    finding = Finding(
+        finding_type=finding_type, severity="recommended", condition=condition, axis=axis,
+        evidence_excerpt="evidence here", recommendation="Please clarify.",
+        citations=(VerifiedCitation(clause_id="CDI-2021/x/p1", section_title="X",
+                                    page=1, quote="q"),),
+        dedupe_key=f"{condition}|{axis}",
+    )
+    headline = format_finding(finding).splitlines()[0]
+    assert "missing" not in headline, headline
+    assert expected in headline, headline

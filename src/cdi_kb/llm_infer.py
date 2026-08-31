@@ -204,8 +204,13 @@ class _SupportOut(BaseModel):
     quote: str
 
 
-class _Validation(BaseModel):
+class _AxisValidation(BaseModel):
+    axis: str
     supports: list[_SupportOut]
+
+
+class _Validation(BaseModel):
+    validations: list[_AxisValidation]
 
 
 _ANALYZE_SYSTEM = (
@@ -227,19 +232,22 @@ _ANALYZE_SYSTEM = (
 )
 
 _VALIDATE_SYSTEM = (
-    "You are validating one CDI observation against the governing documentation. You are given "
-    "CANDIDATE CLAUSES retrieved from the knowledge base -- these are the ONLY documents you may "
-    "cite.\n"
+    "You are validating CDI observations about ONE condition against the governing "
+    "documentation. You are given CANDIDATE CLAUSES retrieved from the knowledge base -- "
+    "these are the ONLY documents you may cite.\n"
     "Rules:\n"
-    "1. Return only clauses that genuinely govern or support this observation -- i.e. the clause "
-    "actually instructs what must be documented for this condition/axis.\n"
-    "2. `clause_id` MUST be copied exactly from the candidate list. Never return a clause_id that "
-    "is not in the list, and never recall one from memory.\n"
-    "3. `quote` MUST be copied character-for-character from that candidate's text. Never "
+    "1. Answer EVERY axis listed in the observations, in the same order. Judge each axis "
+    "separately: a clause that governs one axis often says nothing about another.\n"
+    "2. Return only clauses that genuinely govern or support that axis -- i.e. the clause "
+    "actually instructs what must be documented for this condition and axis.\n"
+    "3. `clause_id` MUST be copied exactly from the candidate list. Never return a "
+    "clause_id that is not in the list, and never recall one from memory.\n"
+    "4. `quote` MUST be copied character-for-character from that candidate's text. Never "
     "paraphrase. A quote that is not verbatim is discarded.\n"
-    "4. If NONE of the candidates relate to this observation, return an empty list. Do not stretch "
-    "a loosely-related clause into support -- an empty list is the correct, expected answer when "
-    "the documentation is silent, and is reported to the user as \"no reference in the KB\"."
+    "5. If NONE of the candidates relate to an axis, return an empty supports list for "
+    "it. Do not stretch a loosely-related clause into support -- an empty list is the "
+    "correct, expected answer when the documentation is silent, and is reported to the "
+    "user as \"no reference in the KB\"."
 )
 
 
@@ -275,58 +283,87 @@ def analyze_note(note_text: str, requirements: list[DiagnosisRequirement]) -> li
     ]
 
 
-def validate_against_kb(
-    observation: NoteObservation,
-    candidates: list[Clause],
-) -> list[KbSupport]:
-    """Pass B: the model reads the RETRIEVED clause text and decides whether the
-    documentation actually governs this observation. Returning [] is a valid,
-    expected outcome -- it becomes "no reference in the KB"."""
-    if not candidates:
-        return []
-    client = _make_client()
+def group_for_validation(
+    observations: list[NoteObservation],
+) -> list[tuple[str, list[NoteObservation]]]:
+    """Observations grouped by condition, in first-seen order.
+
+    Pass B used to be one API call per OBSERVATION, so a condition with three gap
+    axes paid three round trips over three heavily-overlapping candidate sets. One
+    call per CONDITION sends the clause text once and asks all its questions
+    together."""
+    grouped: dict[str, list[NoteObservation]] = {}
+    for observation in observations:
+        grouped.setdefault(observation.condition, []).append(observation)
+    return list(grouped.items())
+
+
+def build_validation_content(clauses: list[Clause], observations_text: str) -> list[dict]:
+    """Pass B user content as blocks, with the clause text marked cacheable.
+
+    The candidate clause text is the bulk of the prompt and is stable across notes
+    (retrieval is deterministic per condition/axis), so it carries a cache_control
+    breakpoint. The observations block is per-note and deliberately sits AFTER it,
+    uncached, so it cannot invalidate the cached prefix."""
     rendered = "\n\n".join(
-        f"[{c.clause_id}] (page {c.page}, section: {c.section_title})\n{c.text}" for c in candidates
+        f"[{c.clause_id}] (page {c.page}, section: {c.section_title})\n{c.text}"
+        for c in clauses
     )
-    response = client.messages.parse(
+    return [
+        {"type": "text", "text": f"CANDIDATE CLAUSES:\n{rendered}",
+         "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": observations_text},
+    ]
+
+
+def validate_against_kb(
+    condition: str,
+    observations: list[NoteObservation],
+    candidates: list[Clause],
+) -> dict[str, list[KbSupport]]:
+    """Pass B: the model reads the RETRIEVED clause text and decides, per axis,
+    whether the documentation actually governs the observation. An axis mapping to
+    an empty list is a valid, expected outcome -- it becomes "no reference in the
+    KB"."""
+    if not candidates or not observations:
+        return {}
+    asked = "\n".join(
+        f"- axis: {o.axis}\n  issue: {o.issue}\n  note evidence: {o.note_quote}"
+        for o in observations
+    )
+    observations_text = f"CONDITION: {condition}\nOBSERVATIONS\n{asked}"
+    response = _make_client().messages.parse(
         model=ANTHROPIC_MODEL,
         max_tokens=8000,
         system=_VALIDATE_SYSTEM,
-        messages=[{
-            "role": "user",
-            "content": (
-                f"OBSERVATION\ncondition: {observation.condition}\naxis: {observation.axis}\n"
-                f"issue: {observation.issue}\nnote evidence: {observation.note_quote}\n\n"
-                f"CANDIDATE CLAUSES:\n{rendered}"
-            ),
-        }],
+        messages=[{"role": "user", "content": build_validation_content(candidates, observations_text)}],
         output_format=_Validation,
     )
     parsed = response.parsed_output
     if parsed is None:
         raise ValueError(f"validation pass returned no parsable output (stop_reason={response.stop_reason})")
-    return [KbSupport(clause_id=s.clause_id, quote=s.quote) for s in parsed.supports]
+    return {
+        v.axis: [KbSupport(clause_id=s.clause_id, quote=s.quote) for s in v.supports]
+        for v in parsed.validations
+    }
 
 
 def validate_all(
-    items: list[tuple[NoteObservation, list[Clause]]],
+    items: list[tuple[str, list[NoteObservation], list[Clause]]],
     *,
     validator=None,
     max_workers: int = VALIDATION_CONCURRENCY,
-) -> list[list[KbSupport]]:
-    """Run Pass B for every (observation, candidates) pair concurrently, results
-    in INPUT ORDER -- they are zipped back onto their observations by position,
-    so an out-of-order result would attach one observation's authority to
-    another.
+) -> list[dict[str, list[KbSupport]]]:
+    """Run Pass B for every (condition, observations, candidates) group concurrently,
+    results in INPUT ORDER -- they are zipped back onto their groups by position, so
+    an out-of-order result would attach one condition's authority to another.
 
-    A validator that raises propagates and fails the whole stage rather than
-    being swallowed into an empty support list. That is deliberate: an empty
-    list means "the documents carry nothing on this point" and is reported to
-    the user as such, so turning a transport failure into one would put a false
-    statement about the KB in front of a clinician. Losing the batch to
-    AuditResult.llm_error, with the deterministic findings still returned, is
-    the honest failure.
-    """
+    A validator that raises propagates and fails the whole stage rather than being
+    swallowed into an empty support map. That is deliberate: empty means "the
+    documents carry nothing on this point" and is reported to the user as such, so
+    turning a transport failure into one would put a false statement about the KB in
+    front of a clinician. Losing the batch to AuditResult.llm_error, with the
+    deterministic findings still returned, is the honest failure."""
     validator = validator or validate_against_kb
     if not items:
         return []
@@ -341,26 +378,35 @@ def run_llm_stage(
 ) -> list[ValidatedObservation]:
     """Analyze -> ground in the note -> retrieve -> validate against the KB.
 
-    The KB is the validation authority: nothing the model observed is reported
-    with authority it did not earn against retrieved clause text. Observations
-    the documents do not cover still come back (with empty supports) so the
-    audit can report them as "no reference in the KB".
-    """
+    The KB is the validation authority: nothing the model observed is reported with
+    authority it did not earn against retrieved clause text. Observations the
+    documents do not cover still come back (with empty supports) so the audit can
+    report them as "no reference in the KB".
+
+    Retrieval stays per (condition, axis) -- the candidate set must not depend on how
+    many axes happen to be asked -- but the union of a condition's candidates is sent
+    once, and its axes are judged in a single call."""
     by_condition = {req.condition: req for req in requirements}
     grounded = keep_grounded(analyze_note(note_text, requirements), note_text, by_condition)
     store = ClauseStore(config.KB_DB)
     try:
-        items: list[tuple[NoteObservation, list[Clause]]] = []
-        for observation in grounded:
-            candidate_ids = retrieve_candidates(index, observation, by_condition[observation.condition])
-            clauses = [c for c in (store.get(cid) for cid in candidate_ids) if c is not None]
-            items.append((observation, clauses))
-        return [
-            ValidatedObservation(
-                observation=observation,
-                supports=keep_candidate_supports(supports, [c.clause_id for c in clauses]),
-            )
-            for (observation, clauses), supports in zip(items, validate_all(items), strict=True)
-        ]
+        items: list[tuple[str, list[NoteObservation], list[Clause]]] = []
+        for condition, observations in group_for_validation(grounded):
+            requirement = by_condition[condition]
+            clause_ids: list[str] = []
+            for observation in observations:
+                for clause_id in retrieve_candidates(index, observation, requirement):
+                    if clause_id not in clause_ids:
+                        clause_ids.append(clause_id)
+            clauses = [c for c in (store.get(cid) for cid in clause_ids) if c is not None]
+            items.append((condition, observations, clauses))
+
+        validated: list[ValidatedObservation] = []
+        for (_condition, observations, clauses), by_axis in zip(items, validate_all(items), strict=True):
+            allowed = [c.clause_id for c in clauses]
+            for observation in observations:
+                supports = keep_candidate_supports(by_axis.get(observation.axis, []), allowed)
+                validated.append(ValidatedObservation(observation=observation, supports=supports))
+        return validated
     finally:
         store.close()

@@ -1,0 +1,22 @@
+# RULE A(i): the chapter names the site, grade and cause axes in one sentence.
+condition: intraepithelial neoplasia
+synonyms: [CIN, VIN, VAIN]
+axes:
+  - axis: site
+    level: required
+    evidence_terms: ["cervical", "vulval", "vulvar", "vaginal", "anal"]
+  - axis: stage
+    level: required
+    evidence_terms: ["grade 1", "grade 2", "grade 3", "low grade", "high grade", "grade i", "grade ii", "grade iii"]
+  - axis: agent
+    level: recommended
+    evidence_terms: ["human papillomavirus", "hpv", "due to"]
+recommendation: >-
+  Intraepithelial neoplasia is documented without the site or grade. Please document the site, the
+  grade of severity, and the underlying cause (e.g. HPV), if known.
+citations:
+  - clause_id: "CDI-2021/intraepithelial-neoplasia/p3"
+    quote: >-
+      The site should always be recorded by the clinician, in addition to the grade of severity, and
+      if the underlying cause is known, or suspected; for example, if due to human papillomavirus
+      (HPV).

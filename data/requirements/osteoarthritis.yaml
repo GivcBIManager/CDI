@@ -1,0 +1,17 @@
+# "OA" is claimed only with a joint or arthritis cue nearby: bare "OA" is ambiguous shorthand across specialties.
+condition: osteoarthritis
+synonyms: [degenerative joint disease]
+ambiguous_synonyms:
+  - term: OA
+    requires_nearby: [joint, knee, hip, spine, hand, cartilage, arthritis, degenerative]
+axes:
+  - axis: site
+    level: required
+    evidence_terms: ["knee", "hip", "spine", "hand", "shoulder", "ankle", "joint"]
+recommendation: >-
+  Osteoarthritis is documented without the affected joints. Please document which joints are
+  affected, if known.
+citations:
+  - clause_id: "CDI-2021/osteoarthritis/p1"
+    quote: >-
+      Clinical documentation should clearly indicate the affected joints.

@@ -1,0 +1,16 @@
+# RULE A(i): the Febrile Convulsions chapter names the underlying-cause axis and states the coding consequence of omitting it.
+condition: febrile convulsion
+synonyms: [febrile seizure, febrile convulsions, febrile seizures]
+axes:
+  - axis: agent
+    level: required
+    evidence_terms: ["due to", "secondary to", "tonsillitis", "otitis media", "viral illness", "uti", "underlying cause"]
+recommendation: >-
+  A febrile convulsion is documented without the underlying cause. Please document the underlying
+  cause (e.g. tonsillitis, otitis media, viral illness or UTI), if known.
+citations:
+  - clause_id: "CDI-2021/febrile-convulsions/p1"
+    quote: >-
+      documentation should clearly indicate when a patient is being managed for a ‘febrile convulsion’
+      along with any associated conditions, or underlying cause of the condition such as tonsillitis,
+      otitis media, viral illness or UTI.

@@ -1,0 +1,20 @@
+# RULE A(i): the Appendicitis chapter names both the acuity axis and the perforation/peritonitis axis explicitly.
+condition: appendicitis
+synonyms: [appendicular]
+axes:
+  - axis: onset
+    level: required
+    evidence_terms: ["acute", "chronic", "gangrenous"]
+  - axis: type
+    level: required
+    evidence_terms: ["perforation", "perforated", "rupture", "ruptured", "peritonitis", "abscess"]
+recommendation: >-
+  Appendicitis is documented without the acuity or without stating whether perforation, rupture or
+  peritonitis is present. Please document the acuity and any perforation, rupture, peritonitis or
+  abscess, if known.
+citations:
+  - clause_id: "CDI-2021/appendicitis/p1"
+    quote: >-
+      Clinical documentation should clearly specify the acuity of the appendicitis, whether it is
+      associated with or without perforation or rupture, and if there is also a generalized or
+      localized peritonitis, or any formation of intrabdominal or peritoneal abscesses.

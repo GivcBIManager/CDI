@@ -3,6 +3,11 @@ synonyms: [NSTEMI, STEMI, unstable angina, demand ischemia, ACS]
 axes:
   - axis: type
     level: required
+    # Opt in to the conflicting-documentation check: these labels are genuinely
+    # alternative diagnoses, not co-occurring descriptors. A cardiology consult
+    # documenting NSTEMI while the attending's plan says demand ischemia is the
+    # canonical case -- different codes, different severity.
+    conflict_check: true
     evidence_terms: [NSTEMI, STEMI, unstable angina, stable angina, demand, acute myocardial infarction]
 recommendation: >-
   Myocardial ischemia is documented without specifying the type. Please document the specific type

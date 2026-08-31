@@ -10,14 +10,14 @@ from cdi_kb.doc_gaps import find_element_gaps
 from cdi_kb.doctype import detect_doc_type
 from cdi_kb.findings import (
     Finding, compose_element_finding, compose_finding, compose_inferred_finding,
-    compose_necessity_finding, compose_provider_finding,
+    compose_integrity_finding, compose_necessity_finding, compose_provider_finding,
 )
-from cdi_kb.gapcheck import detect_conditions, find_gaps, rule_applies
+from cdi_kb.gapcheck import detect_conditions, find_gaps, rule_applies, term_pattern
 from cdi_kb.index import SearchIndex
 from cdi_kb.necessity import find_necessity_gaps
 from cdi_kb.requirements_model import (
     DOC_TYPES, DiagnosisRequirement, DocType, load_doc_requirements, load_necessity_rules,
-    load_provider_rules, load_requirements,
+    load_integrity_rules, load_provider_rules, load_requirements,
 )
 from cdi_kb.segments import UNATTRIBUTED, NoteSegment, role_at, segment_note
 
@@ -108,6 +108,56 @@ def _unconfirmed_conditions(
     return unconfirmed
 
 
+def _copy_forward_cue(note_text: str, cue_terms: list[str]) -> str | None:
+    """The first copy-forward cue the note declares, with a little surrounding
+    context as evidence -- or None if the note declares none.
+
+    Cue-based by necessity: undisclosed cloning needs the previous note to diff
+    against, which a single-note audit never has. Every note this flags really is
+    cloned; the ones it misses are the ones that did not say so."""
+    for term in cue_terms:
+        match = term_pattern(term).search(note_text)
+        if match is not None:
+            start = max(0, match.start() - 40)
+            return note_text[start:match.end() + 40].strip().replace(chr(10), ' ')
+    return None
+
+
+def _conflicting_axes(
+    note_text: str,
+    requirements: list[DiagnosisRequirement],
+    segments: list[NoteSegment],
+) -> list[tuple[str, str, str]]:
+    """(condition, axis, evidence) where two different labels for the same axis were
+    written by two different authors.
+
+    Only axes with conflict_check opted in are examined -- most axis term lists are
+    not mutually exclusive. Two labels from ONE author is a differential diagnosis
+    ("NSTEMI versus demand ischemia, awaiting serial troponins"), which is good
+    documentation, so a conflict requires the labels to sit in different segments."""
+    conflicts: list[tuple[str, str, str]] = []
+    named = {m.condition for m in detect_conditions(note_text, requirements) if not m.negated}
+    for requirement in requirements:
+        if requirement.condition not in named:
+            continue
+        for rule in requirement.axes:
+            if not rule.conflict_check:
+                continue
+            roles_by_term: dict[str, set[str]] = {}
+            for term in rule.evidence_terms:
+                for match in term_pattern(term).finditer(note_text):
+                    roles_by_term.setdefault(term, set()).add(role_at(segments, match.start()))
+            if len(roles_by_term) < 2:
+                continue
+            all_roles = set().union(*roles_by_term.values())
+            if any(all(role in roles for roles in roles_by_term.values()) for role in all_roles):
+                continue  # one author wrote every label: a differential, not a conflict
+            labels = ', '.join(sorted(roles_by_term))
+            conflicts.append((requirement.condition, rule.axis,
+                              f'{labels} documented by different authors'))
+    return conflicts
+
+
 def _validated_findings(
     validated: list["ValidatedObservation"],
     note_text: str,
@@ -185,6 +235,7 @@ def run_audit(
     doc_requirements = load_doc_requirements(config.DOC_REQUIREMENTS_DIR)
     necessity_rules = load_necessity_rules(config.NECESSITY_DIR)
     provider_rules = load_provider_rules(config.PROVIDER_RULES_DIR)
+    integrity_rules = load_integrity_rules(config.INTEGRITY_RULES_DIR)
     store = ClauseStore(config.KB_DB)
     result = AuditResult(active_doc_type=resolved_doc_type)
     try:
@@ -206,6 +257,25 @@ def run_audit(
                 result.dropped_citations.append(f"{condition}|provider_confirmation")
             else:
                 result.findings.append(finding)
+
+        for rule in integrity_rules:
+            if rule.kind == "copy_forward":
+                evidence = _copy_forward_cue(note_text, rule.cue_terms)
+                if evidence is None:
+                    continue
+                finding = compose_integrity_finding(rule, "note", "copy_forward", evidence, store)
+                if finding is None:
+                    result.dropped_citations.append("note|copy_forward")
+                else:
+                    result.findings.append(finding)
+            elif rule.kind == "conflicting_documentation":
+                for condition, axis, evidence in _conflicting_axes(note_text, requirements, segments):
+                    finding = compose_integrity_finding(
+                        rule, condition, f"conflicting_{axis}", evidence, store)
+                    if finding is None:
+                        result.dropped_citations.append(f"{condition}|conflicting_{axis}")
+                    else:
+                        result.findings.append(finding)
 
         for gap in find_necessity_gaps(note_text, necessity_rules):
             finding = compose_necessity_finding(gap, store)

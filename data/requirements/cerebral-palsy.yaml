@@ -1,0 +1,21 @@
+# "CP" is claimed only with a cerebral-palsy cue nearby: it is equally common shorthand for chest pain.
+condition: cerebral palsy
+synonyms: [spastic diplegia]
+ambiguous_synonyms:
+  - term: CP
+    requires_nearby: [cerebral, palsy, spastic, dyskinetic, ataxic, diplegia, hemiplegia]
+axes:
+  - axis: type
+    level: required
+    evidence_terms: ["spastic", "dyskinetic", "ataxic", "mixed"]
+  - axis: stage
+    level: required
+    evidence_terms: ["diplegia", "paraplegia", "hemiplegia", "quadriplegia", "monoplegia"]
+recommendation: >-
+  Cerebral palsy is documented without the form or the degree. Please document the form (spastic,
+  dyskinetic or ataxic) and the degree (e.g. diplegia, paraplegia, hemiplegia), if known.
+citations:
+  - clause_id: "CDI-2021/cerebral-palsy/p2"
+    quote: >-
+      Documentation should also specify the form of cerebral palsy (spastic, dyskinetic or ataxic) in
+      addition to the degree (spastic diplegia, paraplegia or hemiplegia).
