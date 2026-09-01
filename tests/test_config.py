@@ -32,6 +32,17 @@ def test_load_dotenv_missing_file_is_noop(tmp_path):
     config._load_dotenv(tmp_path / "does-not-exist.env")
 
 
+MOH_SOURCE_IDS = {
+    "MOH-DM", "MOH-SEPSIS-MAT", "MOH-PN-ADULT", "MOH-MENINGITIS", "MOH-IAI",
+    "MOH-HD", "MOH-LRTI", "MOH-SEPSIS-PED", "MOH-UTI", "MOH-SSI", "MOH-SSTI",
+    "MOH-DKA", "MOH-DKA-PED", "MOH-VTE", "MOH-FH", "MOH-RA", "MOH-HIE",
+    "MOH-MDD", "MOH-HYPOGLYCEMIA", "MOH-HEADACHE", "MOH-DVT", "MOH-PE",
+    "MOH-GAS", "MOH-ANAPHYLAXIS", "MOH-CONTRAST", "MOH-WARFARIN",
+    "MOH-TDM-VANCO", "MOH-ANTICOAG-REV", "MOH-ABX-PROPH", "MOH-ALBUMIN",
+    "MOH-SUP",
+}
+
+
 def test_sources_registry_has_expected_keys() -> None:
     expected = {
         "CDI-2021",
@@ -45,8 +56,24 @@ def test_sources_registry_has_expected_keys() -> None:
         "CHI-NEC-FBG",
         "CHI-NEC-UCULT",
         "CHI-NEC-B12",
-    }
+    } | MOH_SOURCE_IDS
     assert set(config.SOURCES.keys()) == expected
+    assert len(expected) == 42
+
+
+def test_moh_sources_carry_moh_authority_and_genre() -> None:
+    for source_id in MOH_SOURCE_IDS:
+        source = config.SOURCES[source_id]
+        assert source.authority == "MOH", source_id
+        assert source.genre == "moh_protocol", source_id
+
+
+def test_moh_source_ids_do_not_collide_with_chi() -> None:
+    # CHI-LRTI and MOH-LRTI are different documents on the same topic. The
+    # prefix is what keeps their clause_ids apart, so a bare "LRTI" id would
+    # silently merge two authorities' clauses under one V1 source check.
+    for source_id in MOH_SOURCE_IDS:
+        assert source_id.startswith("MOH-"), source_id
 
 
 def test_sources_paths_exist() -> None:

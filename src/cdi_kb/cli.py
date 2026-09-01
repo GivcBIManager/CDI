@@ -13,6 +13,7 @@ from cdi_kb.clauses import Clause, ClauseStore, chunk_booklet
 from cdi_kb.extract import extract_pages
 from cdi_kb.findings import KB_SUPPORTED, Finding
 from cdi_kb.index import SearchIndex
+from cdi_kb.moh_chunker import chunk_moh
 from cdi_kb.normalize import normalize
 from cdi_kb.requirements_model import DOC_TYPES
 from cdi_kb.verify import run_verification
@@ -26,7 +27,12 @@ def build_kb() -> tuple[int, int]:
     for source in config.SOURCES.values():
         pages = extract_pages(source.path, config.RAW_TEXT_DIR)
         extracted_chars = sum(len(page.text) for page in pages)
-        clauses = chunk_booklet(pages) if source.genre == "booklet" else chunk_chi(pages, source)
+        if source.genre == "booklet":
+            clauses = chunk_booklet(pages)
+        elif source.genre == "moh_protocol":
+            clauses = chunk_moh(pages, source)
+        else:
+            clauses = chunk_chi(pages, source)
         if len(clauses) < MIN_SOURCE_CLAUSES or extracted_chars < MIN_SOURCE_CHARS:
             raise ValueError(
                 f"{source.source_id}: only {len(clauses)} clause(s) from {extracted_chars} extracted "
