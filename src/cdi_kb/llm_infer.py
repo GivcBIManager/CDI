@@ -34,11 +34,16 @@ if TYPE_CHECKING:
 
 # How many clauses the retrieval pass puts in front of the model per observation.
 # The model may only cite from this set, so it bounds both cost and authority.
+# Raised from 16 to 32 when the 31 curated MOH-KSA protocols were registered as
+# sources (42 total): same-condition MOH clauses now fill every slot below 32
+# before the cited clause surfaces, so 16 stopped reaching the governing clause
+# for urinary tract infection|site and surgical wound infection|onset/agent.
 # Measured against every requirement axis (see test_retrieval_reach_across_every
-# _requirement_axis): 29/37 axes can reach their own governing clause at 8,
-# 31/37 from 16 onward, and no further gain out to 40 -- so 16 is the point where
-# widening stops buying recall and only costs input tokens.
-CANDIDATE_LIMIT = 16
+# _requirement_axis) on the 42-source KB: 17/65 axes unreachable at limit 8,
+# 11/65 at 16, 9/65 at 24, 8/65 from 32 onward with no further gain out to 64 --
+# so 32 is the point where widening stops buying recall and only costs input
+# tokens.
+CANDIDATE_LIMIT = 32
 
 # No single source may fill more than this many candidate slots.
 #

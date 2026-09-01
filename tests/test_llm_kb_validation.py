@@ -398,8 +398,16 @@ def test_retrieval_reach_across_every_requirement_axis(kb, by_condition) -> None
     clause), and the CHI clauses involved extract as space-stripped runs
     ("TheclassificationforbaselineandsubsequentLVEFisshown") that tokenize as one
     term and so match no condition or axis word. Fixing them means re-chunking
-    those CHI PDFs, not tuning retrieval -- widening the candidate window plateaus
-    (29/37 at limit 8, 31/37 from limit 16 onward, no further gain to 40).
+    those CHI PDFs, not tuning retrieval.
+
+    Re-measured after the 31 curated MOH-KSA protocols were registered as
+    sources (11 -> 42, this test's own `total` 37 -> 65): the candidate window
+    had to widen from 16 to 32 (see CANDIDATE_LIMIT in llm_infer.py), because
+    same-condition MOH clauses now fill every slot below 32 before the cited
+    clause surfaces, for urinary tract infection|site and surgical wound
+    infection|onset/agent. Reachability plateaus at 57/65 axes from limit 32
+    onward: 48/65 at limit 8, 54/65 at 16, 56/65 at 24, 57/65 at 32, and no
+    further gain out to 64.
     """
     from cdi_kb.llm_infer import NoteObservation, retrieve_candidates
 
