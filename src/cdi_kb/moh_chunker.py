@@ -4,56 +4,70 @@ Same page-anchored segment loop as the CHI prose chunker -- only the heading
 predicate differs. MOH protocols carry three furniture genres the CHI heuristic
 accepts as headings, and a bad heading is not cosmetic: index.py weights
 section_title 5x body in BM25, so junk titles displace real clauses from
-retrieval. Measured over the curated 31 MOH sources, 270 of 1,616 clauses
-(16.7%) carried a bullet-, glossary-, or date-shaped title before this fix,
-concentrated in the highest-value protocols (SSTI 60%, surgical prophylaxis
-53%, GAS 47%, SSI 47%, LRTI 37%, UTI 35%).
+retrieval. Measured over the curated 31 MOH sources (applying vanilla chunk_chi,
+no MOH rules at all): 161 of 1,616 clauses (10.0%) carried a bullet-, glossary-,
+or date-shaped title before this fix, concentrated unevenly across protocols --
+topped by MOH-SSI (46.7%), MOH-ANAPHYLAXIS (37.5%), MOH-LRTI (31.6%), MOH-IAI
+(28.6%) and MOH-DKA (28.0%). (An earlier survey reported 270/16.7% with a
+different per-protocol breakdown; that measurement does not reproduce against
+the current extraction cache and curated-31 registration -- the numbers above
+are the current authoritative measurement.)
 
 Each rejector was tuned against the corpus and verified to reject ONLY junk.
-Residual, accepted: 88 colon-bearing heading occurrences survive, a minority of
-them table-cell or form-field fragments ("CV effects: ASCVD Neutral Potential
-benefit: Neutral", "Vital Signs: STAT Then every__________"). Separating those
-from real headings needs layout geometry the text layer does not carry. They
-are left in deliberately: an over-broad rejector loses a real section title
-permanently, while a surviving table fragment only adds noise to one clause's
-title. V1 fidelity and citation stability are unaffected either way, because
-clause_id is page-anchored.
+Residual, accepted: on the shipped chunk_moh output, 209 colon-terminated
+section_titles are admitted via the base CHI _is_heading gate (a separate,
+older admission stream from the colon acceptor described below), and a
+minority of those are table-cell or form-field fragments rather than headings
+-- e.g. "Patient: MRN:" (2 occurrences, still reproduces verbatim). Separating
+those from real headings needs layout geometry the text layer does not carry.
+They are left in deliberately: an over-broad rejector loses a real section
+title permanently, while a surviving table fragment only adds noise to one
+clause's title. V1 fidelity and citation stability are unaffected either way,
+because clause_id is page-anchored.
 
-Second residual, accepted: 25 clauses (measured on the built KB) carry a
-short-left-hand-side gloss title ("Cm: Centimeter", "Setup: Inpatient
-setting", "Setup: Outpatient setting", "Dosing: Hepatic Impairment: Adult")
-that _GLOSS_MIN_UPPER (>=0.6 uppercase left-hand side) does not catch, because
-"Cm", "Setup" and "Dosing" are mixed- or lower-case. This set is genuinely
-mixed, not uniformly junk: "Cm: Centimeter" (4x) is a glossary entry that
-should have been rejected, but "Setup: Inpatient setting" (8x), "Setup:
-Outpatient setting" (2x) and "Dosing: Hepatic Impairment: Adult" (2x) are
-real section headings the design deliberately protects (see the comment on
-_GLOSS above -- "Assessment:" and "Setup:"-shaped headings are exactly what
-the uppercase-ratio gate exists to keep). Tightening _GLOSS_MIN_UPPER to catch
-"Cm:" would also reject the real "Setup:"/"Dosing:" headings alongside it, so
-it is left as-is: one glossary-entry title surviving as noise is preferred
-over losing three real section headings.
+Second residual, accepted: measured on the built KB, the count of clauses
+carrying a short-left-hand-side gloss title that _GLOSS_MIN_UPPER (>=0.6
+uppercase left-hand side) does not catch depends on how narrowly "short
+gloss-shaped title" is defined, because the LHS shape ranges from a genuine
+single-word label ("Cm:", "Setup:", "Dosing:") to a multi-field form/table line
+that happens to share the same regex shape. Broadest reading -- any
+_GLOSS-shaped title whose LHS falls below the uppercase-ratio gate: 95
+occurrences / 52 distinct. Tightest reading -- LHS is a single all-alphabetic
+word and the title carries exactly one colon (excludes multi-colon form/table
+fragments like "Diagnosis: ... Time of admission: ... BMI:"): 9 occurrences / 7
+distinct, e.g. "Cm: Centimeter" (3x, a glossary entry that should have been
+rejected) alongside "Assessment: Patient’s Profiling" and "Administration:
+Adult" (real section headings the design deliberately protects -- see the
+comment on _GLOSS above: "Assessment:" and "Setup:"-shaped headings are
+exactly what the uppercase-ratio gate exists to keep). Tightening
+_GLOSS_MIN_UPPER to catch "Cm:" would also reject real headings shaped the
+same way, so it is left as-is: a handful of glossary-entry titles surviving as
+noise is preferred over losing real section headings.
 
 A fourth rule, `_is_colon_heading`, sits alongside the three rejectors above:
 narrow-enough-to-be-additive, not a wholesale replacement for the CHI
 capitalization gate. MOH protocols favor short colon-terminated section labels
-("Aim and scope:", "Targeted population:", "Conflict of interest:") that are
-mostly lowercase words, so the CHI `_is_heading` rule (>=60% of words
-capitalized) drops them -- "Aim and scope:" is 1 of 3. Measured over the
-curated 31, 313 occurrences / 265 distinct colon-terminated section-label
-candidates were dropped this way before the acceptor; it now admits 179
-occurrences / 143 distinct ("Aim and scope:", "Targeted population:",
-"Targeted end users:", "Conflict of interest:", "Fluid management:", "When to
-suspect DKA:", "Vancomycin level:") and still drops 134, almost all
-fragment-shaped: mid-sentence continuations ("the following:", "weight as the
-following:"), a lowercase-led clause ("fluoroquinolone prophylaxis:"), or a
-bullet/dash-led line ("- Or increase the total daily dose:"). Accepting every
-colon-terminated line was rejected: the still-dropped set is dominated by
-reference-list citations and dosing-table fragments that happen to end in
-":", and admitting those would put their fragment text where a real section
-title belongs, weighted 5x by FTS. The length cap, 2-word-minimum, and
-Title-Case-opening checks are what keep the acceptor narrow -- each one
-tuned against a concrete still-dropped example above, not a guess.
+("Aim and scope:", "Targeted population:", "References:") that are mostly
+lowercase words or a single word, so the CHI `_is_heading` rule (>=60% of words
+capitalized) drops them -- "Aim and scope:" is 1 of 3, and a single-word label
+like "References:" never even entered the old candidate measurement (see
+_COLON_HEADING_MIN_WORDS above for why the minimum moved from 2 to 1). Measured
+over the curated 31 (colon-terminated, <=60-char lines not already accepted by
+_is_heading): population 500 occurrences / 367 distinct; the acceptor admits
+328 / 214 ("Aim and scope:", "Targeted population:", "Targeted end users:",
+"Conflict of interest:", "References:", "Methodology:", "Investigations:") and
+still drops 172 / 153, almost all fragment-shaped: mid-sentence continuations
+("the following:", "weight as the following:"), a lowercase-led clause
+("fluoroquinolone prophylaxis:"), a digit-led fragment ("1st line:"), or a
+bullet/dash-led line ("- Pediatric:"). Accepting every colon-terminated line
+was rejected: the still-dropped set is dominated by reference-list citations
+and dosing-table fragments that happen to end in ":", and admitting those would
+put their fragment text where a real section title belongs, weighted 5x by
+FTS. The length cap and Title-Case-opening (stripped[0].isupper()) checks are
+what keep the acceptor narrow -- the word-count minimum, now 1, does almost
+none of that work; see _COLON_HEADING_MIN_WORDS above for its own corrected
+measurement (the 4-occurrence cost of admitting "Patient:"/"MRN:" alongside the
+real single-word labels).
 """
 
 import re
@@ -120,8 +134,23 @@ def _is_datestamp(line: str) -> bool:
 # following:", "fluoroquinolone prophylaxis:" -- lowercase first character,
 # not a section label). The length cap and upper-case-first-letter test
 # together are what keep those out.
+#
+# _COLON_HEADING_MIN_WORDS is 1, not 2. The original 2-word minimum was set
+# from a flawed measurement: its candidate population required >=2 alpha-led
+# words by construction, so it could not see the single-word labels it was
+# discarding. Re-measured on the curated 31, a minimum of 2 drops 149
+# occurrences / 71 distinct real single-word section headings --
+# "References:" (21), "Methodology:" (13), "Introduction:" (7), "Funding:"
+# (7), "Investigations:" (6), "Purpose:" (6), "Updating:" (6), "Monitoring:"
+# (6), "Setup:" (4), "Management:" (3), plus "Appendix 1:", "Section 1:"
+# through "Section 12:", "Indication:", "Disclaimer:", "Contributors:". At a
+# minimum of 1, the cost is 4 occurrences of form-field junk ("Patient:" x2,
+# "MRN:" x2). `stripped[0].isupper()` is the check actually doing the
+# discriminating work here, not the word count: it is what rejects the
+# lowercase and numbered fragments ("method:", "1st line:", "- Pediatric:",
+# "2.Monitoring:") that a bare word-count minimum would otherwise admit.
 _COLON_HEADING_MAX_LEN = 60
-_COLON_HEADING_MIN_WORDS = 2
+_COLON_HEADING_MIN_WORDS = 1
 
 
 def _is_colon_heading(line: str) -> bool:

@@ -60,7 +60,9 @@ MUST_ACCEPT = [
 
 # Colon-terminated section labels the CHI capitalization gate drops (only 1 of
 # 3 words capitalized in "Aim and scope:"), which the narrow colon acceptor
-# admits. Verbatim corpus lines.
+# admits. Verbatim corpus lines. "References:", "Methodology:" and
+# "Investigations:" are single-word labels -- the class _COLON_HEADING_MIN_WORDS
+# was raised to admit (see moh_chunker module docstring).
 COLON_HEADINGS = [
     "Aim and scope:",
     "Targeted population:",
@@ -68,14 +70,21 @@ COLON_HEADINGS = [
     "Conflict of interest:",
     "When to suspect DKA:",
     "Vancomycin level:",
+    "References:",
+    "Methodology:",
+    "Investigations:",
 ]
 
 # Fragment-shaped colon-terminated lines the acceptor must keep dropping --
 # mid-sentence continuations, not section labels. Verbatim corpus lines.
+# "method:" and "1st line:" are single-word but lowercase-first-letter --
+# stripped[0].isupper() is what rejects them, not the word-count minimum.
 COLON_FRAGMENTS = [
     "the following:",
     "weight as the following:",
     "fluoroquinolone prophylaxis:",
+    "method:",
+    "1st line:",
 ]
 
 
