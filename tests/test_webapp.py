@@ -127,7 +127,8 @@ def _finding(finding_type, severity, key):
     return Finding(
         finding_type=finding_type, severity=severity, condition=key.split("|")[0],
         axis=key.split("|")[1], evidence_excerpt="e", recommendation="r",
-        citations=(VerifiedCitation(clause_id="CDI-2021/x/p1", section_title="X", page=1, quote="q"),),
+        citations=(VerifiedCitation(clause_id="CDI-2021/x/p1", section_title="X", page=1, quote="q",
+                                    authority="TCC"),),
         dedupe_key=key,
     )
 

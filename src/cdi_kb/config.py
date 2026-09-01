@@ -167,3 +167,21 @@ SOURCES: dict[str, SourceDoc] = {
         ),
     )
 }
+
+# Citation display order. MOH-KSA is the national health ministry, CHI the
+# insurance/quality authority, TCC the coding-education booklet publisher; a
+# clinician reading a finding should meet the strongest authority first. An
+# authority absent from this map sorts last rather than raising -- a new source
+# family must never be able to break finding composition.
+AUTHORITY_RANK: dict[str, int] = {"MOH": 0, "CHI": 1, "TCC": 2}
+_UNRANKED_AUTHORITY = len(AUTHORITY_RANK)
+
+
+def authority_of(clause_id: str) -> str:
+    """The authority that published the clause, from its source-id prefix."""
+    source = SOURCES.get(clause_id.split("/", 1)[0])
+    return source.authority if source else ""
+
+
+def authority_rank(clause_id: str) -> int:
+    return AUTHORITY_RANK.get(authority_of(clause_id), _UNRANKED_AUTHORITY)

@@ -90,7 +90,9 @@ def format_finding(finding: Finding) -> str:
     if finding.kb_status != KB_SUPPORTED:
         lines.append(f"  {finding.kb_status} — evidence: \"{finding.evidence_excerpt[:90]}\"")
     for cite in finding.citations:
-        lines.append(f"  source: {cite.clause_id} (p.{cite.page}) — \"{cite.quote[:90]}...\"")
+        lines.append(
+            f"  source: [{cite.authority}] {cite.clause_id} (p.{cite.page}) — \"{cite.quote[:90]}...\""
+        )
     return "\n".join(lines)
 
 
