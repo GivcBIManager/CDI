@@ -61,36 +61,45 @@ FINDING_TYPE_LABELS: dict[str, str] = {
 _SEVERITIES = ("required", "recommended")
 
 
-def build_matrix(findings) -> list[dict]:
-    """Findings grouped as a severity x finding-type matrix.
+def build_matrix(findings) -> dict:
+    """Findings as a matrix: severity down the side, finding type across the top.
 
-    One row per finding type PRESENT -- an empty row is a row a reviewer has to
-    read past to learn nothing. Rows follow FINDING_TYPE_LABELS order, columns
-    are required then recommended.
+    Severity is the axis a reviewer triages on first, so it runs down the side
+    where the eye starts, and finding type -- the "what kind of problem is this"
+    axis -- runs across the top.
 
-    A finding type with no label would render as a bare identifier in the grid
-    header, so any unlabelled type is appended at the end under its own
-    identifier rather than being silently dropped.
+    Columns cover only the finding types PRESENT; with seven possible types most
+    are absent from any given note and an empty column is width a reviewer pays
+    for and learns nothing from. Both severity ROWS always render, empty or not:
+    "Required: none" is a fact worth stating rather than leaving to be inferred
+    from a missing row.
+
+    `cells` is positional -- one entry per column, in column order -- so the
+    renderer can walk rows and columns together without re-grouping.
+
+    A finding type with no label would render as a bare identifier in the header,
+    so any unlabelled type is appended at the end under its own identifier rather
+    than being silently dropped.
     """
     by_type: dict[str, list] = {}
     for finding in findings:
         by_type.setdefault(finding.finding_type, []).append(finding)
     ordered = [t for t in FINDING_TYPE_LABELS if t in by_type]
     ordered += [t for t in by_type if t not in FINDING_TYPE_LABELS]
+
+    columns = [{"finding_type": finding_type,
+                "label": FINDING_TYPE_LABELS.get(finding_type, finding_type),
+                "count": len(by_type[finding_type])}
+               for finding_type in ordered]
     rows = []
-    for finding_type in ordered:
-        cells = {
-            severity: [dataclasses.asdict(f) for f in by_type[finding_type]
-                       if f.severity == severity]
-            for severity in _SEVERITIES
-        }
-        rows.append({
-            "finding_type": finding_type,
-            "label": FINDING_TYPE_LABELS.get(finding_type, finding_type),
-            "counts": {severity: len(cells[severity]) for severity in _SEVERITIES},
-            **cells,
-        })
-    return rows
+    for severity in _SEVERITIES:
+        cells = [[dataclasses.asdict(f) for f in by_type[finding_type]
+                  if f.severity == severity]
+                 for finding_type in ordered]
+        rows.append({"severity": severity,
+                     "count": sum(len(cell) for cell in cells),
+                     "cells": cells})
+    return {"columns": columns, "rows": rows}
 
 
 @app.post("/api/audit")
@@ -126,19 +135,24 @@ _PAGE_TEMPLATE = """<!doctype html><html><head><meta charset="utf-8"><title>CDI 
  .cite{color:#555;font-size:.8rem;margin-top:.3rem;word-break:break-word}
  button{padding:.5rem 1.2rem;font-size:1rem;margin-top:.5rem}
  #doctype-result{font-weight:600;margin:.8rem 0 0}
- /* Matrix: finding type down the side, severity across the top. */
- .matrix{display:grid;grid-template-columns:minmax(9rem,auto) 1fr 1fr;gap:.5rem;margin-top:1rem;align-items:start}
- .mhead{font-weight:600;padding:.4rem .2rem;border-bottom:2px solid #d1d5db;position:sticky;top:0;background:#fff}
- .mhead.required{color:#b91c1c}
- .mhead.recommended{color:#b45309}
+ /* Matrix: severity down the side, finding type across the top. Column count
+    varies with the note, so the grid is built from --cols and the whole thing
+    scrolls sideways rather than crushing cells at narrow widths. */
+ .mwrap{overflow-x:auto;margin-top:1rem}
+ .matrix{display:grid;grid-template-columns:minmax(7rem,auto) repeat(var(--cols),minmax(15rem,1fr));gap:.5rem;align-items:start}
+ .mhead{font-weight:600;padding:.4rem .2rem;border-bottom:2px solid #d1d5db;line-height:1.25}
+ .mhead .n{display:block;font-weight:400;color:#6b7280;font-size:.8rem}
  .rowlabel{font-weight:600;padding:.5rem .2rem;border-top:1px solid #e5e7eb;line-height:1.25}
+ .rowlabel.required{color:#b91c1c}
+ .rowlabel.recommended{color:#b45309}
  .rowlabel .n{display:block;font-weight:400;color:#6b7280;font-size:.8rem}
  .cell{border-top:1px solid #e5e7eb;padding-top:.25rem;min-height:1.5rem}
  .cell.empty{color:#9ca3af;font-size:.85rem;padding:.5rem .2rem}
  @media(max-width:52rem){
    .matrix{grid-template-columns:1fr}
    .mhead{display:none}
-   .cell:before{content:attr(data-severity);display:block;font-weight:600;font-size:.8rem;color:#6b7280}
+   .cell:before{content:attr(data-label);display:block;font-weight:600;font-size:.8rem;color:#6b7280}
+   .cell.empty{display:none}
  }
 </style></head><body>
 <h1>CDI Audit Demo</h1>
@@ -167,36 +181,45 @@ async function audit(){
   out.innerHTML = '<p id="doctype-result">Detected/selected type: '+esc(d.active_doc_type)+'</p>'
     +'<h2>'+d.findings.length+' finding(s)</h2>';
 
-  if(d.matrix.length === 0){
+  if(d.matrix.columns.length === 0){
     const none = document.createElement('p');
     none.textContent = 'No findings.';
     out.appendChild(none);
   } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'mwrap';
     const grid = document.createElement('div');
     grid.className = 'matrix';
-    grid.innerHTML = '<div class="mhead"></div>'
-      + '<div class="mhead required">Required</div>'
-      + '<div class="mhead recommended">Recommended</div>';
-    for(const row of d.matrix){
-      const label = document.createElement('div');
-      label.className = 'rowlabel';
-      label.innerHTML = esc(row.label)
-        + '<span class="n">'+(row.counts.required + row.counts.recommended)+'</span>';
-      grid.appendChild(label);
-      for(const severity of ['required','recommended']){
-        const cell = document.createElement('div');
-        cell.dataset.severity = severity;
-        if(row[severity].length === 0){
-          cell.className = 'cell empty';
-          cell.textContent = '—';
-        } else {
-          cell.className = 'cell';
-          for(const f of row[severity]) cell.appendChild(renderFinding(f));
-        }
-        grid.appendChild(cell);
-      }
+    grid.style.setProperty('--cols', d.matrix.columns.length);
+    // Header: an empty corner cell, then one heading per finding type.
+    let head = '<div class="mhead"></div>';
+    for(const col of d.matrix.columns){
+      head += '<div class="mhead">'+esc(col.label)+'<span class="n">'+col.count+'</span></div>';
     }
-    out.appendChild(grid);
+    grid.innerHTML = head;
+    for(const row of d.matrix.rows){
+      const label = document.createElement('div');
+      label.className = 'rowlabel '+esc(row.severity);
+      label.innerHTML = esc(row.severity === 'required' ? 'Required' : 'Recommended')
+        + '<span class="n">'+row.count+'</span>';
+      grid.appendChild(label);
+      row.cells.forEach(function(cell, n){
+        const div = document.createElement('div');
+        // Carries the COLUMN label: below 52rem the header row is hidden and
+        // each cell announces which finding type it belongs to.
+        div.dataset.label = d.matrix.columns[n].label;
+        if(cell.length === 0){
+          div.className = 'cell empty';
+          div.textContent = '—';
+        } else {
+          div.className = 'cell';
+          for(const f of cell) div.appendChild(renderFinding(f));
+        }
+        grid.appendChild(div);
+      });
+    }
+    wrap.appendChild(grid);
+    out.appendChild(wrap);
   }
 
   if(d.llm_error){
