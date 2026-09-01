@@ -1,8 +1,39 @@
 import json
+import re
 
 import pytest
 
 from cdi_kb.cli import main
+
+
+def test_quote_command_source_filter_narrows_matches_to_that_source(capsys) -> None:
+    # store.all() orders clauses CDI-2021 < CHI-* < MOH-* alphabetically, so
+    # without --source, MOH clauses never surface in matches[:10] for common
+    # terms. --source makes MOH content reachable through the ONLY sanctioned
+    # citation-authoring path (see cli.py quote's docstring).
+    exit_code = main(["quote", "urinary tract infection", "--source", "MOH-UTI"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    printed_ids = re.findall(r"^--- (\S+) \(page \d+\) ---$", out, re.MULTILINE)
+    assert printed_ids, "expected at least one MOH-UTI match"
+    assert all(clause_id.startswith("MOH-UTI/") for clause_id in printed_ids)
+
+
+def test_quote_command_reports_match_count_broken_down_by_source(capsys) -> None:
+    exit_code = main(["quote", "urinary tract infection"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "31 clause(s) matched" in out
+    assert "MOH-UTI=4" in out
+    assert "CDI-2021=5" in out
+
+
+def test_quote_command_default_behaviour_unchanged_without_source(capsys) -> None:
+    exit_code = main(["quote", "urinary tract infection"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    printed_ids = re.findall(r"^--- (\S+) \(page \d+\) ---$", out, re.MULTILINE)
+    assert len(printed_ids) == 10
 
 
 def test_audit_command_json_output(tmp_path, capsys) -> None:

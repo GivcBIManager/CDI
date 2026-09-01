@@ -50,17 +50,33 @@ def build_kb() -> tuple[int, int]:
     return len(all_clauses), len(all_clauses)
 
 
-def _cmd_quote(search_text: str) -> int:
-    """Authoring aid: print clauses containing the text, for copy-pasting verbatim quotes."""
+def _cmd_quote(search_text: str, source: str | None = None) -> int:
+    """Authoring aid: print clauses containing the text, for copy-pasting verbatim quotes.
+
+    store.all() orders clauses CDI-2021 < CHI-* < MOH-* alphabetically, so a
+    common term's top-10 window can silently exclude every MOH clause -- pass
+    --source to filter matches down to one source's clause_ids. The per-source
+    breakdown line is printed either way, over the full unfiltered match set,
+    so a truncated matches[:10] window (filtered or not) is visibly truncated
+    rather than silently so.
+    """
     store = ClauseStore(config.KB_DB)
     needle = normalize(search_text)
-    matches = [c for c in store.all() if needle in normalize(c.text)]
+    all_matches = [c for c in store.all() if needle in normalize(c.text)]
     store.close()
+    matches = all_matches
+    if source is not None:
+        matches = [c for c in matches if c.clause_id.split("/", 1)[0] == source]
     for clause in matches[:10]:
         print(f"--- {clause.clause_id} (page {clause.page}) ---")
         print(clause.text)
         print()
-    print(f"{len(matches)} clause(s) matched")
+    counts: dict[str, int] = {}
+    for clause in all_matches:
+        source_id = clause.clause_id.split("/", 1)[0]
+        counts[source_id] = counts.get(source_id, 0) + 1
+    breakdown = ", ".join(f"{source_id}={n}" for source_id, n in sorted(counts.items()))
+    print(f"{len(matches)} clause(s) matched — by source: {breakdown}")
     return 0
 
 
@@ -102,6 +118,7 @@ def main(argv: list[str] | None = None, *, llm_stage=None) -> int:
     sub.add_parser("build-kb", help="extract, chunk, store, and index the corpus")
     quote = sub.add_parser("quote", help="find clauses containing text (for authoring citations)")
     quote.add_argument("search_text")
+    quote.add_argument("--source", default=None, help="filter matches to this source_id (e.g. MOH-UTI)")
     sub.add_parser("verify", help="run V1-V5 KB verification")
     audit = sub.add_parser("audit", help="audit a note file against the KB")
     audit.add_argument("note_file", type=Path)
@@ -119,7 +136,7 @@ def main(argv: list[str] | None = None, *, llm_stage=None) -> int:
         print(f"clauses stored: {stored}, indexed: {indexed}")
         return 0
     if args.command == "quote":
-        return _cmd_quote(args.search_text)
+        return _cmd_quote(args.search_text, source=args.source)
     if args.command == "verify":
         report = run_verification()
         for failure in report.failures:
