@@ -72,8 +72,16 @@ def test_moh_source_ids_do_not_collide_with_chi() -> None:
     # CHI-LRTI and MOH-LRTI are different documents on the same topic. The
     # prefix is what keeps their clause_ids apart, so a bare "LRTI" id would
     # silently merge two authorities' clauses under one V1 source check.
-    for source_id in MOH_SOURCE_IDS:
+    #
+    # Reads config.SOURCES directly rather than this test's own MOH_SOURCE_IDS
+    # literal: asserting a hard-coded set starts with "MOH-" proves nothing
+    # about the registry and cannot catch a real collision there.
+    moh_ids = {sid for sid, source in config.SOURCES.items() if source.authority == "MOH"}
+    non_moh_ids = {sid for sid, source in config.SOURCES.items() if source.authority != "MOH"}
+    assert moh_ids, "no MOH-authority sources registered"
+    for source_id in moh_ids:
         assert source_id.startswith("MOH-"), source_id
+    assert not (moh_ids & non_moh_ids), moh_ids & non_moh_ids
 
 
 def test_sources_paths_exist() -> None:
