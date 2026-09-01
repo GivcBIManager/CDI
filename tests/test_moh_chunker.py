@@ -1,6 +1,6 @@
 """MOH heading rejectors: every string below is a real line from the corpus."""
 
-from cdi_kb.moh_chunker import _is_moh_heading
+from cdi_kb.moh_chunker import _is_colon_heading, _is_moh_heading
 
 # Junk that the CHI predicate accepts as a heading and MOH must reject. Each is
 # a verbatim line from MOH_Protocols/ (occurrence counts across the curated 31:
@@ -30,10 +30,31 @@ MUST_ACCEPT = [
     "Assessment: Patient’s Profiling",
     "Setup: Inpatient setting",
     "Level of Evidence:",
-    "Aim and Scope:",
+    "Aim and scope:",
     "Medication Related Information",
     "STAGING OF CKD",
     "Classification of HF by LVEF",
+]
+
+
+# Colon-terminated section labels the CHI capitalization gate drops (only 1 of
+# 3 words capitalized in "Aim and scope:"), which the narrow colon acceptor
+# admits. Verbatim corpus lines.
+COLON_HEADINGS = [
+    "Aim and scope:",
+    "Targeted population:",
+    "Targeted end users:",
+    "Conflict of interest:",
+    "When to suspect DKA:",
+    "Vancomycin level:",
+]
+
+# Fragment-shaped colon-terminated lines the acceptor must keep dropping --
+# mid-sentence continuations, not section labels. Verbatim corpus lines.
+COLON_FRAGMENTS = [
+    "the following:",
+    "weight as the following:",
+    "fluoroquinolone prophylaxis:",
 ]
 
 
@@ -45,3 +66,13 @@ def test_moh_heading_rejects_corpus_furniture():
 def test_moh_heading_accepts_real_headings():
     for line in MUST_ACCEPT:
         assert _is_moh_heading(line, frozenset()), line
+
+
+def test_colon_heading_acceptor_admits_real_section_labels():
+    for line in COLON_HEADINGS:
+        assert _is_colon_heading(line), line
+
+
+def test_colon_heading_acceptor_rejects_fragment_shaped_lines():
+    for line in COLON_FRAGMENTS:
+        assert not _is_colon_heading(line), line
