@@ -167,3 +167,21 @@ def test_running_footer_is_almost_never_a_section_title():
 def test_real_ckd_headings_survive_the_furniture_filter():
     titles = {c.section_title for c in _clauses("CHI-CKD")}
     assert any("STAGING OF CKD" in t for t in titles), sorted(titles)[:10]
+
+
+def test_default_is_heading_arg_leaves_every_chi_source_byte_identical():
+    # chunk_chi gained a keyword-only `is_heading` so chunk_moh can reuse this
+    # segment loop. Passing the module default explicitly must reproduce the
+    # implicit-default output exactly, for every prose source -- otherwise the
+    # "additive, no behaviour change" claim is unverified and CHI citations
+    # could silently move.
+    from cdi_kb.chi_chunker import _is_heading
+
+    prose = [sid for sid, s in config.SOURCES.items() if s.genre == "chi_prose"]
+    assert prose, "no chi_prose sources registered"
+    for source_id in prose:
+        source = config.SOURCES[source_id]
+        pages = extract_pages(source.path, config.RAW_TEXT_DIR)
+        implicit = chunk_chi(pages, source)
+        explicit = chunk_chi(pages, source, is_heading=_is_heading)
+        assert implicit == explicit, source_id

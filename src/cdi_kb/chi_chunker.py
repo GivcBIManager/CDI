@@ -15,6 +15,7 @@ ever over-split a paragraph, never splice text across the removed line.
 
 import re
 from collections import Counter
+from collections.abc import Callable
 
 from cdi_kb.clauses import Clause, split_paragraphs
 from cdi_kb.config import SourceDoc
@@ -103,7 +104,19 @@ def _is_heading(line: str, furniture: frozenset[str] = frozenset()) -> bool:
     return False
 
 
-def chunk_chi(pages: list[PageText], source: SourceDoc) -> list[Clause]:
+def chunk_chi(
+    pages: list[PageText],
+    source: SourceDoc,
+    *,
+    is_heading: Callable[[str, frozenset[str]], bool] = _is_heading,
+) -> list[Clause]:
+    """Chunk a prose guideline into page-anchored clauses.
+
+    `is_heading` is injectable so a source genre with different page furniture
+    (see moh_chunker) can reuse this segment loop instead of copying it. The
+    default is this module's own predicate, so CHI sources are unaffected --
+    test_default_is_heading_arg_leaves_every_chi_source_byte_identical pins that.
+    """
     furniture = repeating_lines(pages)
     clauses: list[Clause] = []
     current_heading = source.title
@@ -111,7 +124,7 @@ def chunk_chi(pages: list[PageText], source: SourceDoc) -> list[Clause]:
         segments: list[tuple[str, list[str]]] = []
         segment_lines: list[str] = []
         for line in page.text.splitlines():
-            if _is_heading(line, furniture):
+            if is_heading(line, furniture):
                 segments.append((current_heading, segment_lines))
                 current_heading = line.strip()
                 segment_lines = []
