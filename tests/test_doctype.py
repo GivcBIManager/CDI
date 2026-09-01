@@ -185,7 +185,7 @@ def test_header_phrase_mid_sentence_is_not_a_header_match() -> None:
 # test_eval_suite._TYPED_NOTE_PREFIXES. Excluded here by filename prefix so
 # this guard keeps covering exactly the original 40 free-prose notes.
 _TYPED_NOTE_PREFIXES = ("discharge-summary-", "diagnosis-list-", "necessity-hba1c-",
-                        "necessity-b12-", "multicondition-")
+                        "necessity-b12-", "multicondition-", "receiving-note-")
 
 
 def test_all_eval_notes_detect_as_any() -> None:
@@ -202,3 +202,77 @@ def test_all_eval_notes_detect_as_any() -> None:
         if detected != "any":
             misclassified.append(f"{path.name} -> {detected}")
     assert not misclassified, "\n".join(misclassified)
+
+
+# --- untitled receiving/handover notes -------------------------------------
+# A real ICU handover note carried no title, so header matching found nothing,
+# its only SOAP-ish marker was "Plan :" (the "P" is followed by "lan", so the
+# S/O/A/P line pattern correctly declined), and it fell back to "any" -- which
+# has no DocTypeRequirement, so NONE of the 19 completeness rules ran and the
+# audit returned zero findings. Forcing --doc-type admission_note surfaced five
+# real ones.
+
+_RECEIVING_NOTE = """The patient was received from Dr.Ahmed Tharwat
+62 years old male patient
+Presented to the ICU with evolving anterior STEMI
+The patient was shifted to the Cath lab & 2 DES stents were inserted
+Troponin 10626   D-dimer 700
+The patient is conscious & communicable
+Off vasopressors
+Chest : clear , SO2 96% On room air
+Abdomen : lax
+Extremities : free clinically
+
+Plan :
+-FU ECG & Cardiac enzymes
+-Follow the cardiology plan of care
+"""
+
+
+def test_untitled_receiving_note_detects_as_admission_note() -> None:
+    assert detect_doc_type(_RECEIVING_NOTE) == "admission_note"
+
+
+def test_arrival_language_alone_does_not_trigger_detection() -> None:
+    # Free prose that merely narrates an arrival is not a structured receiving
+    # note. Both signals are required precisely because either alone is common.
+    note = ("58F presented to the emergency department with crushing chest pain "
+            "radiating to the jaw. ECG shows dynamic ST changes; troponin elevated.")
+    assert detect_doc_type(note) == "any"
+
+
+def test_labelled_section_lines_alone_do_not_trigger_detection() -> None:
+    note = ("Chest : clear\nAbdomen : soft\nExtremities : no oedema\n\n"
+            "Plan :\n-continue current management\n")
+    assert detect_doc_type(note) == "any"
+
+
+def test_a_titled_note_still_wins_over_the_receiving_signal() -> None:
+    titled = "DISCHARGE SUMMARY\n" + _RECEIVING_NOTE
+    assert detect_doc_type(titled) == "discharge_summary"
+
+
+def test_untyped_eval_notes_stay_below_the_receiving_note_threshold() -> None:
+    """Pins the measurement the thresholds were chosen from.
+
+    Across the 40 untyped eval notes the maximum labelled-line count is 1, and
+    exactly one carries an arrival phrase (with zero labelled lines). The
+    receiving-note signal requires BOTH, so none of them can trip it -- and if a
+    future note narrows that margin, this fails rather than a control note
+    silently acquiring completeness findings.
+    """
+    from cdi_kb import config
+    from cdi_kb.doctype import _arrival_phrase_count, _labelled_line_count
+
+    worst_labelled = 0
+    with_arrival = []
+    for path in sorted((config.EVAL_DIR / "notes").glob("*.txt")):
+        if path.name.startswith(_TYPED_NOTE_PREFIXES):
+            continue
+        text = path.read_text(encoding="utf-8")
+        worst_labelled = max(worst_labelled, _labelled_line_count(text))
+        if _arrival_phrase_count(text):
+            with_arrival.append((path.name, _labelled_line_count(text)))
+
+    assert worst_labelled <= 1, worst_labelled
+    assert all(labelled == 0 for _name, labelled in with_arrival), with_arrival

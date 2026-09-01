@@ -155,7 +155,7 @@ pair; the 15 new ones do not yet.
     /c/python/python -m pytest -m live    # LLM inference tests (needs ANTHROPIC credentials)
 Latest offline run:
 
-    329 passed, 2 deselected in 62.96s
+    334 passed, 2 deselected in 89.42s
 
 Live LLM inference test: **verified**, not pending — `.env` is wired
 (`ANTHROPIC_API_KEY=sk-ant-...`, template in `.env.example`; loaded
@@ -165,7 +165,7 @@ works and takes precedence) and the account has credits:
     /c/python/python -m pytest -m live -v
     tests/test_llm_infer.py::test_live_stage_infers_respiratory_failure_and_validates_it_against_the_kb PASSED
     tests/test_llm_infer.py::test_live_stage_never_cites_a_clause_outside_the_retrieved_candidates PASSED
-    2 passed, 329 deselected
+    2 passed, 334 deselected
 
 ## The `--llm` stage: the KB is the validation authority
 `--llm` is a two-pass, retrieval-backed pipeline, not a one-shot classifier.
@@ -397,8 +397,30 @@ an explicit override always available.
   HbA1c copy" would still fire — "printout"/"copy" name a result but aren't in
   either guard word list). New false positives get closed by tightening a
   guard, never by weakening it past what its positive-control tests require.
-- **Doc-type auto-detection needs the title within the first 2 non-empty
-  lines.** `detect_doc_type`'s header check only looks at a note's first two
+- **Doc-type auto-detection: untitled notes now have one more path.** A real
+  ICU handover note carried no title, so header matching found nothing; its only
+  SOAP-ish marker was `Plan :` (the `P` is followed by "lan", so the S/O/A/P line
+  pattern correctly declined); and it fell back to `any`, which has no
+  `DocTypeRequirement` — so none of the 19 completeness rules ran and the audit
+  returned **zero findings** on a note missing its admitting diagnosis, history,
+  comorbidities, care plan and discharge planning.
+
+  `_is_receiving_note` adds an untitled receiving/handover shape, requiring TWO
+  signals because either alone is common and a wrong doc type is worse than
+  none — a wrong type applies the wrong completeness rules and manufactures
+  false positives, whereas `any` merely stays quiet:
+
+      ARRIVAL   the note says how the patient got here, near the top
+      LABELLED  it is structured as "Label: value" lines, not free prose
+
+  Chosen from measurement, not taste: across the 40 untyped eval notes the
+  highest labelled-line count is 1, and exactly one carries an arrival phrase
+  (with zero labelled lines). Requiring both leaves every one of them at `any`,
+  pinned by `test_untyped_eval_notes_stay_below_the_receiving_note_threshold` so
+  a future note that narrows the margin fails the suite rather than silently
+  giving a control note completeness findings. That note is now the
+  `receiving-note` eval pair: 0 → 5 findings on the gap, 0 on the control.
+- **Doc-type auto-detection still needs a recognisable shape.** `detect_doc_type`'s header check only looks at a note's first two
   non-empty lines (e.g. "DISCHARGE SUMMARY" or "## Admission Note"); a title
   buried deeper, or a note with no title at all relying on SOAP markers /
   numbered-list shape, may fall back to "any" or misdetect. The `--doc-type`

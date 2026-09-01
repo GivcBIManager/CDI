@@ -1,0 +1,32 @@
+The patient was received from the Emergency Department at 14:20 by Dr. S. Karim
+62 years old male patient, MRN TST-0009144
+Admitting diagnosis : acute anterior ST-elevation myocardial infarction (STEMI)
+
+History of presenting complaint : two hours of crushing central chest pain
+radiating to the left arm, associated with sweating and nausea, with a systems
+review otherwise unremarkable.
+
+Co-morbidities : type 2 diabetes mellitus, essential hypertension, dyslipidaemia,
+ex-smoker of 30 pack-years. All chronic conditions active and treated.
+
+Procedure : primary PCI to the proximal left anterior descending artery,
+2 drug-eluting stents, right radial access, no complication.
+
+Allergies : nil known
+
+Troponin : 10626 ng/L    D-dimer : 700 ng/mL
+
+Examination :
+Chest : clear , SO2 96% on room air
+Abdomen : lax
+Radial access site : no haematoma, radial pulse present
+
+Care plan : continue dual antiplatelet therapy, statin and beta blocker, monitor
+for arrhythmia on telemetry, repeat ECG and cardiac enzymes at 6 hours, echo in
+the morning to assess left ventricular function.
+
+Discharge planning : anticipated step-down to the cardiology ward in 48 hours,
+cardiac rehabilitation referral to be made before discharge, follow-up in
+cardiology clinic at 4 weeks.
+
+Signed : Dr. S. Karim, Intensive Care, 2026-09-01 14:35

@@ -11,7 +11,7 @@ from cdi_kb.requirements_model import EXPECTED_CONDITIONS
 # corpus-level guards below (and test_doctype.test_all_eval_notes_detect_as_any)
 # exclude them by filename prefix, keeping the original-40 guard intact.
 _TYPED_NOTE_PREFIXES = ("discharge-summary-", "diagnosis-list-", "necessity-hba1c-",
-                        "necessity-b12-", "multicondition-")
+                        "necessity-b12-", "multicondition-", "receiving-note-")
 
 
 def _expected() -> dict:
@@ -27,7 +27,7 @@ def test_every_diagnosis_has_gap_and_control_note() -> None:
     # 48 -> 50. The 20 original conditions have a gap/control pair each; the 15
     # conditions added from the booklet survey do not yet, and the two
     # multicondition notes are a dense ward-note pair rather than a condition pair.
-    assert len(names) == 50
+    assert len(names) == 52
     assert set(_expected()) == names
 
 
