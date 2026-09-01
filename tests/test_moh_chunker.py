@@ -1,6 +1,11 @@
 """MOH heading rejectors: every string below is a real line from the corpus."""
 
-from cdi_kb.moh_chunker import _is_colon_heading, _is_moh_heading
+from cdi_kb import config
+from cdi_kb.extract import extract_pages
+from cdi_kb.moh_chunker import (
+    _is_abbreviation_gloss, _is_bullet_item, _is_colon_heading, _is_datestamp,
+    _is_moh_heading, chunk_moh,
+)
 
 # Junk that the CHI predicate accepts as a heading and MOH must reject. Each is
 # a verbatim line from MOH_Protocols/ (occurrence counts across the curated 31:
@@ -97,3 +102,24 @@ def test_colon_heading_acceptor_admits_real_section_labels():
 def test_colon_heading_acceptor_rejects_fragment_shaped_lines():
     for line in COLON_FRAGMENTS:
         assert not _is_colon_heading(line), line
+
+
+def test_no_moh_clause_carries_furniture_as_its_section_title():
+    # The guard for the whole chunker fix. index.py weights section_title 5x, so
+    # a regression here degrades retrieval while every other test stays green.
+    #
+    # The metric is the three NAMED classes, not "no junk titles". Table-cell
+    # fragments ("CV effects: ASCVD Neutral...") survive by design -- see the
+    # module docstring -- and asserting an unachievable 0 would only invite this
+    # assertion to be loosened later.
+    moh = [s for s in config.SOURCES.values() if s.genre == "moh_protocol"]
+    assert len(moh) == 31
+
+    offenders = []
+    for source in moh:
+        pages = extract_pages(source.path, config.RAW_TEXT_DIR)
+        for clause in chunk_moh(pages, source):
+            title = clause.section_title
+            if _is_bullet_item(title) or _is_abbreviation_gloss(title) or _is_datestamp(title):
+                offenders.append((clause.clause_id, title))
+    assert offenders == [], offenders[:10]
