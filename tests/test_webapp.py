@@ -118,7 +118,9 @@ def test_page_renders_the_no_reference_marker() -> None:
     assert "kb_status" in _PAGE
 
 
-# --- findings matrix: severity x finding type ------------------------------
+# --- findings matrix: severity rows x finding-type columns -----------------
+# Severity is the triage axis a reviewer reads first, so it runs down the side
+# and finding type runs across the top.
 
 def _finding(finding_type, severity, key):
     from cdi_kb.findings import Finding, VerifiedCitation
@@ -130,45 +132,86 @@ def _finding(finding_type, severity, key):
     )
 
 
-def test_matrix_has_one_row_per_finding_type_present() -> None:
+def test_matrix_has_one_column_per_finding_type_present() -> None:
     from cdi_kb.webapp import build_matrix
 
-    rows = build_matrix([
+    matrix = build_matrix([
         _finding("specificity_gap", "required", "sepsis|agent"),
         _finding("copy_forward", "recommended", "note|copy_forward"),
     ])
-    assert [row["finding_type"] for row in rows] == ["specificity_gap", "copy_forward"]
+    assert [c["finding_type"] for c in matrix["columns"]] == ["specificity_gap", "copy_forward"]
 
 
 def test_matrix_omits_finding_types_with_no_findings() -> None:
     from cdi_kb.webapp import build_matrix
 
-    rows = build_matrix([_finding("specificity_gap", "required", "sepsis|agent")])
-    assert [row["finding_type"] for row in rows] == ["specificity_gap"]
+    matrix = build_matrix([_finding("specificity_gap", "required", "sepsis|agent")])
+    assert [c["finding_type"] for c in matrix["columns"]] == ["specificity_gap"]
 
 
-def test_matrix_splits_each_row_into_required_and_recommended() -> None:
-    from cdi_kb.webapp import build_matrix
-
-    rows = build_matrix([
-        _finding("specificity_gap", "required", "sepsis|agent"),
-        _finding("specificity_gap", "recommended", "uti|site"),
-    ])
-    row = rows[0]
-    assert [f["dedupe_key"] for f in row["required"]] == ["sepsis|agent"]
-    assert [f["dedupe_key"] for f in row["recommended"]] == ["uti|site"]
-
-
-def test_matrix_rows_follow_a_fixed_display_order_not_arrival_order() -> None:
+def test_matrix_columns_follow_a_fixed_display_order_not_arrival_order() -> None:
     # Deterministic findings should read before inferred ones regardless of the
     # order run_audit happened to append them in.
     from cdi_kb.webapp import build_matrix
 
-    rows = build_matrix([
+    matrix = build_matrix([
         _finding("inferred_gap", "required", "sepsis|type"),
         _finding("specificity_gap", "required", "anemia|type"),
     ])
-    assert [row["finding_type"] for row in rows] == ["specificity_gap", "inferred_gap"]
+    assert [c["finding_type"] for c in matrix["columns"]] == ["specificity_gap", "inferred_gap"]
+
+
+def test_matrix_has_a_row_per_severity_in_required_then_recommended_order() -> None:
+    from cdi_kb.webapp import build_matrix
+
+    matrix = build_matrix([_finding("specificity_gap", "recommended", "uti|site")])
+    assert [r["severity"] for r in matrix["rows"]] == ["required", "recommended"]
+
+
+def test_an_empty_severity_row_is_kept_unlike_an_empty_column() -> None:
+    """Both severity rows always render, even when one is empty.
+
+    An empty finding-type COLUMN is noise -- with seven possible types, most are
+    absent from any given note. But severity is the triage axis, and "Required:
+    none" is a fact a reviewer wants stated rather than inferred from a missing
+    row.
+    """
+    from cdi_kb.webapp import build_matrix
+
+    matrix = build_matrix([_finding("specificity_gap", "recommended", "uti|site")])
+    required = next(r for r in matrix["rows"] if r["severity"] == "required")
+    assert required["count"] == 0
+    assert required["cells"] == [[]]
+
+
+def test_matrix_cells_align_with_the_column_order() -> None:
+    from cdi_kb.webapp import build_matrix
+
+    matrix = build_matrix([
+        _finding("specificity_gap", "required", "sepsis|agent"),
+        _finding("copy_forward", "recommended", "note|copy_forward"),
+    ])
+    columns = [c["finding_type"] for c in matrix["columns"]]
+    for row in matrix["rows"]:
+        assert len(row["cells"]) == len(columns), row
+    required = next(r for r in matrix["rows"] if r["severity"] == "required")
+    recommended = next(r for r in matrix["rows"] if r["severity"] == "recommended")
+    assert [f["dedupe_key"] for f in required["cells"][columns.index("specificity_gap")]] == ["sepsis|agent"]
+    assert required["cells"][columns.index("copy_forward")] == []
+    assert [f["dedupe_key"] for f in recommended["cells"][columns.index("copy_forward")]] == ["note|copy_forward"]
+
+
+def test_matrix_carries_labels_and_counts_on_both_axes() -> None:
+    from cdi_kb.webapp import build_matrix
+
+    matrix = build_matrix([
+        _finding("specificity_gap", "required", "sepsis|agent"),
+        _finding("specificity_gap", "required", "anemia|type"),
+        _finding("specificity_gap", "recommended", "uti|site"),
+    ])
+    column = matrix["columns"][0]
+    assert column["label"] and column["count"] == 3
+    assert {r["severity"]: r["count"] for r in matrix["rows"]} == {"required": 2, "recommended": 1}
 
 
 def test_every_finding_type_the_audit_can_emit_has_a_matrix_label() -> None:
@@ -180,16 +223,10 @@ def test_every_finding_type_the_audit_can_emit_has_a_matrix_label() -> None:
     assert emitted <= set(FINDING_TYPE_LABELS)
 
 
-def test_matrix_row_carries_a_label_and_counts() -> None:
+def test_matrix_is_empty_when_there_are_no_findings() -> None:
     from cdi_kb.webapp import build_matrix
 
-    row = build_matrix([
-        _finding("specificity_gap", "required", "sepsis|agent"),
-        _finding("specificity_gap", "required", "anemia|type"),
-        _finding("specificity_gap", "recommended", "uti|site"),
-    ])[0]
-    assert row["label"]
-    assert row["counts"] == {"required": 2, "recommended": 1}
+    assert build_matrix([])["columns"] == []
 
 
 def test_audit_api_returns_the_matrix() -> None:
@@ -199,9 +236,10 @@ def test_audit_api_returns_the_matrix() -> None:
 
     payload = TestClient(app).post(
         "/api/audit", json={"note_text": "Known CKD, on regular follow-up."}).json()
-    assert payload["matrix"], payload
-    assert all({"finding_type", "label", "required", "recommended", "counts"} <= set(r)
-               for r in payload["matrix"])
+    matrix = payload["matrix"]
+    assert matrix["columns"], payload
+    assert all({"finding_type", "label", "count"} <= set(c) for c in matrix["columns"])
+    assert all({"severity", "count", "cells"} <= set(r) for r in matrix["rows"])
 
 
 def test_page_renders_the_matrix_grid() -> None:
@@ -209,6 +247,7 @@ def test_page_renders_the_matrix_grid() -> None:
 
     assert "matrix" in _PAGE
     assert "Required" in _PAGE and "Recommended" in _PAGE
+
 
 
 def _script_block() -> str:
