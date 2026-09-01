@@ -19,6 +19,21 @@ permanently, while a surviving table fragment only adds noise to one clause's
 title. V1 fidelity and citation stability are unaffected either way, because
 clause_id is page-anchored.
 
+Second residual, accepted: 25 clauses (measured on the built KB) carry a
+short-left-hand-side gloss title ("Cm: Centimeter", "Setup: Inpatient
+setting", "Setup: Outpatient setting", "Dosing: Hepatic Impairment: Adult")
+that _GLOSS_MIN_UPPER (>=0.6 uppercase left-hand side) does not catch, because
+"Cm", "Setup" and "Dosing" are mixed- or lower-case. This set is genuinely
+mixed, not uniformly junk: "Cm: Centimeter" (4x) is a glossary entry that
+should have been rejected, but "Setup: Inpatient setting" (8x), "Setup:
+Outpatient setting" (2x) and "Dosing: Hepatic Impairment: Adult" (2x) are
+real section headings the design deliberately protects (see the comment on
+_GLOSS above -- "Assessment:" and "Setup:"-shaped headings are exactly what
+the uppercase-ratio gate exists to keep). Tightening _GLOSS_MIN_UPPER to catch
+"Cm:" would also reject the real "Setup:"/"Dosing:" headings alongside it, so
+it is left as-is: one glossary-entry title surviving as noise is preferred
+over losing three real section headings.
+
 A fourth rule, `_is_colon_heading`, sits alongside the three rejectors above:
 narrow-enough-to-be-additive, not a wholesale replacement for the CHI
 capitalization gate. MOH protocols favor short colon-terminated section labels
@@ -48,9 +63,16 @@ from cdi_kb.clauses import Clause
 from cdi_kb.config import SourceDoc
 from cdi_kb.extract import PageText
 
-# Bullet list items. Includes U+FFFD and U+F0B7 because the Wingdings bullets
-# these PDFs use decode to those, not to U+2022.
-_BULLET = re.compile("^[•●▪◦�]")
+# Bullet list items. Includes U+FFFD because some Wingdings/Symbol bullets
+# these PDFs use decode to that instead of U+2022. - covers the
+# whole Wingdings/Symbol Private Use Area block rather than an enumerated
+# list of glyphs: PDF font-private glyph codepoints have no fixed meaning
+# outside the embedding font, so any character in this range at line start
+# is always a bullet or list marker rendered by a symbol font, never real
+# section-heading text. Enumerating individual codepoints (originally just
+# U+F0B7) missed other glyphs from the same block and let list items
+# become junk section_titles, weighted 5x in FTS (see module docstring).
+_BULLET = re.compile("^[•●▪◦�-]")
 
 # "<abbrev>: <expansion>" from the abbreviation table every MOH protocol opens
 # with. The uppercase-ratio test below is load-bearing: this pattern ALONE also

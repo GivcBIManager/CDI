@@ -20,6 +20,22 @@ MUST_REJECT = [
     "18 September 2024",
 ]
 
+# Wingdings/Symbol bullet glyphs, which decode into the Unicode Private Use
+# Area (U+F000-U+F0FF). _BULLET originally covered only U+F0B7 (the one
+# codepoint enumerated by name); these five are different PUA codepoints from
+# the same font-private bullet block and were NOT rejected before this fix.
+# Verbatim lines, confirmed against var/raw_text/*.json. Measured on the built
+# KB: 26 MOH clauses (13 distinct titles) carried one of these as a
+# section_title before the fix.
+WINGDINGS_PUA_BULLETS = [
+    " Physiologic Reactions:",
+    " Safety Profile",
+    " Perform ECG",
+    " Input/Output Chart  Daily Weight",
+    " AND EITHER OF A OR B:",
+    " Meropenem 1g IV q8hr",
+]
+
 # Real headings that MUST survive. This half is the point: a bare
 # "^[^:]{1,28}:\\s+\\S" glossary pattern rejects the first four of these, which
 # would lose a real section title permanently. Requiring an abbreviation-shaped
@@ -60,6 +76,11 @@ COLON_FRAGMENTS = [
 
 def test_moh_heading_rejects_corpus_furniture():
     for line in MUST_REJECT:
+        assert not _is_moh_heading(line, frozenset()), line
+
+
+def test_moh_heading_rejects_wingdings_pua_bullets():
+    for line in WINGDINGS_PUA_BULLETS:
         assert not _is_moh_heading(line, frozenset()), line
 
 
