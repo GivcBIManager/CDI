@@ -43,9 +43,9 @@ not extraction fidelity.
 
 ## 1. The curated 31 sources
 
-31 sources · **1,616 clauses** · index grows 3,017 → 4,633 (**+54%**). Every source clears
-`MIN_SOURCE_CLAUSES=5` and `MIN_SOURCE_CHARS=1000`, so `build_kb` stays loud-on-failure with
-no floor changes.
+31 sources · **1,638 clauses** (measured on the shipped `chunk_moh`, four heading rules
+included) · index grows 3,017 → 4,655 (**+54%**). Every source clears `MIN_SOURCE_CLAUSES=5`
+and `MIN_SOURCE_CHARS=1000`, so `build_kb` stays loud-on-failure with no floor changes.
 
 ### Role A — third authority for existing requirement entries (11)
 
@@ -101,24 +101,34 @@ MOH protocols introduce three furniture genres the CHI heuristic does not reject
    (`Accessed 1 November 2019. Available from`). They escape `repeating_lines` because they
    are not reliably within the 2-line page edge the furniture detector samples.
 
-Measured over the curated 31: **270 / 1,616 clauses (16.7%)** carry a bullet-, glossary-, or
-date-shaped title, and the damage concentrates in the highest-value protocols — SSTI 60%,
-`MOH-ABX-PROPH` 53%, GAS 47%, SSI 47%, LRTI 37%, UTI 35%.
+Measured (re-measured 2026-09-01, applying vanilla `chunk_chi` — no MOH rules at all — to
+the curated 31): **161 / 1,616 clauses (10.0%)** carry a bullet-, glossary-, or date-shaped
+title. The damage still concentrates unevenly across protocols, topped by `MOH-SSI` (46.7%),
+`MOH-ANAPHYLAXIS` (37.5%), `MOH-LRTI` (31.6%), `MOH-IAI` (28.6%) and `MOH-DKA` (28.0%). (The
+original survey's 270/16.7% and per-protocol figures do not reproduce against the current
+extraction cache and curated-31 registration; treat the numbers above as authoritative.)
 
 ### The fix
 
 New module `src/cdi_kb/moh_chunker.py` exposing `chunk_moh(pages, source) -> list[Clause]`,
-which adds three heading rejectors and otherwise reuses the proven CHI segment loop. Each was
-tuned against the real corpus and **verified to reject only junk** (occurrence counts across
-the curated 31):
+which adds three heading rejectors (below) plus one narrow acceptor (§2a) and otherwise
+reuses the proven CHI segment loop. Each rejector was tuned against the real corpus and
+**verified to reject only junk** (occurrence counts across the curated 31, restricted to
+lines the base CHI `_is_heading` gate would otherwise have accepted as a title — i.e. the
+candidates each rejector is actually saving from becoming a 5×-weighted `section_title`):
 
-- `_is_bullet_item(line)` — line begins with a bullet glyph (`•`, `●`, `▪`, and the
-  `` / `�` forms the Wingdings bullets decode to). **110 occurrences, all list
-  items**, no real heading among them.
+- `_is_bullet_item(line)` — line begins with a bullet glyph (`•`, `●`, `▪`),
+  the `�` (U+FFFD) fallback some Wingdings bullets decode to, or any codepoint in the
+  Wingdings/Symbol Private Use Area block **U+F000–U+F0FF** (enumerating individual glyphs
+  missed others from the same font-private block, so the rejector covers the whole block
+  rather than a fixed list). **122 occurrences, all list items**, no real heading among them.
 - `_is_abbreviation_gloss(line)` — matches `^(?P<lhs>[^:]{1,28}):\s+\S` **and** `lhs` is
-  ≥60% uppercase. **49 occurrences, all genuine abbreviation definitions.**
+  ≥60% uppercase. **68 occurrences.** Most are genuine abbreviation definitions, but the
+  set also contains a handful of cover-page and table fragments (a document-control stamp
+  line, a PICO-table's `P:`/`I:`/`O:`/`H:` row labels, a bilingual `GENDER:` form field) —
+  all correctly dropped, and no real section heading is among them either way.
 - `_is_datestamp(line)` — contains a `D Month YYYY`, `Month D, YYYY`, or `D/M/YYYY` date.
-  **7 occurrences, all stamps or reference access-dates.**
+  **17 occurrences, all stamps or reference access-dates.**
 
 The uppercase-ratio condition on the glossary rejector is load-bearing and was added after
 measurement: a bare `^[^:]{1,28}:\s+\S` pattern also rejects **real** headings the corpus
@@ -126,6 +136,32 @@ depends on — `Table 10: Treatment of Hypertriglyceridemia`, `Figure 1: Classif
 `Assessment: Patient's Profiling`, `Setup: Inpatient setting`. Requiring an
 abbreviation-shaped left-hand side separates `IV:` and `MRSA:` from `Assessment:` and
 `Table 10:` cleanly, with no false rejection observed.
+
+### 2a. The narrow acceptor — `_is_colon_heading`
+
+The three rejectors above only ever turn an `_is_heading`-accepted line into a rejection. MOH
+protocols also favor short, mostly-lowercase-word, colon-terminated section labels ("Aim and
+scope:", "Targeted population:", "References:") that the CHI capitalization gate (≥60% of
+words capitalized) never accepts as a heading in the first place — a 1-of-3-capitalized label
+like "Aim and scope:" fails that gate outright, so no rejector could ever touch it either; it
+would fall permanently into the *previous* section's body text instead. `_is_colon_heading` is
+an acceptor, not a rejector: it runs only when `_is_heading` has already said no, and only
+admits a line that ends with `:`, is ≤60 characters, is not furniture or letter-spaced, and
+starts with an uppercase letter.
+
+That last check — `stripped[0].isupper()` — is the real discriminator, not a word-count
+minimum. `_COLON_HEADING_MIN_WORDS` shipped at 2, from a measurement that could not see what
+it excluded: its candidate population required ≥2 alphabetic words *by construction*, so
+single-word labels like "References:" never entered the sample. Corrected to 1, re-measured
+against the curated 31 (colon-terminated, ≤60-char lines not already accepted by
+`_is_heading`): population 500 occurrences / 367 distinct, of which the acceptor admits 328 /
+214 and still drops 172 / 153 — dominated by mid-sentence and list-continuation fragments
+("fluoroquinolone prophylaxis:", "the following:", "1st line:", "- Pediatric:",
+"2.Monitoring:") whose lowercase, dash-, or digit-led first character keeps them out
+regardless of the word-count minimum. The cost of dropping the minimum to 1 is 4 occurrences
+of form-field junk ("Patient:" ×2, "MRN:" ×2) admitted alongside ~149 real single-word labels
+("References:", "Methodology:", "Introduction:", "Funding:", "Investigations:", "Purpose:",
+and others) that the width-2 minimum had been discarding.
 
 To reuse rather than duplicate the segment loop, `chi_chunker.chunk_chi` gains one
 **additive, keyword-only** parameter:
@@ -147,13 +183,18 @@ citation stability must not depend on heading-detection quality.
 
 ### Residual, accepted — table fragments
 
-The three rejectors do **not** clear every bad title. 88 colon-bearing heading occurrences
-survive, and a minority of those are table-cell or form-field fragments rather than headings
-— `CV effects: ASCVD Neutral Potential benefit: Neutral`, `Vital Signs: STAT Then
-every__________`, `Patient: MRN:`. They come from tables that `pdfplumber` linearizes
-row-wise, and separating them from real headings needs layout geometry the text layer does not
-carry. They are left in deliberately rather than removed by a broader pattern that would take
-real headings with them: an over-broad rejector loses a real section title permanently, while a
+The three rejectors do **not** clear every bad title. This population is the one admitted via
+the base CHI `_is_heading` gate specifically (not via the §2a colon acceptor, which is a
+separate admission stream measured on its own terms above) — on the shipped `chunk_moh` output,
+**209 colon-terminated `section_title`s** are admitted this way, and a minority of those are
+table-cell or form-field fragments rather than headings — e.g. `Patient: MRN:` (2 occurrences,
+still reproduces verbatim on the current corpus; the original survey's other two examples,
+`CV effects: ASCVD Neutral Potential benefit: Neutral` and `Vital Signs: STAT Then
+every__________`, no longer appear verbatim after re-segmentation and are presumed superseded
+by similar fragments elsewhere). They come from tables that `pdfplumber` linearizes row-wise,
+and separating them from real headings needs layout geometry the text layer does not carry.
+They are left in deliberately rather than removed by a broader pattern that would take real
+headings with them: an over-broad rejector loses a real section title permanently, while a
 surviving table fragment only adds noise to one clause's 5×-weighted title. V1 fidelity and
 citation stability are unaffected either way, because `clause_id` is page-anchored.
 
@@ -193,6 +234,14 @@ YAML order — an author who lists a primary quote first should see it stay firs
 - **V2** — no change needed. MOH citations route through the same quote-match code as CHI once registered.
 - **V3** — no change to the pass/fail contract. See §5 for the dilution guard.
 - **V5** — the existing `sources` stat becomes 42 (11 + 31); per-source clause counts are emitted for MOH as they already are for CHI, via the existing `for source_id in config.SOURCES` loop (no code change; the stats dict grows automatically).
+- **`llm_infer.CANDIDATE_LIMIT`** — silent in the original draft, but ingestion required a code
+  change here too. Same-condition MOH clauses (MOH-UTI, MOH-SSI, MOH-SEPSIS-MAT, MOH-ABX-PROPH,
+  MOH-IAI) share enough infection/agent/site vocabulary with the CDI-2021 booklet's own
+  specificity clauses to push the previously-cited clause out of the fixed-size top-K BM25
+  window, so `retrieve_candidates` stopped reaching 3 requirement axes. `CANDIDATE_LIMIT` was
+  doubled from 16 to 32 to restore them; reachability was swept at 8/16/24/32/40/48/64 and
+  plateaus at 57/65 axes from 32 onward (48/65 at 8, 54/65 at 16, 56/65 at 24, no further gain
+  past 32) — 32 is the measured plateau, not a round-number guess.
 
 ### New tests
 
@@ -219,6 +268,25 @@ set — not something to re-baseline silently.
 This is also why source-scoped retrieval is a non-goal: at +54% with this guard in place there
 is no evidence it is needed. If the guard trips, that is the evidence, and it becomes slice 1b.
 
+### Outcome (recorded post-ingestion)
+
+The guard tripped: `title_reachable_entries` moved 5 → 7 and `mandate_anchored_entries` moved
+0 → 1. Diagnosis, not silent absorption: `cli verify` still reports `VERIFICATION PASSED`
+throughout, because both stats are V3's own *named* fallback tiers (title-query reachability,
+mandate-clause anchoring) doing exactly what they exist for — the larger, richer index pushed
+a handful of cited CHI/booklet sections out of the standard query's top-5, and V3 fell back to
+a named, visible query to keep confirming those citations are real, rather than either failing
+loudly or absorbing the movement invisibly. No citation went unverified; the *route* to
+verifying it changed.
+
+Per the "not something to re-baseline silently" line above, this was **not** re-baselined
+silently: it was surfaced, and the thresholds in
+`test_moh_ingestion_does_not_worsen_retrieval_fallbacks` were explicitly re-baselined to
+`title_reachable_entries <= 7` / `mandate_anchored_entries <= 1` by user decision, once. That
+test's own comment records the before/after numbers and states plainly that the guard's
+purpose is to catch *future* growth beyond this one approved movement — a second trip is a
+real finding to investigate, not a second re-baseline.
+
 ## 6. Why no rule YAMLs in this slice
 
 The V2 contract requires every citation quote to string-match its clause at
@@ -237,7 +305,7 @@ A/B/C rules against real `cli quote` output, and gets its own plan.
 
 | Risk | Mitigation |
 | --- | --- |
-| Retrieval dilution from +54% index growth | Explicit before/after guard on `title_reachable_entries` (§5); trips loudly rather than being absorbed |
+| Retrieval dilution from +54% index growth | Explicit before/after guard on `title_reachable_entries` (§5); the guard tripped (5→7, mandate-anchored 0→1), was diagnosed as V3's own named fallback tiers absorbing the richer index with `cli verify` still PASSING throughout, and the thresholds were re-baselined to `<=7`/`<=1` once, by explicit user decision, not silently |
 | Heading heuristic still imperfect on unseen MOH layouts | `clause_id` is page-anchored, so citations stay stable regardless; V1 guarantees verbatim fidelity either way; a false-positive heading can only over-split a paragraph, never splice text (existing `chi_chunker` invariant, inherited) |
 | The shared-code edit to `chi_chunker.py` collides with concurrent sessions | Single keyword-only signature line, applied as an assert-guarded line edit, plus test #4 pinning byte-identical CHI output |
 | First extraction of 31 PDFs is slow | Cached under `var/raw_text/` by the existing settings-keyed cache; already warmed by the survey probes; `build_kb` prints per-source progress |
