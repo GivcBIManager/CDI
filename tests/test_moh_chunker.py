@@ -112,14 +112,30 @@ def test_no_moh_clause_carries_furniture_as_its_section_title():
     # fragments ("CV effects: ASCVD Neutral...") survive by design -- see the
     # module docstring -- and asserting an unachievable 0 would only invite this
     # assertion to be loosened later.
+    #
+    # Per-source clause count prevents vacuous passing: if chunk_moh returns
+    # an empty list for every source, the inner loop never runs and offenders
+    # stays []. We assert each source >= 5 clauses to catch this, mirroring
+    # cli.build_kb's MIN_SOURCE_CLAUSES enforcement.
     moh = [s for s in config.SOURCES.values() if s.genre == "moh_protocol"]
     assert len(moh) == 31
 
     offenders = []
+    source_clause_counts = {}
     for source in moh:
         pages = extract_pages(source.path, config.RAW_TEXT_DIR)
+        clause_count = 0
         for clause in chunk_moh(pages, source):
+            clause_count += 1
             title = clause.section_title
             if _is_bullet_item(title) or _is_abbreviation_gloss(title) or _is_datestamp(title):
                 offenders.append((clause.clause_id, title))
+        source_clause_counts[source.source_id] = clause_count
     assert offenders == [], offenders[:10]
+
+    # Each source must produce at least 5 clauses, or chunking silently diverged
+    # from what build_kb accepts.
+    underfull = {
+        sid: count for sid, count in source_clause_counts.items() if count < 5
+    }
+    assert not underfull, f"Sources with <5 clauses: {underfull}"
