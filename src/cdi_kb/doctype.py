@@ -5,7 +5,8 @@ free prose that doesn't clearly match a known shape falls back to "any",
 which every rule matches (see gapcheck.rule_applies).
 
 Order of checks: header phrase (first two non-empty lines, line-anchored) ->
-SOAP markers -> a diagnosis-list shape -> "any".
+SOAP markers -> an untitled receiving/handover shape -> a diagnosis-list
+shape -> "any".
 """
 
 import re
@@ -51,6 +52,58 @@ _DIAGNOSIS_LIST_SHORT_RATIO = 0.6
 _DIAGNOSIS_LIST_ITEM_RATIO = 0.6
 _DIAGNOSIS_LIST_BULLET_CHARS = ("-", "•", "*")  # "-", "•", "*"
 _PROSE_MIN_WORDS = 8
+
+# Receiving/handover-note shape: an untitled note written at the point of taking
+# over a patient's care. A real ICU handover carried no title, so header matching
+# found nothing; its only SOAP-ish marker was "Plan :" (the "P" is followed by
+# "lan", so _SOAP_LINE_PATTERN correctly declined); and it fell back to "any",
+# which has no DocTypeRequirement -- so none of the 19 completeness rules ran and
+# the audit returned zero findings on a note missing its admitting diagnosis,
+# history, comorbidities, care plan and discharge planning.
+#
+# TWO signals are required, because either alone is common and a wrong doc type
+# is worse than none: a wrong type applies the wrong completeness rules and
+# manufactures false positives, whereas "any" merely stays quiet.
+#
+#   ARRIVAL   the note says how the patient got here, near the top.
+#   LABELLED  it is structured as "Label: value" lines rather than free prose.
+#
+# Measured across the 40 untyped eval notes: the highest labelled-line count is
+# 1, and exactly one note carries an arrival phrase (with zero labelled lines).
+# Requiring both leaves every one of them at "any" -- pinned by
+# test_untyped_eval_notes_stay_below_the_receiving_note_threshold.
+_ARRIVAL_PHRASES: tuple[str, ...] = (
+    "presented to", "presenting to", "presents to", "received from",
+    "admitted to", "was admitted", "transferred to", "shifted to",
+    "arrived at", "arrived to", "brought to", "handed over",
+)
+_ARRIVAL_LOOKBACK_LINES = 6
+_ARRIVAL_MIN = 1
+# "Label:" at the start of a line -- letters, spaces, slashes and parentheses
+# only, so a wrapped prose line ending in a colon does not qualify.
+_LABELLED_LINE = re.compile(r"^[ \t]*[A-Za-z][A-Za-z /()]{1,28}[ \t]*:", re.MULTILINE)
+_LABELLED_MIN = 2
+
+
+def _arrival_phrase_count(note_text: str) -> int:
+    """Arrival phrases among the note's first few non-empty lines. Restricted to
+    the top of the note because a mid-note "transferred to the ward" is a plan,
+    not a statement about how this note came to be written."""
+    lines = [line for line in note_text.splitlines() if line.strip()]
+    head = "\n".join(lines[:_ARRIVAL_LOOKBACK_LINES]).lower()
+    return sum(1 for phrase in _ARRIVAL_PHRASES if phrase in head)
+
+
+def _labelled_line_count(note_text: str) -> int:
+    """Lines shaped "Label: value" -- the structural marker of a written-up note
+    rather than the free prose the eval corpus is made of."""
+    return len(_LABELLED_LINE.findall(note_text))
+
+
+def _is_receiving_note(note_text: str) -> bool:
+    return (_arrival_phrase_count(note_text) >= _ARRIVAL_MIN
+            and _labelled_line_count(note_text) >= _LABELLED_MIN)
+
 
 
 def _normalize_header_line(line: str) -> str:
@@ -165,6 +218,11 @@ def detect_doc_type(
         return header
     if _is_soap(note_text):
         return "progress_note"
+    # After the header and SOAP checks so an explicit title or a real SOAP
+    # skeleton always wins, and before the diagnosis-list shape, which a
+    # labelled-line note could otherwise be mistaken for.
+    if _is_receiving_note(note_text):
+        return "admission_note"
     if _is_diagnosis_list(note_text, requirements):
         return "diagnosis_list"
     return "any"

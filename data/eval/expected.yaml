@@ -133,3 +133,16 @@ multicondition-progress-gap.txt:
 # forward. Raises zero findings.
 multicondition-progress-control.txt:
   must_not_find: ["urinary tract infection|site", "acute kidney injury|type", "heart failure|type", "anemia|type", "malnutrition|provider_confirmation", "myocardial ischemia|conflicting_type", "note|copy_forward", "progress_note|wellbeing_observations"]
+
+# An untitled ICU handover note. Header matching finds no title and its only
+# SOAP-ish marker is "Plan :", so before the receiving-note shape was added it
+# fell back to doc_type "any" -- which has no DocTypeRequirement, so none of the
+# 19 completeness rules ran and the audit returned ZERO findings on a note
+# missing its admitting diagnosis, history, comorbidities, care plan and
+# discharge planning.
+receiving-note-gap.txt:
+  must_find: ["admission_note|admitting_diagnosis", "admission_note|history_presenting_complaint", "admission_note|comorbidities", "admission_note|discharge_planning", "admission_note|care_plan"]
+# The same handover documented properly. Detects as admission_note by the same
+# signal, and raises nothing -- so the signal is what changed, not the bar.
+receiving-note-control.txt:
+  must_not_find: ["admission_note|admitting_diagnosis", "admission_note|history_presenting_complaint", "admission_note|comorbidities", "admission_note|discharge_planning", "admission_note|care_plan"]
