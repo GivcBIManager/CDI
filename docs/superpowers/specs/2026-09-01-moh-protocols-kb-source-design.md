@@ -51,28 +51,28 @@ and `MIN_SOURCE_CHARS=1000`, so `build_kb` stays loud-on-failure with no floor c
 
 | `source_id` | File | Clauses | Maps to |
 | --- | --- | --- | --- |
-| `MOH-DM` | `Saudi-Diabetes-Clinical-Practice-Guidelines.pdf` | 376 | `diabetes-mellitus` |
-| `MOH-SEPSIS-MAT` | `Maternal-Sepsis-Management.pdf` | 73 | `sepsis` |
-| `MOH-PN-ADULT` | `Adult-Parenteral-Nutrition-CPG.pdf` | 51 | `malnutrition` |
+| `MOH-DM` | `Saudi-Diabetes-Clinical-Practice-Guidelines.pdf` | 389 | `diabetes-mellitus` |
+| `MOH-SEPSIS-MAT` | `Maternal-Sepsis-Management.pdf` | 71 | `sepsis` |
+| `MOH-PN-ADULT` | `Adult-Parenteral-Nutrition-CPG.pdf` | 52 | `malnutrition` |
 | `MOH-MENINGITIS` | `Acute-CNS-Infections-Meningitis-Adults.pdf` | 30 | `meningitis` |
-| `MOH-IAI` | `Intra-abdominal-Infections-Treatment.pdf` | 28 | `appendicitis` (adjacent) |
-| `MOH-HD` | `Home-Hemodialysis-Complications.pdf` | 26 | `chronic-kidney-disease` |
+| `MOH-IAI` | `Intra-abdominal-Infections-Treatment.pdf` | 27 | `appendicitis` (adjacent) |
+| `MOH-HD` | `Home-Hemodialysis-Complications.pdf` | 27 | `chronic-kidney-disease` |
 | `MOH-LRTI` | `Lower-Respiratory-Tract-Infections.pdf` | 19 | `pneumonia` |
 | `MOH-SEPSIS-PED` | `Pediatric-Sepsis-Management.pdf` | 19 | `sepsis` |
 | `MOH-UTI` | `Urinary-Tract-Infection.pdf` | 17 | `urinary-tract-infection` |
-| `MOH-SSI` | `Surgical-Site-Infections-Guidelines.pdf` | 15 | `surgical-wound-infection` |
-| `MOH-SSTI` | `Skin-and-Soft-Tissue-Infection.pdf` | 10 | new (`skin and soft tissue infection`) |
+| `MOH-SSI` | `Surgical-Site-Infections-Guidelines.pdf` | 16 | `surgical-wound-infection` |
+| `MOH-SSTI` | `Skin-and-Soft-Tissue-Infection.pdf` | 12 | new (`skin and soft tissue infection`) |
 
 ### Role B — candidates for new condition entries (13)
 
-`MOH-DKA` (82), `MOH-DKA-PED` (82), `MOH-VTE` (69), `MOH-FH` (57), `MOH-RA` (55),
-`MOH-HIE` (45), `MOH-MDD` (38), `MOH-HYPOGLYCEMIA` (30), `MOH-HEADACHE` (29),
-`MOH-DVT` (27), `MOH-PE` (24), `MOH-GAS` (19), `MOH-ANAPHYLAXIS` (16).
+`MOH-DKA` (84), `MOH-DKA-PED` (81), `MOH-VTE` (71), `MOH-FH` (57), `MOH-RA` (63),
+`MOH-HIE` (43), `MOH-MDD` (37), `MOH-HYPOGLYCEMIA` (30), `MOH-HEADACHE` (29),
+`MOH-DVT` (27), `MOH-PE` (21), `MOH-GAS` (18), `MOH-ANAPHYLAXIS` (16).
 
 ### Role C — candidates for necessity / order rules (7)
 
-`MOH-CONTRAST` (203), `MOH-WARFARIN` (60), `MOH-TDM-VANCO` (53), `MOH-ANTICOAG-REV` (19),
-`MOH-ABX-PROPH` (15), `MOH-ALBUMIN` (15), `MOH-SUP` (14).
+`MOH-CONTRAST` (200), `MOH-WARFARIN` (61), `MOH-TDM-VANCO` (51), `MOH-ANTICOAG-REV` (20),
+`MOH-ABX-PROPH` (22), `MOH-ALBUMIN` (14), `MOH-SUP` (14).
 
 The role labels are **authoring intent for slice 2**, not a structural property. In
 `config.SOURCES` every one of the 31 is an ordinary `SourceDoc` with `authority="MOH"` and
