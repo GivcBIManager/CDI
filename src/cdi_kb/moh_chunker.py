@@ -64,7 +64,7 @@ from cdi_kb.config import SourceDoc
 from cdi_kb.extract import PageText
 
 # Bullet list items. Includes U+FFFD because some Wingdings/Symbol bullets
-# these PDFs use decode to that instead of U+2022. - covers the
+# these PDFs use decode to that instead of U+2022. U+F000-U+F0FF covers the
 # whole Wingdings/Symbol Private Use Area block rather than an enumerated
 # list of glyphs: PDF font-private glyph codepoints have no fixed meaning
 # outside the embedding font, so any character in this range at line start
@@ -72,7 +72,7 @@ from cdi_kb.extract import PageText
 # section-heading text. Enumerating individual codepoints (originally just
 # U+F0B7) missed other glyphs from the same block and let list items
 # become junk section_titles, weighted 5x in FTS (see module docstring).
-_BULLET = re.compile("^[•●▪◦�-]")
+_BULLET = re.compile("^[•●▪◦\ufffd\uf000-\uf0ff]")
 
 # "<abbrev>: <expansion>" from the abbreviation table every MOH protocol opens
 # with. The uppercase-ratio test below is load-bearing: this pattern ALONE also

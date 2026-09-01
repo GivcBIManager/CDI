@@ -76,12 +76,21 @@ def test_moh_source_ids_do_not_collide_with_chi() -> None:
     # Reads config.SOURCES directly rather than this test's own MOH_SOURCE_IDS
     # literal: asserting a hard-coded set starts with "MOH-" proves nothing
     # about the registry and cannot catch a real collision there.
+    #
+    # The second check inspects config._MOH_PROTOCOLS (pre-dict construction)
+    # because dict last-write-wins silently absorbs duplicates, so checking the
+    # built SOURCES dict cannot detect a collision.
     moh_ids = {sid for sid, source in config.SOURCES.items() if source.authority == "MOH"}
     non_moh_ids = {sid for sid, source in config.SOURCES.items() if source.authority != "MOH"}
     assert moh_ids, "no MOH-authority sources registered"
     for source_id in moh_ids:
         assert source_id.startswith("MOH-"), source_id
-    assert not (moh_ids & non_moh_ids), moh_ids & non_moh_ids
+
+    # Check collision at the source-definition level before dict construction
+    assert len(config._MOH_PROTOCOLS) == 31, f"expected 31 MOH protocol rows, got {len(config._MOH_PROTOCOLS)}"
+    moh_source_ids_from_table = {row[0] for row in config._MOH_PROTOCOLS}
+    assert len(moh_source_ids_from_table) == 31, f"expected 31 distinct source_ids in _MOH_PROTOCOLS, got {len(moh_source_ids_from_table)}"
+    assert not (moh_source_ids_from_table & non_moh_ids), f"MOH source_id collision with CHI: {moh_source_ids_from_table & non_moh_ids}"
 
 
 def test_sources_paths_exist() -> None:
