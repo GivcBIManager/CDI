@@ -23,7 +23,7 @@ V3  Retrieval adequacy (two fallback tiers, both visible): for every requirement
         stats["mandate_anchored_entries"], named in report.notes as "V3-INFO"
         lines.
       - Title-reachable entries: not mandate-anchored, but the standard query
-        misses because the multi-source index dilutes it (unrelated CHI-source
+        misses because the multi-source index dilutes it (unrelated MOH-source
         clauses now outrank the citation). A query built from the cited clause(s)
         own section_title(s) (expansions = the entry's synonyms) must surface the
         cited section in the top 5 instead. Counted in
@@ -211,7 +211,7 @@ def run_verification() -> VerificationReport:
 
         # Not mandate-anchored: the standard condition-query missed. Before failing,
         # try the cited section's own title as the query — a multi-source index can
-        # dilute the standard query with unrelated CHI-source hits even though the
+        # dilute the standard query with unrelated MOH-source hits even though the
         # citation is still findable by name.
         cited_titles = sorted({c.section_title for c in cited_clauses})
         title_query = " ".join(cited_titles)

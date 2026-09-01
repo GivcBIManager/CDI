@@ -58,8 +58,12 @@ def _verified_citations(citations: list[Citation], store: ClauseStore) -> list[V
 
     Verified citations are returned ordered by publishing authority (MOH ->
     CHI -> CDI-2021). The sort is stable and keys on rank alone, so two
-    citations from the same authority keep the order the YAML author gave
-    them."""
+    citations from the same authority keep their input order -- for a
+    deterministic composer that is the order the YAML author gave them; for
+    an LLM-inferred finding (compose_inferred_finding in this module) the
+    input is the model's own relevance ranking from Pass B, not an author's
+    ordering, and that ranking is what the stable sort preserves within an
+    authority tier."""
     verified: list[VerifiedCitation] = []
     for citation in citations:
         clause = store.get(citation.clause_id)

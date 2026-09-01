@@ -392,13 +392,14 @@ def test_retrieval_reach_across_every_requirement_axis(kb, by_condition) -> None
     honestly report "no reference in the KB" -- so this test pins both the floor
     and the exact known-unreachable set, and fails if either moves.
 
-    The unreachable six are pre-existing KB limitations, not inference bugs: heart
-    failure, obesity and stroke are the repo's `mixed_authority_entries` (their
-    citations are the generic "Documenting for Specificity" mandate plus a CHI
+    The unreachable eight are pre-existing KB limitations, not inference bugs. Six
+    of them: heart failure, obesity and stroke are the repo's `mixed_authority_entries`
+    (their citations are the generic "Documenting for Specificity" mandate plus a CHI
     clause), and the CHI clauses involved extract as space-stripped runs
     ("TheclassificationforbaselineandsubsequentLVEFisshown") that tokenize as one
     term and so match no condition or axis word. Fixing them means re-chunking
-    those CHI PDFs, not tuning retrieval.
+    those CHI PDFs, not tuning retrieval. The other two, corneal ulcer|agent/stage,
+    are a distinct root cause -- see the comment in the assert below.
 
     Re-measured after the 31 curated MOH-KSA protocols were registered as
     sources (11 -> 42, this test's own `total` 37 -> 65): the candidate window

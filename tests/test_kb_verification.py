@@ -134,6 +134,9 @@ def test_moh_ingestion_does_not_worsen_retrieval_fallbacks() -> None:
     # these numbers again just to make it pass.
     report = run_verification()
     assert report.stats["title_reachable_entries"] <= 7
+    # <=1, not ==1: this line is deliberately a ceiling against future growth, not a pin
+    # on today's exact value -- test_mandate_anchored_entries_are_named_in_notes above
+    # already pins mandate_anchored_entries == 1 precisely.
     assert report.stats["mandate_anchored_entries"] <= 1
 
 
