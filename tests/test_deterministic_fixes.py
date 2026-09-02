@@ -103,6 +103,47 @@ def test_uti_site_finding_recommends_documenting_the_site_not_the_organism() -> 
     assert "infective agent" not in text
 
 
+def test_ckd_onset_finding_recommends_the_course_not_the_already_documented_stage() -> None:
+    note = ("62M admitted with fluid overload. Background: hypertension, CKD stage 4\n"
+            "(eGFR 22), followed by nephrology, ex-smoker. On furosemide.\n"
+            "Plan: daily weights, renal profile, medication review.")
+    result = run_audit(note)
+    keys = {f.dedupe_key for f in result.findings}
+    assert "chronic kidney disease|stage" not in keys, '"stage 4" documents the stage axis'
+    onset = [f for f in result.findings if f.dedupe_key == "chronic kidney disease|onset"]
+    assert onset, "the onset axis should fire -- the note states no course for the CKD"
+    text = onset[0].recommendation.lower()
+    assert "progressive" in text or "long-standing" in text
+    assert "without a stage" not in text
+
+
+def test_every_multi_axis_requirement_gives_each_axis_its_own_recommendation() -> None:
+    """The condition-level `recommendation` is a single sentence, so serving it for
+    every axis of a multi-axis condition prints a query about the wrong axis -- CKD's
+    `onset` gap told the clinician to document the stage the note already carried.
+    Single-axis conditions keep using the condition-level text (see the test below)."""
+    offenders = [
+        f"{entry.condition}|{rule.axis}"
+        for entry in load_requirements(config.REQUIREMENTS_DIR) if len(entry.axes) > 1
+        for rule in entry.axes if not rule.recommendation
+    ]
+    assert not offenders, f"axes falling back to the condition-level text: {offenders}"
+
+
+def test_no_two_axes_of_one_condition_ask_the_same_question() -> None:
+    """Backstop for the test above: a per-axis recommendation that was copy-pasted
+    from a sibling axis reintroduces the same wrong-axis query it was added to fix."""
+    duplicated: list[str] = []
+    for entry in load_requirements(config.REQUIREMENTS_DIR):
+        served = [(rule.axis, rule.recommendation or entry.recommendation) for rule in entry.axes]
+        seen: dict[str, str] = {}
+        for axis, text in served:
+            if text in seen.values():
+                duplicated.append(f"{entry.condition}|{axis}")
+            seen[axis] = text
+    assert not duplicated, f"axes sharing another axis's query text: {duplicated}"
+
+
 def test_condition_level_recommendation_still_used_when_an_axis_has_none() -> None:
     note = "Progress Note\nS: tired.\nO: Hgb 7.8, transfused 2 units.\nA: Anemia.\nP: monitor."
     result = run_audit(note)

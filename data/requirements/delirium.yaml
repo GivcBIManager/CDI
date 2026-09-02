@@ -6,9 +6,15 @@ axes:
   - axis: onset
     level: required
     evidence_terms: [hospital acquired, new, acute]
+    recommendation: >-
+      Delirium is documented without the onset. Please document whether it is new or
+      hospital acquired, if known.
   - axis: agent
     level: recommended
     evidence_terms: [due to, alcohol intoxication, dementia, adverse medication event]
+    recommendation: >-
+      Delirium is documented without the underlying cause. Please document the precipitating
+      cause (e.g. alcohol intoxication, dementia, an adverse medication event), if known.
 recommendation: >-
   Delirium is documented without the underlying cause or the onset. Please document the
   precipitating cause and onset (e.g. new, hospital acquired), if known.

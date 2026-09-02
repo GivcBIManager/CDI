@@ -16,6 +16,9 @@ axes:
   - axis: type
     level: required
     evidence_terms: [morbid, class 1, class 2, class 3]
+    recommendation: >-
+      Obesity is documented without a class. Please document the class (e.g. class 1-3, or
+      morbid obesity), if known.
   # RULE A(i): CHI-BARIATRIC Chapter 3.1 "SURGICAL INDICATIONS" (CHI-BARIATRIC/pg9/p1) states a
   # genuine BMI documentation/classification expectation — the general indications, including the
   # BMI threshold criterion (item 3.1.2), "should be clearly documented in each patient's chart".
@@ -25,6 +28,9 @@ axes:
   - axis: stage
     level: required
     evidence_terms: [BMI]
+    recommendation: >-
+      Obesity is documented without a BMI. Please document the BMI the classification is
+      based on, if known.
 recommendation: >-
   Obesity is documented without a BMI-based classification. Please document the BMI and/or class
   (e.g. morbid obesity), if known.

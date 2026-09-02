@@ -11,6 +11,9 @@ axes:
   - axis: agent
     level: required
     evidence_terms: [due to, e.coli, e. coli, klebsiella, pseudomonas]
+    recommendation: >-
+      Urinary tract infection is documented without the causative organism. Please document
+      the infective agent, if known.
   # DEVIATION / RULE B: no booklet text distinguishes upper (pyelonephritis) vs lower (cystitis) UTI,
   # and the Documenting for Specificity chapter has no dedicated 'site' definition paragraph, nor does
   # the mandate clause name any site distinction, to fall back on either. Downgraded from planned

@@ -5,9 +5,15 @@ axes:
   - axis: onset
     level: required
     evidence_terms: ["acute", "chronic", "gangrenous"]
+    recommendation: >-
+      Appendicitis is documented without the acuity. Please document whether it is acute,
+      chronic or gangrenous, if known.
   - axis: type
     level: required
     evidence_terms: ["perforation", "perforated", "rupture", "ruptured", "peritonitis", "abscess"]
+    recommendation: >-
+      Appendicitis is documented without stating whether complications are present. Please
+      document any perforation, rupture, peritonitis or abscess, if known.
 recommendation: >-
   Appendicitis is documented without the acuity or without stating whether perforation, rupture or
   peritonitis is present. Please document the acuity and any perforation, rupture, peritonitis or

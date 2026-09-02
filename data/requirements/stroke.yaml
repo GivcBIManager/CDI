@@ -10,6 +10,9 @@ axes:
   - axis: type
     level: required
     evidence_terms: [ischemic, ischaemic, hemorrhagic, haemorrhagic]
+    recommendation: >-
+      Stroke is documented without the type. Please document whether it is ischemic or
+      hemorrhagic, if known.
   # RULE A(ii): searched "onset", "sequela", "TIA", "recurrent", "acute care" — no condition-specific
   # governing clause anywhere in CHI-STROKE mandates documenting stroke onset chronology (onset
   # terms appear only in KPI time-to-treatment metrics and the glossary's "Acute care" definition,
@@ -19,6 +22,9 @@ axes:
   - axis: onset
     level: required
     evidence_terms: [sequela, new, acute]
+    recommendation: >-
+      Stroke is documented without the onset. Please document whether this is a new/acute
+      event or a sequela of a prior stroke, if known.
 recommendation: >-
   Stroke is documented without specifying whether it is a new event or a sequela of a prior stroke.
   Please document the onset and, if known, whether it is ischemic or hemorrhagic.

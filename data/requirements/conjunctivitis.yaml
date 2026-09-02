@@ -5,12 +5,21 @@ axes:
   - axis: onset
     level: required
     evidence_terms: ["acute", "chronic"]
+    recommendation: >-
+      Conjunctivitis is documented without the acuity. Please document whether it is acute
+      or chronic, if known.
   - axis: type
     level: required
     evidence_terms: ["infectious", "allergic", "non-infectious", "noninfectious", "chemical", "toxic", "foreign body"]
+    recommendation: >-
+      Conjunctivitis is documented without the type. Please document whether it is
+      infectious, allergic, chemical, toxic or due to a foreign body, if known.
   - axis: agent
     level: recommended
     evidence_terms: ["viral", "bacterial", "adenovirus", "due to"]
+    recommendation: >-
+      Conjunctivitis is documented without the causative agent. Please document the organism
+      (e.g. viral, bacterial, adenovirus), if known.
 recommendation: >-
   Conjunctivitis is documented without the acuity or type. Please document whether it is acute or
   chronic, the type (infectious, allergic, chemical or toxic), and the infectious agent, if known.

@@ -4,6 +4,9 @@ axes:
   - axis: onset
     level: required
     evidence_terms: [complicating surgery, post procedural, complication, postprocedural]
+    recommendation: >-
+      Surgical wound infection is documented without confirming it as a postprocedural
+      complication. Please document that the infection complicates the surgery, if known.
   # DEVIATION / RULE B, distinction note (reviewer-adjudicated): no booklet text links a causative
   # organism specifically to surgical/wound infection. This entry cites the same generic "documenting
   # the agent" clause (documenting-for-specificity/p4) as urinary-tract-infection.yaml, but unlike
@@ -14,6 +17,9 @@ axes:
   - axis: agent
     level: recommended
     evidence_terms: [due to, staphylococcus, e.coli, klebsiella, pseudomonas]
+    recommendation: >-
+      Surgical wound infection is documented without the causative organism. Please document
+      the infective agent (e.g. the culture result), if known.
 recommendation: >-
   Surgical wound infection is documented without confirming it as a postprocedural complication or
   naming the causative organism. Please document the causative organism and confirm the infection is

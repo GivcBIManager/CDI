@@ -13,9 +13,15 @@ axes:
   - axis: onset
     level: required
     evidence_terms: [acute, acute on chronic, chronic]
+    recommendation: >-
+      Acute respiratory failure is documented without the onset. Please document whether it
+      is acute, chronic or acute on chronic, if known.
   - axis: type
     level: required
     evidence_terms: [type 1, type 2, hypoxic, hypercapnic]
+    recommendation: >-
+      Acute respiratory failure is documented without the type. Please document whether it
+      is type 1 (hypoxic) or type 2 (hypercapnic), if known.
 recommendation: >-
   Acute respiratory failure is documented without the type (1 or 2) or the onset (acute vs acute on
   chronic). Please document the type and onset, if known.

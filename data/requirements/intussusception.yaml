@@ -5,9 +5,16 @@ axes:
   - axis: agent
     level: required
     evidence_terms: ["due to", "secondary to", "crohn", "adhesions", "scar tissue", "bowel obstruction", "obesity", "family history"]
+    recommendation: >-
+      Intussusception is documented without the aetiology. Please document the underlying
+      cause (e.g. bowel obstruction, adhesions or an underlying medical condition), if
+      known.
   - axis: onset
     level: recommended
     evidence_terms: ["recurring", "recurrent", "congenital", "new"]
+    recommendation: >-
+      Intussusception is documented without the onset. Please document whether it is new,
+      recurrent or congenital, if known.
 recommendation: >-
   Intussusception is documented without the aetiology. Please document the underlying cause (e.g.
   due to bowel obstruction, adhesions or an underlying medical condition) and whether it is

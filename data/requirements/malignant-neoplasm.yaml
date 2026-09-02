@@ -5,12 +5,22 @@ axes:
   - axis: site
     level: required
     evidence_terms: ["primary site", "metastatic", "metastases", "secondary site", "laterality"]
+    recommendation: >-
+      A malignant neoplasm is documented without the site. Please document the primary site,
+      its laterality, and any secondary or metastatic sites, if known.
   - axis: type
     level: required
     evidence_terms: ["in-situ", "in situ", "local invasion", "morphology", "adenocarcinoma", "squamous cell", "mucinous", "histology"]
+    recommendation: >-
+      A malignant neoplasm is documented without the behaviour or morphology. Please
+      document whether it is in-situ, locally invasive or spreading, and the
+      morphology/histology, if known.
   - axis: stage
     level: recommended
     evidence_terms: ["stage 1", "stage 2", "stage 3", "stage 4", "stage i", "stage ii", "stage iii", "stage iv"]
+    recommendation: >-
+      A malignant neoplasm is documented without the stage. Please document the stage (1-4),
+      if known.
 recommendation: >-
   A malignant neoplasm is documented without the primary site, behaviour or morphology. Please
   document the primary site, behaviour (in-situ, local invasion or spreading), morphology and

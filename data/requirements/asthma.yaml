@@ -5,9 +5,16 @@ axes:
   - axis: type
     level: required
     evidence_terms: ["allergic", "nonallergic", "non-allergic", "mixed", "acute severe", "intermittent", "persistent"]
+    recommendation: >-
+      Asthma is documented without the type. Please document whether it is allergic,
+      nonallergic or mixed, and its pattern (e.g. intermittent, persistent, acute severe),
+      if known.
   - axis: agent
     level: recommended
     evidence_terms: ["respiratory syncytial virus", "rsv", "due to", "viral", "bacterial"]
+    recommendation: >-
+      Asthma is documented without a trigger. Please document the precipitating cause (e.g.
+      viral, RSV), if known.
 recommendation: >-
   Asthma is documented without the type. Please document whether the asthma is allergic,
   nonallergic or mixed, and the type (e.g. acute severe), if known.

@@ -8,9 +8,15 @@ axes:
   - axis: type
     level: required
     evidence_terms: ["spastic", "dyskinetic", "ataxic", "mixed"]
+    recommendation: >-
+      Cerebral palsy is documented without the form. Please document whether it is spastic,
+      dyskinetic, ataxic or mixed, if known.
   - axis: stage
     level: required
     evidence_terms: ["diplegia", "paraplegia", "hemiplegia", "quadriplegia", "monoplegia"]
+    recommendation: >-
+      Cerebral palsy is documented without the distribution. Please document the degree of
+      involvement (e.g. diplegia, hemiplegia, quadriplegia), if known.
 recommendation: >-
   Cerebral palsy is documented without the form or the degree. Please document the form (spastic,
   dyskinetic or ataxic) and the degree (e.g. diplegia, paraplegia, hemiplegia), if known.

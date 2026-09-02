@@ -4,9 +4,15 @@ axes:
   - axis: agent
     level: required
     evidence_terms: [due to, adverse effect of, secondary to]
+    recommendation: >-
+      An adverse medication event is documented without the causative medication. Please
+      document the medication the event is due to, if known.
   - axis: onset
     level: required
     evidence_terms: [accidental, intentional]
+    recommendation: >-
+      An adverse medication event is documented without the intent. Please document whether
+      it was accidental or intentional, if known.
 recommendation: >-
   Adverse medication event is documented without confirming the causative medication or whether it
   was accidental or intentional. Please document the medication involved and the intent, if known.

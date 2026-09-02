@@ -4,9 +4,16 @@ axes:
   - axis: agent
     level: required
     evidence_terms: [due to, staphylococcus, e.coli, klebsiella, pseudomonas, streptococcus, culture]
+    recommendation: >-
+      Sepsis is documented without the causative organism. Please document the infective
+      agent (e.g. the culture result), if known.
   - axis: type
     level: required
     evidence_terms: [severe sepsis, septic shock, localized, systemic, septicaemia]
+    recommendation: >-
+      Sepsis is documented without the severity classification. Please document whether this
+      is sepsis, severe sepsis or septic shock, and whether the infection is localized or
+      systemic, if known.
 recommendation: >-
   Sepsis is documented without the causative organism or without specifying whether it is severe
   sepsis or septic shock. Please document the infective agent and the severity classification of the

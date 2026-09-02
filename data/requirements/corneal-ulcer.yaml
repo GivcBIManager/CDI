@@ -5,9 +5,15 @@ axes:
   - axis: agent
     level: required
     evidence_terms: ["trauma", "chemical", "contact lens", "bacterial", "viral", "fungal", "due to"]
+    recommendation: >-
+      Corneal ulcer is documented without the cause. Please document the cause (e.g. trauma,
+      chemical, contact lens use, or a bacterial, viral or fungal organism), if known.
   - axis: stage
     level: recommended
     evidence_terms: ["blindness", "low vision", "severity", "degree"]
+    recommendation: >-
+      Corneal ulcer is documented without the severity. Please document the degree of
+      severity, including any low vision or blindness, if known.
 recommendation: >-
   Corneal ulcer is documented without the cause. Please document the cause (e.g. type of trauma or
   chemical) and the severity, including any degree of visual loss, if known.

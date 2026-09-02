@@ -5,9 +5,15 @@ axes:
   - axis: agent
     level: required
     evidence_terms: ["parainfluenza", "viral", "bacterial", "allergies", "reflux", "due to"]
+    recommendation: >-
+      Croup is documented without the causative agent. Please document the organism or
+      trigger (e.g. parainfluenza, viral, bacterial, reflux), if known.
   - axis: onset
     level: required
     evidence_terms: ["acute", "chronic"]
+    recommendation: >-
+      Croup is documented without the acuity. Please document whether it is acute or
+      chronic, if known.
 recommendation: >-
   Croup is documented without the causative organism or without the acuity. Please document the
   causative organism and whether it is acute, if known.

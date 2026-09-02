@@ -11,6 +11,10 @@ axes:
   - axis: type
     level: required
     evidence_terms: [systolic, diastolic, HFrEF, HFpEF, reduced ejection, preserved ejection]
+    recommendation: >-
+      Heart failure is documented without specifying systolic vs diastolic (reduced vs
+      preserved ejection fraction) type. Please document the type of heart failure, if
+      known.
   # RULE B: no condition-specific clause found for onset (searched "acute decompensated",
   # "new-onset heart failure", "acute on chronic", "chronic heart failure is" — CHI-HF only uses
   # these as inclusion-criteria phrasing for unrelated workup recommendations, not as an onset
@@ -19,6 +23,9 @@ axes:
   - axis: onset
     level: recommended
     evidence_terms: [acute, chronic, acute on chronic]
+    recommendation: >-
+      Heart failure is documented without the acuity. Please document whether it is acute,
+      chronic or acute on chronic, if known.
 recommendation: >-
   Heart failure is documented without specifying systolic vs diastolic (reduced vs preserved
   ejection fraction) type. Please document the type of heart failure, if known.

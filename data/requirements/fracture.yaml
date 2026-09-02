@@ -5,9 +5,15 @@ axes:
   - axis: site
     level: required
     evidence_terms: [femur, radius, humerus, tibia, hip, wrist, metacarpal, skull, vertebra]
+    recommendation: >-
+      Fracture is documented without the site. Please document the specific bone and site
+      fractured, if known.
   - axis: type
     level: required
     evidence_terms: [open, closed, comminuted, compound, simple, impacted, transverse, oblique, stable]
+    recommendation: >-
+      Fracture is documented without the type. Please document the fracture type (e.g. open,
+      closed, comminuted, transverse), if known.
 recommendation: >-
   Fracture is documented without the site or type. Please document the specific bone/site and the
   fracture type (e.g. open, closed, comminuted), if known.

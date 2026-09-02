@@ -13,10 +13,16 @@ axes:
   - axis: onset
     level: required
     evidence_terms: [acute on chronic, acute, chronic]
+    recommendation: >-
+      Acute kidney injury is documented without the acuity. Please document whether this is
+      acute or acute on chronic kidney injury, if known.
   # DEVIATION: booklet contains no pre-renal/intrinsic/post-renal classification text for AKI. Downgraded from planned 'required' to 'recommended', citing only the generic 'type' axis definition.
   - axis: type
     level: recommended
     evidence_terms: [pre-renal, prerenal, intrinsic, post-renal]
+    recommendation: >-
+      Acute kidney injury is documented without the mechanism. Please document whether it is
+      pre-renal, intrinsic or post-renal, if known.
 recommendation: >-
   Acute kidney injury is documented without the acuity (e.g. acute vs acute on chronic). Please
   document the onset and, if known, the mechanism (pre-renal, intrinsic, post-renal).

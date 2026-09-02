@@ -29,6 +29,9 @@ axes:
     evidence_terms: [community acquired, community-acquired, hospital acquired, hospital-acquired,
                      ventilator acquired, ventilator-acquired, ventilator associated,
                      ventilator-associated, aspiration, nosocomial, HAP, VAP]
+    recommendation: >-
+      Pneumonia is documented without the onset setting. Please document whether it is
+      community-, hospital- or ventilator-acquired, or aspiration pneumonia, if known.
   # RULE A(i): booklet Respiratory Conditions p2 ("pneumonia due to pseudomonas"). The
   # CHI-LRTI HAP/VAP section (CHI-LRTI/pg6/p1) adds a genuine imperative that turns on the
   # agent being known -- "Patient should be shifted to specific antibiotic depend on the
@@ -40,6 +43,9 @@ axes:
     evidence_terms: [due to, klebsiella, pseudomonas, e.coli, staphylococcus, streptococcus,
                      MRSA, MSSA, S. aureus, staph. aureus, staph aureus, P. aeruginosa,
                      gram-negative, gram negative, influenza, carbapenem-resistant, MDR]
+    recommendation: >-
+      Pneumonia is documented without the causative organism. Please document the infective
+      agent (e.g. the culture result), if known.
   # RULE B (CHI-LRTI-derived, recommended only): the CAP section stratifies therapy by
   # severity -- "Inpatients, non-severe" vs "Inpatients, severe" regimen groups (pg4-5) and
   # the PSI risk-class -> disposition table (pg4) -- but the protocol never says severity
@@ -51,6 +57,9 @@ axes:
   - axis: type
     level: recommended
     evidence_terms: [severe, non-severe, non severe, PSI, CURB-65, CURB 65, risk class]
+    recommendation: >-
+      Pneumonia is documented without the severity. Please document the severity class
+      (severe vs non-severe, CURB-65 or PSI risk class), if known.
 recommendation: >-
   Pneumonia is documented without the onset setting, the causative organism, or the severity.
   Please document whether it is community-, hospital- or ventilator-acquired, the infective agent

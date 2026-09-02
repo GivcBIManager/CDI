@@ -5,12 +5,21 @@ axes:
   - axis: site
     level: required
     evidence_terms: ["cervical", "vulval", "vulvar", "vaginal", "anal"]
+    recommendation: >-
+      Intraepithelial neoplasia is documented without the site. Please document the site
+      involved (e.g. cervical, vulval, vaginal, anal), if known.
   - axis: stage
     level: required
     evidence_terms: ["grade 1", "grade 2", "grade 3", "low grade", "high grade", "grade i", "grade ii", "grade iii"]
+    recommendation: >-
+      Intraepithelial neoplasia is documented without the grade. Please document the grade
+      of severity (e.g. grade 1-3, or low vs high grade), if known.
   - axis: agent
     level: recommended
     evidence_terms: ["human papillomavirus", "hpv", "due to"]
+    recommendation: >-
+      Intraepithelial neoplasia is documented without the underlying cause. Please document
+      the cause (e.g. HPV), if known.
 recommendation: >-
   Intraepithelial neoplasia is documented without the site or grade. Please document the site, the
   grade of severity, and the underlying cause (e.g. HPV), if known.

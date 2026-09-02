@@ -6,9 +6,15 @@ axes:
     evidence_terms: ["stage 1", "stage 2", "stage 3", "stage 4", "stage 5",
                      "stage i", "stage ii", "stage iii", "stage iv", "stage v",
                      "esrd", "end stage", "end-stage"]
+    recommendation: >-
+      Chronic kidney disease is documented without a stage. Please document the CKD stage
+      (1-5, or end-stage) and its basis (eGFR), if known.
   - axis: onset
     level: recommended
     evidence_terms: ["acute on chronic", "progressive", "new", "known", "long-standing"]
+    recommendation: >-
+      Chronic kidney disease is documented without its course. Please document whether it is
+      known/long-standing, progressive, or acute on chronic, if known.
 recommendation: >-
   Chronic kidney disease is documented without a stage. Please document the
   CKD stage (1-5, or end-stage) and its basis (eGFR), if known.

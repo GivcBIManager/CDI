@@ -5,9 +5,15 @@ axes:
   - axis: type
     level: required
     evidence_terms: ["congenital", "hereditary", "drug induced", "drug-induced", "wet", "dry"]
+    recommendation: >-
+      Macular degeneration is documented without the type. Please document the type (e.g.
+      wet or dry; congenital, hereditary or drug induced), if known.
   - axis: stage
     level: recommended
     evidence_terms: ["blindness", "low vision", "visual loss"]
+    recommendation: >-
+      Macular degeneration is documented without the severity. Please document the degree of
+      visual loss, including any low vision or blindness, if known.
 recommendation: >-
   Macular degeneration is documented without the type. Please document the type (congenital,
   hereditary or drug induced) and the degree of visual loss, if known.

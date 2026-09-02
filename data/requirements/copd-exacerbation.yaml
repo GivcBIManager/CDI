@@ -11,11 +11,17 @@ axes:
   - axis: type
     level: required
     evidence_terms: [infective, non-infective, exacerbation]
+    recommendation: >-
+      COPD exacerbation is documented without specifying whether it is infective or
+      non-infective. Please document the type of exacerbation, if known.
   # RULE B: no condition-specific clause, and no mandate-clause stacking beyond the one already used
   # for 'type' above; kept at recommended, no citation.
   - axis: onset
     level: recommended
     evidence_terms: [acute]
+    recommendation: >-
+      COPD exacerbation is documented without the acuity. Please document whether the
+      exacerbation is acute, if known.
 recommendation: >-
   COPD exacerbation is documented without specifying whether it is infective or non-infective.
   Please document the type of exacerbation, if known.
