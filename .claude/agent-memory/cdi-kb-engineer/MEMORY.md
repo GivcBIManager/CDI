@@ -1,0 +1,5 @@
+- [No fabricated test literals](feedback_no_fabricated_test_literals.md) — never retype a "verbatim corpus" test string to force a heuristic to pass; flag the gap instead
+- [var/raw_text corpus grep](project_var_raw_text_corpus_grep.md) — how to independently verify a "verbatim corpus line" claim against the extraction cache
+- [MOH colon-heading acceptor status](project_moh_colon_heading_acceptor.md) — phase 3 branch COMPLETE (incl. final review fixes): 42 sources, 4,655 clauses, verify PASSED, min-words 2->1
+- [MOH retrieval-dilution regression](project_moh_retrieval_dilution_regression.md) — RESOLVED by Task 3b (CANDIDATE_LIMIT 16->32); root cause kept for history
+- [Shared var/kb.sqlite unreliable mid-task](feedback_shared_var_kb_sqlite_is_unreliable_mid_task.md) — concurrent sessions can rebuild it; do your own build-kb before trusting counts from it
