@@ -1,6 +1,7 @@
 """V1-V5: prove the KB matches the source documents. Requires `build-kb` run first."""
 
 import json
+import re
 
 from cdi_kb.extract import cache_path
 from cdi_kb import config
@@ -334,3 +335,46 @@ def test_fabricated_necessity_quote_yields_v2_necessity_failure(tmp_path, monkey
         f.startswith("V2 necessity:fake-order") and "quote does not match" in f
         for f in report.failures
     ), report.failures
+
+
+_FOLD_HEADER = re.compile(r":\s*[>|][-+]?\s*$")
+
+_AUTHORED_YAML_DIRS = (
+    config.REQUIREMENTS_DIR, config.DOC_REQUIREMENTS_DIR, config.NECESSITY_DIR,
+    config.PROVIDER_RULES_DIR, config.INTEGRITY_RULES_DIR,
+)
+
+
+def test_no_folded_yaml_block_wraps_a_line_on_a_hyphen() -> None:
+    """A folded scalar (`>-`) rejoins its wrapped lines with a SPACE, so a break
+    inside a hyphenated word silently corrupts the parsed string.
+
+    malignant-neoplasm's citation wrapped after "in-", so the quote parsed back as
+    "in- situ" where the booklet says "in-situ". It cleared V2 at 0.9509 against the
+    0.95 threshold -- one bad character diluted by a long quote -- and reached the
+    clinician verbatim, because findings._verified_citations reports the AUTHORED
+    quote, not the clause text. The same typo in a SHORTER quote scores below
+    threshold and silently drops the whole finding instead, so this defect corrupts
+    or deletes depending only on quote length. Neither failure is visible.
+
+    Checked on raw text, not the parsed model: once YAML has folded the block the
+    evidence is gone. No false positives -- real prose never ends a line on a bare
+    hyphen (pneumonia's "community-, hospital- or ventilator-acquired" ends those
+    lines with a comma or a word).
+    """
+    offenders: list[str] = []
+    for directory in _AUTHORED_YAML_DIRS:
+        for path in sorted(directory.glob("*.yaml")):
+            indent = -1
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if _FOLD_HEADER.search(line):
+                    indent = len(line) - len(line.lstrip())
+                    continue
+                if indent >= 0 and (not line.strip() or len(line) - len(line.lstrip()) <= indent):
+                    indent = -1
+                if indent >= 0 and line.rstrip().endswith("-"):
+                    offenders.append(f"{path.name}:{number}: {line.strip()}")
+    assert not offenders, (
+        "folded block wrapped on a hyphen -- the parsed text gains a space:\n"
+        + "\n".join(offenders)
+    )

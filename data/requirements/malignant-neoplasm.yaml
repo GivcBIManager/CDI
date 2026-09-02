@@ -28,8 +28,8 @@ recommendation: >-
 citations:
   - clause_id: "CDI-2021/malignant-conditions/p2"
     quote: >-
-      Complete documentation of cancers includes the primary site and its behaviour (for example in-
-      situ, local invasion or spreading), and the stage according to cancer type. Metastatic or
+      Complete documentation of cancers includes the primary site and its behaviour (for example
+      in-situ, local invasion or spreading), and the stage according to cancer type. Metastatic or
       secondary sites may be regional or distant to the primary site. For all sites, documentation of
       the morphology is essential for accurate code assignment and mandatory cancer reporting.
   - clause_id: "CDI-2021/neoplasms/p1"
