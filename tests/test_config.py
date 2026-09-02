@@ -32,6 +32,17 @@ def test_load_dotenv_missing_file_is_noop(tmp_path):
     config._load_dotenv(tmp_path / "does-not-exist.env")
 
 
+MOH_SOURCE_IDS = {
+    "MOH-DM", "MOH-SEPSIS-MAT", "MOH-PN-ADULT", "MOH-MENINGITIS", "MOH-IAI",
+    "MOH-HD", "MOH-LRTI", "MOH-SEPSIS-PED", "MOH-UTI", "MOH-SSI", "MOH-SSTI",
+    "MOH-DKA", "MOH-DKA-PED", "MOH-VTE", "MOH-FH", "MOH-RA", "MOH-HIE",
+    "MOH-MDD", "MOH-HYPOGLYCEMIA", "MOH-HEADACHE", "MOH-DVT", "MOH-PE",
+    "MOH-GAS", "MOH-ANAPHYLAXIS", "MOH-CONTRAST", "MOH-WARFARIN",
+    "MOH-TDM-VANCO", "MOH-ANTICOAG-REV", "MOH-ABX-PROPH", "MOH-ALBUMIN",
+    "MOH-SUP",
+}
+
+
 def test_sources_registry_has_expected_keys() -> None:
     expected = {
         "CDI-2021",
@@ -45,8 +56,41 @@ def test_sources_registry_has_expected_keys() -> None:
         "CHI-NEC-FBG",
         "CHI-NEC-UCULT",
         "CHI-NEC-B12",
-    }
+    } | MOH_SOURCE_IDS
     assert set(config.SOURCES.keys()) == expected
+    assert len(expected) == 42
+
+
+def test_moh_sources_carry_moh_authority_and_genre() -> None:
+    for source_id in MOH_SOURCE_IDS:
+        source = config.SOURCES[source_id]
+        assert source.authority == "MOH", source_id
+        assert source.genre == "moh_protocol", source_id
+
+
+def test_moh_source_ids_do_not_collide_with_chi() -> None:
+    # CHI-LRTI and MOH-LRTI are different documents on the same topic. The
+    # prefix is what keeps their clause_ids apart, so a bare "LRTI" id would
+    # silently merge two authorities' clauses under one V1 source check.
+    #
+    # Reads config.SOURCES directly rather than this test's own MOH_SOURCE_IDS
+    # literal: asserting a hard-coded set starts with "MOH-" proves nothing
+    # about the registry and cannot catch a real collision there.
+    #
+    # The second check inspects config._MOH_PROTOCOLS (pre-dict construction)
+    # because dict last-write-wins silently absorbs duplicates, so checking the
+    # built SOURCES dict cannot detect a collision.
+    moh_ids = {sid for sid, source in config.SOURCES.items() if source.authority == "MOH"}
+    non_moh_ids = {sid for sid, source in config.SOURCES.items() if source.authority != "MOH"}
+    assert moh_ids, "no MOH-authority sources registered"
+    for source_id in moh_ids:
+        assert source_id.startswith("MOH-"), source_id
+
+    # Check collision at the source-definition level before dict construction
+    assert len(config._MOH_PROTOCOLS) == 31, f"expected 31 MOH protocol rows, got {len(config._MOH_PROTOCOLS)}"
+    moh_source_ids_from_table = {row[0] for row in config._MOH_PROTOCOLS}
+    assert len(moh_source_ids_from_table) == 31, f"expected 31 distinct source_ids in _MOH_PROTOCOLS, got {len(moh_source_ids_from_table)}"
+    assert not (moh_source_ids_from_table & non_moh_ids), f"MOH source_id collision with CHI: {moh_source_ids_from_table & non_moh_ids}"
 
 
 def test_sources_paths_exist() -> None:

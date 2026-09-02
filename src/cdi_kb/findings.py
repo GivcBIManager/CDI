@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from cdi_kb.clauses import ClauseStore
-from cdi_kb.config import QUOTE_MATCH_THRESHOLD
+from cdi_kb.config import QUOTE_MATCH_THRESHOLD, authority_of, authority_rank
 from cdi_kb.gapcheck import Gap
 from cdi_kb.necessity import NecessityGap
 from cdi_kb.normalize import find_quote
@@ -35,6 +35,7 @@ class VerifiedCitation:
     section_title: str
     page: int
     quote: str
+    authority: str
 
 
 @dataclass(frozen=True)
@@ -53,7 +54,16 @@ class Finding:
 def _verified_citations(citations: list[Citation], store: ClauseStore) -> list[VerifiedCitation]:
     """THE only citation-verification code path: every Finding-producing
     composer (diagnosis-gap, doc-type-element-gap, and any future finding
-    type) must route through this to keep a single audited firewall."""
+    type) must route through this to keep a single audited firewall.
+
+    Verified citations are returned ordered by publishing authority (MOH ->
+    CHI -> CDI-2021). The sort is stable and keys on rank alone, so two
+    citations from the same authority keep their input order -- for a
+    deterministic composer that is the order the YAML author gave them; for
+    an LLM-inferred finding (compose_inferred_finding in this module) the
+    input is the model's own relevance ranking from Pass B, not an author's
+    ordering, and that ranking is what the stable sort preserves within an
+    authority tier."""
     verified: list[VerifiedCitation] = []
     for citation in citations:
         clause = store.get(citation.clause_id)
@@ -63,7 +73,9 @@ def _verified_citations(citations: list[Citation], store: ClauseStore) -> list[V
             verified.append(VerifiedCitation(
                 clause_id=clause.clause_id, section_title=clause.section_title,
                 page=clause.page, quote=citation.quote,
+                authority=authority_of(clause.clause_id),
             ))
+    verified.sort(key=lambda c: authority_rank(c.clause_id))
     return verified
 
 

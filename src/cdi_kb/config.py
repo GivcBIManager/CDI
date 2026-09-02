@@ -44,6 +44,52 @@ QUOTE_MATCH_THRESHOLD = 0.95
 SOURCE_ID = "CDI-2021"  # citation prefix for the booklet
 
 _CHI_DIR = REPO_ROOT / "CHI_Guidelines"
+_MOH_DIR = REPO_ROOT / "MOH_Protocols"
+
+# MOH-KSA national clinical protocols: 31 of the 93 downloaded (see
+# MOH_Protocols/manifest.csv and moh_download.py). Curated, not exhaustive --
+# excluded are 4 image-only PDFs (0 extracted chars, need OCR), 2 pure inventory
+# tables below MIN_SOURCE_CLAUSES, and the administrative/out-of-scope
+# remainder. A (id, filename, title) table rather than 31 SourceDoc calls: the
+# authority and genre are identical for every one, so repeating them 31 times
+# would only invite one of them to drift.
+_MOH_PROTOCOLS: tuple[tuple[str, str, str], ...] = (
+    # Role A -- third authority for existing requirement entries
+    ("MOH-DM", "Saudi-Diabetes-Clinical-Practice-Guidelines.pdf", "MOH Saudi Diabetes Clinical Practice Guidelines"),
+    ("MOH-SEPSIS-MAT", "Maternal-Sepsis-Management.pdf", "MOH Maternal Sepsis Management"),
+    ("MOH-PN-ADULT", "Adult-Parenteral-Nutrition-CPG.pdf", "MOH Adult Parenteral Nutrition CPG"),
+    ("MOH-MENINGITIS", "Acute-CNS-Infections-Meningitis-Adults.pdf", "MOH Acute CNS Infections Meningitis Adults"),
+    ("MOH-IAI", "Intra-abdominal-Infections-Treatment.pdf", "MOH Intra-abdominal Infections Treatment"),
+    ("MOH-HD", "Home-Hemodialysis-Complications.pdf", "MOH Home Hemodialysis Complications"),
+    ("MOH-LRTI", "Lower-Respiratory-Tract-Infections.pdf", "MOH Lower Respiratory Tract Infections"),
+    ("MOH-SEPSIS-PED", "Pediatric-Sepsis-Management.pdf", "MOH Pediatric Sepsis Management"),
+    ("MOH-UTI", "Urinary-Tract-Infection.pdf", "MOH Urinary Tract Infection"),
+    ("MOH-SSI", "Surgical-Site-Infections-Guidelines.pdf", "MOH Surgical Site Infections Guidelines"),
+    ("MOH-SSTI", "Skin-and-Soft-Tissue-Infection.pdf", "MOH Skin and Soft Tissue Infection"),
+    # Role B -- candidates for new condition entries (slice 2)
+    ("MOH-DKA", "DKA-HHS-Protocol.pdf", "MOH DKA/HHS Protocol"),
+    ("MOH-DKA-PED", "Pediatric-DKA-HHS-Protocol.pdf", "MOH Pediatric DKA/HHS Protocol"),
+    ("MOH-VTE", "VTE-Prevention-Adults-v1.7.pdf", "MOH VTE Prevention in Adults"),
+    ("MOH-FH", "Familial-Hypercholesterolemia.pdf", "MOH Familial Hypercholesterolemia"),
+    ("MOH-RA", "Rheumatoid-Arthritis-Adults.pdf", "MOH Rheumatoid Arthritis in Adults"),
+    ("MOH-HIE", "Neonatal-Hypoxic-Ischemic-Encephalopathy.pdf", "MOH Neonatal Hypoxic Ischemic Encephalopathy"),
+    ("MOH-MDD", "Major-Depressive-Disorder.pdf", "MOH Major Depressive Disorder"),
+    ("MOH-HYPOGLYCEMIA", "Inpatient-Hypoglycemia-Management.pdf", "MOH Inpatient Hypoglycemia Management"),
+    ("MOH-HEADACHE", "Headache-Disorder.pdf", "MOH Headache Disorder"),
+    ("MOH-DVT", "DVT-Treatment-Adults-2024.pdf", "MOH DVT Treatment in Adults"),
+    ("MOH-PE", "Pulmonary-Embolism-Adults.pdf", "MOH Pulmonary Embolism in Adults"),
+    ("MOH-GAS", "Group-A-Streptococcal-Pharyngitis.pdf", "MOH Group A Streptococcal Pharyngitis"),
+    ("MOH-ANAPHYLAXIS", "Anaphylaxis-Management-Adults-Pediatrics.pdf", "MOH Anaphylaxis Management"),
+    # Role C -- candidates for necessity / order rules (slice 2)
+    ("MOH-CONTRAST", "Safe-Use-of-Contrast-Media-Radiology.pdf", "MOH Safe Use of Contrast Media in Radiology"),
+    ("MOH-WARFARIN", "Warfarin-Monitoring-Adults.pdf", "MOH Warfarin Monitoring in Adults"),
+    ("MOH-TDM-VANCO", "Adult-TDM-Protocol-Vancomycin-and-Aminoglycosides.pdf",
+     "MOH Adult TDM Protocol: Vancomycin and Aminoglycosides"),
+    ("MOH-ANTICOAG-REV", "Anticoagulation-Reversal-Strategies.pdf", "MOH Anticoagulation Reversal Strategies"),
+    ("MOH-ABX-PROPH", "Antibiotic-Surgical-Prophylaxis.pdf", "MOH Antibiotic Surgical Prophylaxis"),
+    ("MOH-ALBUMIN", "Prescribing-Albumin-Protocol-Dec2024.pdf", "MOH Prescribing Albumin Protocol"),
+    ("MOH-SUP", "Stress-Ulcer-Prophylaxis-ICU-and-non-ICU.pdf", "MOH Stress Ulcer Prophylaxis (ICU and non-ICU)"),
+)
 
 
 @dataclass(frozen=True)
@@ -52,7 +98,7 @@ class SourceDoc:
     path: Path
     title: str
     authority: str
-    genre: str  # "booklet" | "chi_prose" | "necessity"
+    genre: str  # "booklet" | "chi_prose" | "necessity" | "moh_protocol"
 
 
 SOURCES: dict[str, SourceDoc] = {
@@ -115,5 +161,27 @@ SOURCES: dict[str, SourceDoc] = {
         ),
         # CHI-NEC-LBPMRI (Low Back Pain MRI.pdf): flowchart genre — excluded until VLM
         # linearization; see task-1-report
+        *(
+            SourceDoc(source_id, _MOH_DIR / filename, title, "MOH", "moh_protocol")
+            for source_id, filename, title in _MOH_PROTOCOLS
+        ),
     )
 }
+
+# Citation display order. MOH-KSA is the national health ministry, CHI the
+# insurance/quality authority, TCC the coding-education booklet publisher; a
+# clinician reading a finding should meet the strongest authority first. An
+# authority absent from this map sorts last rather than raising -- a new source
+# family must never be able to break finding composition.
+AUTHORITY_RANK: dict[str, int] = {"MOH": 0, "CHI": 1, "TCC": 2}
+_UNRANKED_AUTHORITY = len(AUTHORITY_RANK)
+
+
+def authority_of(clause_id: str) -> str:
+    """The authority that published the clause, from its source-id prefix."""
+    source = SOURCES.get(clause_id.split("/", 1)[0])
+    return source.authority if source else ""
+
+
+def authority_rank(clause_id: str) -> int:
+    return AUTHORITY_RANK.get(authority_of(clause_id), _UNRANKED_AUTHORITY)

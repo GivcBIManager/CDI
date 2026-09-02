@@ -77,14 +77,15 @@ def test_audit_endpoint_rejects_any_as_explicit_doc_type() -> None:
 def test_index_page_escapes_server_supplied_fields_before_innerhtml() -> None:
     # Defense in depth: the JS must run every server-supplied field (findings
     # are KB-authored today, but active_doc_type/condition/axis/severity/
-    # recommendation/clause_id/page/quote all reach the page verbatim from
-    # the API response) through an escaping helper before string-concatenating
-    # into innerHTML -- never interpolate raw response text into innerHTML.
+    # recommendation/clause_id/page/quote/authority all reach the page verbatim
+    # from the API response) through an escaping helper before
+    # string-concatenating into innerHTML -- never interpolate raw response
+    # text into innerHTML.
     response = client.get("/")
     text = response.text
     assert "function esc(" in text
     for field in ("d.active_doc_type", "f.condition", "f.axis", "f.severity",
-                  "f.recommendation", "c.clause_id", "c.page", "c.quote"):
+                  "f.recommendation", "c.clause_id", "c.page", "c.quote", "c.authority"):
         assert f"esc({field})" in text, f"{field} is interpolated without esc()"
 
 
@@ -127,7 +128,8 @@ def _finding(finding_type, severity, key):
     return Finding(
         finding_type=finding_type, severity=severity, condition=key.split("|")[0],
         axis=key.split("|")[1], evidence_excerpt="e", recommendation="r",
-        citations=(VerifiedCitation(clause_id="CDI-2021/x/p1", section_title="X", page=1, quote="q"),),
+        citations=(VerifiedCitation(clause_id="CDI-2021/x/p1", section_title="X", page=1, quote="q",
+                                    authority="TCC"),),
         dedupe_key=key,
     )
 

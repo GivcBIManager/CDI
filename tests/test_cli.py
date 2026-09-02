@@ -1,8 +1,39 @@
 import json
+import re
 
 import pytest
 
 from cdi_kb.cli import main
+
+
+def test_quote_command_source_filter_narrows_matches_to_that_source(capsys) -> None:
+    # store.all() orders clauses CDI-2021 < CHI-* < MOH-* alphabetically, so
+    # without --source, MOH clauses never surface in matches[:10] for common
+    # terms. --source makes MOH content reachable through the ONLY sanctioned
+    # citation-authoring path (see cli.py quote's docstring).
+    exit_code = main(["quote", "urinary tract infection", "--source", "MOH-UTI"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    printed_ids = re.findall(r"^--- (\S+) \(page \d+\) ---$", out, re.MULTILINE)
+    assert printed_ids, "expected at least one MOH-UTI match"
+    assert all(clause_id.startswith("MOH-UTI/") for clause_id in printed_ids)
+
+
+def test_quote_command_reports_match_count_broken_down_by_source(capsys) -> None:
+    exit_code = main(["quote", "urinary tract infection"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "31 clause(s) matched" in out
+    assert "MOH-UTI=4" in out
+    assert "CDI-2021=5" in out
+
+
+def test_quote_command_default_behaviour_unchanged_without_source(capsys) -> None:
+    exit_code = main(["quote", "urinary tract infection"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    printed_ids = re.findall(r"^--- (\S+) \(page \d+\) ---$", out, re.MULTILINE)
+    assert len(printed_ids) == 10
 
 
 def test_audit_command_json_output(tmp_path, capsys) -> None:
@@ -96,11 +127,12 @@ def test_format_finding_prints_sources_for_a_supported_finding() -> None:
         finding_type="specificity_gap", severity="required", condition="sepsis", axis="agent",
         evidence_excerpt="sepsis", recommendation="Document the infective agent.",
         citations=(VerifiedCitation(clause_id="CDI-2021/sepsis/p1", section_title="Sepsis",
-                                    page=118, quote="The infective agent should be documented"),),
+                                    page=118, quote="The infective agent should be documented",
+                                    authority="TCC"),),
         dedupe_key="sepsis|agent",
     )
     rendered = format_finding(finding)
-    assert "source: CDI-2021/sepsis/p1 (p.118)" in rendered
+    assert "source: [TCC] CDI-2021/sepsis/p1 (p.118)" in rendered
     assert "no reference in the KB" not in rendered
 
 
@@ -131,7 +163,8 @@ def test_format_finding_does_not_say_missing_for_a_provider_confirmation_finding
         evidence_excerpt="documented in the allied_health note",
         recommendation="Please document the condition in the medical record.",
         citations=(VerifiedCitation(clause_id="CDI-2021/allied-health/p2",
-                                    section_title="Allied Health", page=130, quote="q"),),
+                                    section_title="Allied Health", page=130, quote="q",
+                                    authority="TCC"),),
         dedupe_key="malnutrition|provider_confirmation",
     )
     headline = format_finding(finding).splitlines()[0]
@@ -158,7 +191,7 @@ def test_format_finding_headline_reads_as_the_actual_problem(
         finding_type=finding_type, severity="recommended", condition=condition, axis=axis,
         evidence_excerpt="evidence here", recommendation="Please clarify.",
         citations=(VerifiedCitation(clause_id="CDI-2021/x/p1", section_title="X",
-                                    page=1, quote="q"),),
+                                    page=1, quote="q", authority="TCC"),),
         dedupe_key=f"{condition}|{axis}",
     )
     headline = format_finding(finding).splitlines()[0]

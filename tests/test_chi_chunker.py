@@ -167,3 +167,23 @@ def test_running_footer_is_almost_never_a_section_title():
 def test_real_ckd_headings_survive_the_furniture_filter():
     titles = {c.section_title for c in _clauses("CHI-CKD")}
     assert any("STAGING OF CKD" in t for t in titles), sorted(titles)[:10]
+
+
+def test_default_is_heading_arg_leaves_every_chi_source_byte_identical():
+    # chunk_chi gained a keyword-only `is_heading` so chunk_moh can reuse this
+    # segment loop. Passing the module default explicitly must reproduce the
+    # implicit-default output exactly, for every source routed through chunk_chi
+    # -- otherwise the "additive, no behaviour change" claim is unverified and
+    # CHI citations could silently move. The filter mirrors build_kb's dispatch
+    # (every non-booklet source) so this test tracks the real routing rule rather
+    # than one genre name.
+    from cdi_kb.chi_chunker import _is_heading
+
+    non_booklet_sources = [sid for sid, s in config.SOURCES.items() if s.genre != "booklet"]
+    assert non_booklet_sources, "no non-booklet sources registered"
+    for source_id in non_booklet_sources:
+        source = config.SOURCES[source_id]
+        pages = extract_pages(source.path, config.RAW_TEXT_DIR)
+        implicit = chunk_chi(pages, source)
+        explicit = chunk_chi(pages, source, is_heading=_is_heading)
+        assert implicit == explicit, source_id

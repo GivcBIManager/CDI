@@ -255,7 +255,7 @@ function renderFinding(f){
     // like a cited one. kb_status is server-side text, still escaped.
     +(f.kb_status === 'supported' ? ''
       : '<div class="unref">'+esc(f.kb_status)+' — evidence: "'+esc(f.evidence_excerpt)+'"</div>')
-    +f.citations.map(c=>'<div class="cite">source: '+esc(c.clause_id)+' (p.'+esc(c.page)+') — "'+esc(c.quote)+'"</div>').join('');
+    +f.citations.map(c=>'<div class="cite">source: ['+esc(c.authority)+'] '+esc(c.clause_id)+' (p.'+esc(c.page)+') — "'+esc(c.quote)+'"</div>').join('');
   return div;
 }
 </script></body></html>"""

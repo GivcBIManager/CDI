@@ -4,7 +4,7 @@
     /c/python/python -m pip install -e ".[dev]"
     /c/python/python -m cdi_kb.cli build-kb
 
-## Sources in the KB (11)
+## Sources in the KB (42)
 | source_id | title | authority | genre |
 |---|---|---|---|
 | CDI-2021 | CDI Course Booklet – Clinicians (2021) | TCC | booklet |
@@ -19,9 +19,25 @@
 | CHI-NEC-UCULT | CHI Necessity Criteria: Urine Culture (Pediatrics) | CHI | necessity |
 | CHI-NEC-B12 | CHI Necessity Criteria: Vitamin B12 | CHI | necessity |
 
+Plus **31 MOH-KSA national clinical protocols** (authority `MOH`, genre
+`moh_protocol`; curated from 93 downloaded PDFs — see
+`MOH_Protocols/manifest.csv` and `config.py`'s `_MOH_PROTOCOLS` for the full
+id/filename/title list), grouped by the role they play in this KB:
+
+- **Role A — third authority for existing requirement entries (11):**
+  MOH-DM, MOH-SEPSIS-MAT, MOH-PN-ADULT, MOH-MENINGITIS, MOH-IAI, MOH-HD,
+  MOH-LRTI, MOH-SEPSIS-PED, MOH-UTI, MOH-SSI, MOH-SSTI
+- **Role B — candidates for new condition entries, slice 2 (13):**
+  MOH-DKA, MOH-DKA-PED, MOH-VTE, MOH-FH, MOH-RA, MOH-HIE, MOH-MDD,
+  MOH-HYPOGLYCEMIA, MOH-HEADACHE, MOH-DVT, MOH-PE, MOH-GAS, MOH-ANAPHYLAXIS
+- **Role C — candidates for necessity/order rules, slice 2 (7):**
+  MOH-CONTRAST, MOH-WARFARIN, MOH-TDM-VANCO, MOH-ANTICOAG-REV, MOH-ABX-PROPH,
+  MOH-ALBUMIN, MOH-SUP
+
 ## Prove the KB matches the source documents
     /c/python/python -m cdi_kb.cli verify
-Latest run (all 11 INFO lines):
+Latest run (all 14 INFO lines — grew from 11 when the 31 MOH sources were
+ingested; see the dilution-guard note below):
 
     INFO  V3-INFO acute kidney injury: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO acute kidney injury: cited section reachable by title query only (index diluted by multi-source content)
@@ -30,11 +46,14 @@ Latest run (all 11 INFO lines):
     INFO  V3-INFO heart failure: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO heart failure: cited section reachable by title query only (index diluted by multi-source content)
     INFO  V3-INFO obesity: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
+    INFO  V3-INFO obesity: cited section reachable by title query only (index diluted by multi-source content)
     INFO  V3-INFO stroke: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
     INFO  V3-INFO stroke: cited section reachable by title query only (index diluted by multi-source content)
     INFO  V3-INFO surgical wound infection: retains generic-authority citation (mandate clause) alongside condition-specific clauses — at least one axis may rest on generic authority only
+    INFO  V3-INFO surgical wound infection: cited section reachable by title query only (index diluted by multi-source content)
+    INFO  V3-INFO urinary tract infection: generic authority only — no condition-specific clause exists in source; retrieval verified at axis level
     INFO  V3-INFO doc:diagnosis_list: cited section reachable by title query only (index diluted by multi-source content)
-    stats: {'clauses': 3017, 'requirements': 20, 'citations_checked': 68, 'mandate_anchored_entries': 0, 'title_reachable_entries': 5, 'mixed_authority_entries': 6, 'doc_type_rules': 19, 'necessity_rules': 4, 'sources': 11, 'clauses_CDI-2021': 768, 'clauses_CHI-HF': 948, 'clauses_CHI-CKD': 634, 'clauses_CHI-ANEMIA': 110, 'clauses_CHI-STROKE': 443, 'clauses_CHI-BARIATRIC': 54, 'clauses_CHI-LRTI': 19, 'clauses_CHI-NEC-HBA1C': 9, 'clauses_CHI-NEC-FBG': 8, 'clauses_CHI-NEC-UCULT': 15, 'clauses_CHI-NEC-B12': 9}
+    stats: {'clauses': 4655, 'requirements': 35, 'citations_checked': 86, 'mandate_anchored_entries': 1, 'title_reachable_entries': 7, 'mixed_authority_entries': 6, 'doc_type_rules': 19, 'necessity_rules': 4, 'sources': 42, 'clauses_CDI-2021': 768, 'clauses_CHI-HF': 948, 'clauses_CHI-CKD': 634, 'clauses_CHI-ANEMIA': 110, 'clauses_CHI-STROKE': 443, 'clauses_CHI-BARIATRIC': 54, 'clauses_CHI-LRTI': 19, 'clauses_CHI-NEC-HBA1C': 9, 'clauses_CHI-NEC-FBG': 8, 'clauses_CHI-NEC-UCULT': 15, 'clauses_CHI-NEC-B12': 9, 'clauses_MOH-DM': 389, 'clauses_MOH-SEPSIS-MAT': 71, 'clauses_MOH-PN-ADULT': 52, 'clauses_MOH-MENINGITIS': 30, 'clauses_MOH-IAI': 27, 'clauses_MOH-HD': 27, 'clauses_MOH-LRTI': 19, 'clauses_MOH-SEPSIS-PED': 19, 'clauses_MOH-UTI': 17, 'clauses_MOH-SSI': 16, 'clauses_MOH-SSTI': 12, 'clauses_MOH-DKA': 84, 'clauses_MOH-DKA-PED': 81, 'clauses_MOH-VTE': 71, 'clauses_MOH-FH': 57, 'clauses_MOH-RA': 63, 'clauses_MOH-HIE': 43, 'clauses_MOH-MDD': 37, 'clauses_MOH-HYPOGLYCEMIA': 30, 'clauses_MOH-HEADACHE': 29, 'clauses_MOH-DVT': 27, 'clauses_MOH-PE': 21, 'clauses_MOH-GAS': 18, 'clauses_MOH-ANAPHYLAXIS': 16, 'clauses_MOH-CONTRAST': 200, 'clauses_MOH-WARFARIN': 61, 'clauses_MOH-TDM-VANCO': 51, 'clauses_MOH-ANTICOAG-REV': 20, 'clauses_MOH-ABX-PROPH': 22, 'clauses_MOH-ALBUMIN': 14, 'clauses_MOH-SUP': 14}
     VERIFICATION PASSED
 
 (On a cp1252 Windows console the em dash in the INFO lines above can render
@@ -100,10 +119,10 @@ Latest run:
     doc type: any
     [required] sepsis — missing agent
       Sepsis is documented without the causative organism or without specifying whether it is severe sepsis or septic shock. Please document the infective agent and the severity classification of the sepsis, if known.
-      source: CDI-2021/sepsis/p1 (p.118) — "The infective agent should be documented and confirmed by the clinician, including any ant..."
+      source: [TCC] CDI-2021/sepsis/p1 (p.118) — "The infective agent should be documented and confirmed by the clinician, including any ant..."
     [required] sepsis — missing type
       Sepsis is documented without the causative organism or without specifying whether it is severe sepsis or septic shock. Please document the infective agent and the severity classification of the sepsis, if known.
-      source: CDI-2021/sepsis/p1 (p.118) — "The infective agent should be documented and confirmed by the clinician, including any ant..."
+      source: [TCC] CDI-2021/sepsis/p1 (p.118) — "The infective agent should be documented and confirmed by the clinician, including any ant..."
     2 finding(s)
 
 `--doc-type` overriding a discharge-shaped note (completeness-gap findings,
@@ -119,7 +138,7 @@ Latest run:
       The discharge summary does not list medications on discharge. ...
     [required] discharge_summary — missing follow_up_plan
       The discharge summary does not document follow-up care. Please document the follow-up plan, including appointment dates/times or who is responsible for booking them.
-      source: CDI-2021/discharge-summary/p9 (p.67) — "Documentation of follow-up care is mandatory. This includes dates and times of appointment..."
+      source: [TCC] CDI-2021/discharge-summary/p9 (p.67) — "Documentation of follow-up care is mandatory. This includes dates and times of appointment..."
     3 finding(s)
 
 A necessity-mismatch finding (`necessity|<order>` dedupe key):
@@ -130,8 +149,8 @@ Latest run:
     doc type: any
     [required] hba1c — missing indication
       An HbA1c order is documented without a supporting indication. Please document the indication, if applicable (e.g. diabetes risk factors, signs/symptoms of diabetes, or known diabetes/prediabetes follow-up).
-      source: CHI-NEC-HBA1C/pg3/p2 (p.3) — "This guidance focuses on testing hemoglobin A1c (HbA1c) levels for screening, diagnosis an..."
-      source: CHI-NEC-HBA1C/pg4/p2 (p.4) — "HbA1c testing is indicated in patients presenting with signs or symptoms of diabetes melli..."
+      source: [CHI] CHI-NEC-HBA1C/pg3/p2 (p.3) — "This guidance focuses on testing hemoglobin A1c (HbA1c) levels for screening, diagnosis an..."
+      source: [CHI] CHI-NEC-HBA1C/pg4/p2 (p.4) — "HbA1c testing is indicated in patients presenting with signs or symptoms of diabetes melli..."
     1 finding(s)
 
 ## Condition coverage
@@ -281,8 +300,8 @@ precondition fails:
 
     [recommended] malnutrition — not confirmed by the treating doctor
                   (documented in the allied_health note)
-      source: CDI-2021/allied-health/p2 (p.130)
-      source: CDI-2021/allied-health-request-and-allied-health-note/p13 (p.74)
+      source: [TCC] CDI-2021/allied-health/p2 (p.130)
+      source: [TCC] CDI-2021/allied-health-request-and-allied-health-note/p13 (p.74)
 
 Authored at `recommended`, not `required`: a single-note audit cannot rule out
 that the doctor recorded the condition elsewhere in the chart — the same
@@ -352,15 +371,16 @@ Most axis term lists are not mutually exclusive — `acute respiratory
 failure|onset` lists acute / chronic / acute on chronic, a note can carry two of
 them, and "acute" appears in ordinary prose like "no acute infiltrate".
 
-RULE B, disclosed: grepping all 3,017 clauses for "conflicting" and "contradict"
+RULE B, disclosed: grepping all 4,655 clauses for "conflicting" and "contradict"
 returns zero hits in CDI-2021. The closest governing statement is the
 Correctness chapter's *"Correct documentation is unambiguous"*, so this entry is
 authored at `recommended` on generic authority rather than stretched into a
 mandate it does not have.
 
 ## What this demo proves / does not prove
-Proves: a 3-layer KB (booklet + 6 CHI condition-specific guidelines + 4 CHI
-necessity-criteria docs, 11 sources / 3,017 clauses) with citation-verified
+Proves: a 4-layer KB (booklet + 6 CHI condition-specific guidelines + 4 CHI
+necessity-criteria docs + 31 MOH-KSA national protocols, 42 sources / 4,655
+clauses) with citation-verified
 findings across six finding types — diagnosis-specificity gaps (35
 conditions), doc-type completeness gaps (5 doc types, 19 elements),
 order-necessity mismatches (4 rules), provider-confirmation gaps
